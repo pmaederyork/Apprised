@@ -96,10 +96,17 @@
     border: 1px solid #e7e5e4;
     border-radius: 8px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     background: #f9f9f9;
     overflow: hidden;
+}
+
+.file-thumbnail.pasted-content {
+    background: #fef7ed;
+    border-color: #ea580c;
+    border-style: dashed;
 }
 
 .file-thumbnail img {
@@ -109,8 +116,29 @@
 }
 
 .file-thumbnail .file-icon {
-    font-size: 32px;
+    font-size: 24px;
     color: #78716c;
+    margin-bottom: 4px;
+}
+
+.file-thumbnail .file-name {
+    font-size: 10px;
+    color: #78716c;
+    text-align: center;
+    line-height: 1.2;
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-thumbnail.pasted-content .file-icon {
+    color: #ea580c;
+}
+
+.file-thumbnail.pasted-content .file-name {
+    color: #ea580c;
+    font-weight: 500;
 }
 
 .file-remove-btn {
