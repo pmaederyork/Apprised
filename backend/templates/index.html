@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plaud Chat</title>
+    <link rel="icon" type="image/svg+xml" href="/static/icons/claude-color.svg">
+    
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/sidebar.css">
+    <link rel="stylesheet" href="/static/css/chat.css">
+    <link rel="stylesheet" href="/static/css/editor.css">
+    <link rel="stylesheet" href="/static/css/components.css">
+    <link rel="stylesheet" href="/static/css/buttons.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button class="quit-btn sidebar-quit-btn" id="quitBtn" title="Quit Plaud">Quit</button>
+                <button class="new-chat-btn" id="newChatBtn">
+                    + Chat
+                </button>
+            </div>
+            <div class="sidebar-content" id="sidebarContent">
+                <div class="system-prompt-section">
+                    <div class="section-header" id="systemPromptHeader">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="collapse-icon" id="systemPromptCollapse">▼</span>
+                            <span class="section-title" style="margin: 0;">SYSTEM PROMPT</span>
+                        </div>
+                        <button class="add-prompt-btn" id="addPromptBtn" title="Add new system prompt">+</button>
+                    </div>
+                    <div class="system-prompt-list" id="systemPromptList">
+                        <!-- System prompt items will be populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="section-title">Conversations</div>
+                <div id="chatList">
+                    <!-- Chat items will be populated by JavaScript -->
+                </div>
+                
+                <div class="tools-section">
+                    <div class="section-title">TOOLS</div>
+                    <div class="tool-item">
+                        <div class="tool-content">
+                            <span class="tool-name">Web Search</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="webSearchToggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar-resize-handle" id="sidebarResizeHandle"></div>
+        </div>
+        
+        <div class="chat-container" id="chatContainer">
+            <div class="chat-header">
+                <input type="text" class="chat-title" id="chatTitle" value="New Chat" />
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message claude">
+                    <div class="message-bubble">
+                        Hello! I'm Claude. Ask me anything and I'll do my best to help you.
+                    </div>
+                </div>
+            </div>
+            <div class="loading" id="loading">
+                <span class="loading-dots">Claude is thinking...</span>
+            </div>
+            <div class="file-preview-area" id="filePreviewArea" style="display: none;">
+                <!-- File thumbnails will be populated here -->
+            </div>
+            <div class="chat-input-container">
+                <input type="text" id="messageInput" placeholder="Reply to Claude..." />
+                <input type="file" id="fileInput" multiple style="display: none;" />
+                <button id="fileBtn" title="Attach files">📎</button>
+                <button id="sendBtn">↗</button>
+            </div>
+        </div>
+        
+        <div class="system-prompt-editor" id="systemPromptEditor">
+            <div class="editor-header">
+                <input type="text" class="editor-title" id="editorTitle" placeholder="System Prompt Name" />
+                <div class="editor-actions">
+                    <button class="editor-btn" id="exitEditorBtn">Back to Chat</button>
+                </div>
+            </div>
+            <div class="editor-content">
+                <textarea class="system-prompt-textarea" id="systemPromptTextarea" placeholder="Enter your system prompt here..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <script src="/static/js/storage.js"></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/components.js"></script>
+    <script src="/static/js/ui.js"></script>
+    <script src="/static/js/chat.js"></script>
+    <script src="/static/js/systemPrompts.js"></script>
+    <script src="/static/js/tools.js"></script>
+    <script src="/static/js/files.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

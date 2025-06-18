@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create:*)",
+      "Bash(npx create-tauri-app:*)",
+      "Bash(cargo install:*)",
+      "Bash(cargo create-tauri-app:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(find:*)",
+      "Bash(rg:*)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(python3:*)"
+    ],
+    "deny": []
+  }
+}

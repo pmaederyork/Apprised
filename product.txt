@@ -1,0 +1,89 @@
+Plaud Chat - Product Features Outline
+Core Chat Features
+Multi-Chat Management
+
+Create new chat conversations
+Switch between multiple active chats
+View chat history and conversation list
+Rename chat conversations (double-click to edit)
+Delete individual chats with confirmation
+Real-time Messaging
+
+Send messages to Claude AI assistant
+Receive streaming responses in real-time
+Message history persistence across sessions
+Formatted message display with markdown support (bold, italic, code, headers)
+System Prompt Management
+Custom System Prompts
+
+Create multiple reusable system prompts
+Edit system prompts in dedicated editor interface
+Activate/deactivate specific system prompts for conversations
+Rename system prompts (double-click to edit)
+Delete system prompts with confirmation
+Organize prompts in collapsible sidebar section
+System Prompt Editor
+
+Full-screen editing interface
+Auto-save functionality while typing
+Switch between chat and editor views
+Exit editor with keyboard shortcut (Escape)
+AI Tools Integration
+Web Search Tool
+Toggle web search capability on/off
+Allows Claude to search the internet for current information
+Visual toggle switch in tools section
+User Interface Features
+Responsive Layout
+
+Resizable sidebar (drag to adjust width)
+Clean, modern interface design
+Organized sections for different features
+Smart Chat Experience
+
+Auto-scroll to latest messages
+Detect when user scrolls up to prevent auto-scrolling
+Typing indicators during Claude's response
+Message input focus management
+Navigation & Controls
+
+Keyboard shortcuts (Enter to send, Cmd/Ctrl+N for new chat, Cmd/Ctrl+Q to quit)
+Collapsible sidebar sections
+Hover actions for edit/delete operations
+Quick access buttons for common actions
+Data Management
+Persistent Storage
+
+All chats saved automatically
+System prompts preserved between sessions
+Tool preferences remembered
+No data loss on app restart
+Chat Organization
+
+Chronological chat listing (newest first)
+Active chat highlighting
+Chat title editing and display
+Desktop Integration (macOS)
+Native App Experience
+Launch as standalone macOS application
+Custom app icon and branding
+Quit functionality that properly closes the application
+Runs on local server (127.0.0.1:5000)
+User Experience Features
+Error Handling
+
+Graceful error messages for API failures
+Connection status awareness
+Confirmation dialogs for destructive actions
+Visual Feedback
+
+Loading states during message processing
+Success/error notifications
+Active state indicators
+Smooth animations and transitions
+Accessibility
+
+Keyboard navigation support
+Clear visual hierarchy
+Readable typography and spacing
+Intuitive interaction patterns

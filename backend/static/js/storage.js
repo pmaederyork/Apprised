@@ -1,0 +1,54 @@
+/**
+ * Storage utilities for localStorage operations
+ */
+const Storage = {
+    // Chat storage
+    getChats() {
+        try {
+            return JSON.parse(localStorage.getItem('chats') || '{}');
+        } catch (error) {
+            console.warn('Failed to parse chats from localStorage:', error);
+            return {};
+        }
+    },
+
+    saveChats(chats) {
+        localStorage.setItem('chats', JSON.stringify(chats));
+    },
+
+    // System prompt storage
+    getSystemPrompts() {
+        try {
+            return JSON.parse(localStorage.getItem('systemPrompts') || '{}');
+        } catch (error) {
+            console.warn('Failed to parse system prompts from localStorage:', error);
+            return {};
+        }
+    },
+
+    saveSystemPrompts(systemPrompts) {
+        localStorage.setItem('systemPrompts', JSON.stringify(systemPrompts));
+    },
+
+    // Active system prompt
+    getActiveSystemPromptId() {
+        return localStorage.getItem('activeSystemPromptId') || null;
+    },
+
+    saveActiveSystemPromptId(promptId) {
+        if (promptId) {
+            localStorage.setItem('activeSystemPromptId', promptId);
+        } else {
+            localStorage.removeItem('activeSystemPromptId');
+        }
+    },
+
+    // ID generators
+    generateChatId() {
+        return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    },
+
+    generateSystemPromptId() {
+        return 'prompt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+};
