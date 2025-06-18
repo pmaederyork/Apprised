@@ -19,6 +19,7 @@
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <button class="quit-btn sidebar-quit-btn" id="quitBtn" title="Quit Plaud">Quit</button>
+                <button class="settings-btn" id="settingsBtn" title="API Settings">⚙️</button>
                 <button class="new-chat-btn" id="newChatBtn">
                     + Chat
                 </button>
@@ -93,6 +94,39 @@
                 <textarea class="system-prompt-textarea" id="systemPromptTextarea" placeholder="Enter your system prompt here..."></textarea>
             </div>
         </div>
+
+        <!-- API Key Settings Modal -->
+        <div class="settings-modal" id="settingsModal" style="display: none;">
+            <div class="settings-modal-content">
+                <div class="settings-header">
+                    <h3>API Settings</h3>
+                    <button class="close-settings-btn" id="closeSettingsBtn">×</button>
+                </div>
+                <div class="settings-body">
+                    <div class="api-key-section">
+                        <label for="apiKeyInput">Anthropic API Key:</label>
+                        <div class="api-key-input-container">
+                            <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." />
+                            <button class="show-hide-btn" id="showHideBtn" title="Show/Hide API Key">👁️</button>
+                        </div>
+                        <div class="api-key-status" id="apiKeyStatus"></div>
+                        <div class="api-key-actions">
+                            <button class="save-api-key-btn" id="saveApiKeyBtn">Save API Key</button>
+                            <button class="delete-api-key-btn" id="deleteApiKeyBtn">Delete API Key</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Key Required Notification -->
+        <div class="api-key-notification" id="apiKeyNotification" style="display: none;">
+            <div class="notification-content">
+                <h3>API Key Required</h3>
+                <p>Please add your Anthropic API key in Settings before using the chat.</p>
+                <button class="open-settings-btn" id="openSettingsFromNotification">Open Settings</button>
+            </div>
+        </div>
     </div>
 
     <!-- JavaScript Modules -->
@@ -104,6 +138,7 @@
     <script src="/static/js/systemPrompts.js"></script>
     <script src="/static/js/tools.js"></script>
     <script src="/static/js/files.js"></script>
+    <script src="/static/js/settings.js"></script>
     <script src="/static/js/app.js"></script>
 </body>
 </html>

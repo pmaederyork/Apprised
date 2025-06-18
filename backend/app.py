@@ -20,12 +20,8 @@ app = Flask(__name__,
             static_folder='static',
             template_folder='templates')
 
-client = anthropic.Anthropic(
-    api_key=os.getenv('ANTHROPIC_API_KEY'),
-    default_headers={
-        "anthropic-beta": "pdfs-2024-09-25"
-    }
-)
+# Initialize client without API key - will be set per request
+default_headers = {"anthropic-beta": "pdfs-2024-09-25"}
 
 @app.route('/')
 def index():
@@ -33,6 +29,24 @@ def index():
 
 @app.route('/chat', methods=['POST'])
 def chat():
+    # Get API key from request headers
+    api_key = request.headers.get('X-API-Key')
+    if not api_key:
+        # Fallback to environment variable for backward compatibility
+        api_key = os.getenv('ANTHROPIC_API_KEY')
+    
+    if not api_key:
+        return jsonify({'error': 'API key required. Please add your Anthropic API key in Settings.'}), 401
+    
+    # Create client with the provided API key
+    try:
+        client = anthropic.Anthropic(
+            api_key=api_key,
+            default_headers=default_headers
+        )
+    except Exception:
+        return jsonify({'error': 'Invalid API key format'}), 401
+    
     data = request.json
     question = data.get('message', '')
     history = data.get('history', [])
@@ -206,7 +220,13 @@ def chat():
                 yield f"data: {json.dumps({'done': True})}\n\n"
                 
             except Exception as e:
-                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                error_message = str(e)
+                # Handle specific Anthropic API errors
+                if 'authentication' in error_message.lower() or 'api key' in error_message.lower():
+                    error_message = 'Invalid API key. Please check your API key in Settings.'
+                elif 'usage' in error_message.lower() or 'quota' in error_message.lower():
+                    error_message = 'API usage limit reached. Please check your account.'
+                yield f"data: {json.dumps({'error': error_message})}\n\n"
         
         return Response(generate(), mimetype='text/plain')
         

@@ -50,5 +50,27 @@ const Storage = {
 
     generateSystemPromptId() {
         return 'prompt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    },
+
+    // API Key storage
+    getApiKey() {
+        return localStorage.getItem('anthropicApiKey') || null;
+    },
+
+    saveApiKey(apiKey) {
+        if (apiKey && apiKey.trim()) {
+            localStorage.setItem('anthropicApiKey', apiKey.trim());
+        } else {
+            localStorage.removeItem('anthropicApiKey');
+        }
+    },
+
+    deleteApiKey() {
+        localStorage.removeItem('anthropicApiKey');
+    },
+
+    hasApiKey() {
+        const apiKey = this.getApiKey();
+        return apiKey && apiKey.length > 0;
     }
 };

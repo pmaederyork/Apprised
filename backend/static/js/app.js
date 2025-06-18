@@ -91,6 +91,14 @@ const App = {
             console.error('Failed to initialize Files:', error);
         }
         
+        // Initialize settings module
+        try {
+            Settings.init();
+            console.log('Settings module initialized');
+        } catch (error) {
+            console.error('Failed to initialize Settings:', error);
+        }
+        
         console.log('Module initialization completed');
     },
 

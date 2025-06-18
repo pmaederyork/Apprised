@@ -1,0 +1,239 @@
+/**
+ * Settings module for managing API key and other settings
+ */
+const Settings = {
+    elements: {
+        settingsBtn: null,
+        settingsModal: null,
+        closeSettingsBtn: null,
+        apiKeyInput: null,
+        showHideBtn: null,
+        apiKeyStatus: null,
+        saveApiKeyBtn: null,
+        deleteApiKeyBtn: null,
+        apiKeyNotification: null,
+        openSettingsFromNotification: null
+    },
+
+    init() {
+        this.initElements();
+        this.bindEvents();
+        this.loadApiKey();
+        this.updateUI();
+    },
+
+    initElements() {
+        this.elements.settingsBtn = document.getElementById('settingsBtn');
+        this.elements.settingsModal = document.getElementById('settingsModal');
+        this.elements.closeSettingsBtn = document.getElementById('closeSettingsBtn');
+        this.elements.apiKeyInput = document.getElementById('apiKeyInput');
+        this.elements.showHideBtn = document.getElementById('showHideBtn');
+        this.elements.apiKeyStatus = document.getElementById('apiKeyStatus');
+        this.elements.saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+        this.elements.deleteApiKeyBtn = document.getElementById('deleteApiKeyBtn');
+        this.elements.apiKeyNotification = document.getElementById('apiKeyNotification');
+        this.elements.openSettingsFromNotification = document.getElementById('openSettingsFromNotification');
+    },
+
+    bindEvents() {
+        // Settings button
+        this.elements.settingsBtn?.addEventListener('click', () => this.openSettings());
+        
+        // Close settings
+        this.elements.closeSettingsBtn?.addEventListener('click', () => this.closeSettings());
+        
+        // Click outside modal to close
+        this.elements.settingsModal?.addEventListener('click', (e) => {
+            if (e.target === this.elements.settingsModal) {
+                this.closeSettings();
+            }
+        });
+        
+        // Show/hide password toggle
+        this.elements.showHideBtn?.addEventListener('click', () => this.togglePasswordVisibility());
+        
+        // Save API key
+        this.elements.saveApiKeyBtn?.addEventListener('click', () => this.saveApiKey());
+        
+        // Delete API key
+        this.elements.deleteApiKeyBtn?.addEventListener('click', () => this.deleteApiKey());
+        
+        // API key input validation
+        this.elements.apiKeyInput?.addEventListener('input', () => this.validateApiKey());
+        
+        // Enter key to save
+        this.elements.apiKeyInput?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.saveApiKey();
+            }
+        });
+        
+        // Open settings from notification
+        this.elements.openSettingsFromNotification?.addEventListener('click', () => {
+            this.hideApiKeyNotification();
+            this.openSettings();
+        });
+        
+        // ESC key to close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (this.elements.settingsModal?.style.display !== 'none') {
+                    this.closeSettings();
+                }
+                if (this.elements.apiKeyNotification?.style.display !== 'none') {
+                    this.hideApiKeyNotification();
+                }
+            }
+        });
+    },
+
+    loadApiKey() {
+        const apiKey = Storage.getApiKey();
+        if (apiKey) {
+            this.elements.apiKeyInput.value = apiKey;
+            this.showStatus('API key loaded', 'success');
+        } else {
+            this.elements.apiKeyInput.value = '';
+            this.showStatus('No API key found', 'warning');
+        }
+    },
+
+    openSettings() {
+        this.elements.settingsModal.style.display = 'flex';
+        this.loadApiKey();
+        this.validateApiKey();
+        // Focus on input after modal opens
+        setTimeout(() => {
+            this.elements.apiKeyInput?.focus();
+        }, 100);
+    },
+
+    closeSettings() {
+        this.elements.settingsModal.style.display = 'none';
+    },
+
+    togglePasswordVisibility() {
+        const input = this.elements.apiKeyInput;
+        const btn = this.elements.showHideBtn;
+        
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.textContent = '🙈';
+        } else {
+            input.type = 'password';
+            btn.textContent = '👁️';
+        }
+    },
+
+    validateApiKey() {
+        const apiKey = this.elements.apiKeyInput.value.trim();
+        const isValid = apiKey.length > 0 && apiKey.startsWith('sk-ant-');
+        
+        // Enable/disable save button
+        this.elements.saveApiKeyBtn.disabled = !isValid;
+        
+        if (apiKey.length === 0) {
+            this.showStatus('Enter your API key', 'warning');
+        } else if (!apiKey.startsWith('sk-ant-')) {
+            this.showStatus('Invalid API key format', 'error');
+        } else if (apiKey.length < 50) {
+            this.showStatus('API key seems too short', 'warning');
+        } else {
+            this.showStatus('API key format looks correct', 'success');
+        }
+        
+        return isValid;
+    },
+
+    saveApiKey() {
+        const apiKey = this.elements.apiKeyInput.value.trim();
+        
+        if (!this.validateApiKey()) {
+            return;
+        }
+        
+        try {
+            Storage.saveApiKey(apiKey);
+            this.showStatus('API key saved successfully!', 'success');
+            
+            // Hide notification if visible
+            this.hideApiKeyNotification();
+            
+            // Update UI
+            this.updateUI();
+            
+            // Close settings after a short delay
+            setTimeout(() => {
+                this.closeSettings();
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Error saving API key:', error);
+            this.showStatus('Error saving API key', 'error');
+        }
+    },
+
+    deleteApiKey() {
+        if (confirm('Are you sure you want to delete your API key?')) {
+            try {
+                Storage.deleteApiKey();
+                this.elements.apiKeyInput.value = '';
+                this.showStatus('API key deleted', 'warning');
+                
+                // Update UI
+                this.updateUI();
+                
+                // Show notification after a short delay
+                setTimeout(() => {
+                    this.showApiKeyNotification();
+                }, 500);
+                
+            } catch (error) {
+                console.error('Error deleting API key:', error);
+                this.showStatus('Error deleting API key', 'error');
+            }
+        }
+    },
+
+    showStatus(message, type) {
+        this.elements.apiKeyStatus.textContent = message;
+        this.elements.apiKeyStatus.className = `api-key-status ${type}`;
+        this.elements.apiKeyStatus.style.display = 'block';
+    },
+
+    updateUI() {
+        const hasApiKey = Storage.hasApiKey();
+        
+        // Update delete button state
+        this.elements.deleteApiKeyBtn.style.display = hasApiKey ? 'block' : 'none';
+        
+        // Check if we need to show the notification
+        if (!hasApiKey) {
+            this.showApiKeyNotification();
+        } else {
+            this.hideApiKeyNotification();
+        }
+    },
+
+    showApiKeyNotification() {
+        this.elements.apiKeyNotification.style.display = 'block';
+    },
+
+    hideApiKeyNotification() {
+        this.elements.apiKeyNotification.style.display = 'none';
+    },
+
+    // Public method to check if API key is available before making requests
+    checkApiKeyBeforeRequest() {
+        if (!Storage.hasApiKey()) {
+            this.showApiKeyNotification();
+            return false;
+        }
+        return true;
+    },
+
+    // Get API key for API requests
+    getApiKeyForRequest() {
+        return Storage.getApiKey();
+    }
+};
