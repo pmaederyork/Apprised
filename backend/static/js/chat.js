@@ -7,6 +7,7 @@ const Chat = {
     currentChatId: null,
     currentMessages: [],
     chats: {},
+    isSending: false,
 
     // Initialize chat system
     init() {
@@ -200,22 +201,28 @@ const Chat = {
 
     // Send a message
     async sendMessage() {
+        // Prevent duplicate sends
+        if (this.isSending) return;
+        
         const message = UI.elements.messageInput.value.trim();
         if (!message) return;
+
+        // Set sending flag
+        this.isSending = true;
 
         // Ensure we have a current chat
         if (!this.currentChatId) {
             this.createNewChat();
         }
 
-        // Get selected files
+        // Get selected files and clear immediately
         const filesData = await Files.prepareFilesForAPI();
+        Files.clearSelectedFiles();
 
         // Add user message to UI and clear input
         UI.addMessage(message, true, filesData);
         this.saveMessageToHistory(message, true, filesData);
         UI.clearMessageInput();
-        Files.clearSelectedFiles();
         UI.setSendButtonState(false);
         UI.hideLoading();
 
@@ -253,6 +260,7 @@ const Chat = {
         } catch (error) {
             UI.updateStreamingMessage(streamingBubble, `Error: ${error.message}`, true);
         } finally {
+            this.isSending = false;
             UI.setSendButtonState(true);
             UI.focusMessageInput();
         }
