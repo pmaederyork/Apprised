@@ -221,7 +221,6 @@ const Chat = {
 
         // Add user message to UI and clear input
         UI.addMessage(message, true, filesData);
-        this.saveMessageToHistory(message, true, filesData);
         UI.clearMessageInput();
         UI.setSendButtonState(false);
         UI.hideLoading();
@@ -252,13 +251,16 @@ const Chat = {
                 }
                 
                 if (data.done) {
-                    // Complete the streaming message and save to history
+                    // Complete the streaming message and save both messages to history
                     UI.updateStreamingMessage(streamingBubble, fullResponse, true);
+                    this.saveMessageToHistory(message, true, filesData);
                     this.saveMessageToHistory(fullResponse, false);
                 }
             }
         } catch (error) {
             UI.updateStreamingMessage(streamingBubble, `Error: ${error.message}`, true);
+            // Save user message to history even if API call failed
+            this.saveMessageToHistory(message, true, filesData);
         } finally {
             this.isSending = false;
             UI.setSendButtonState(true);
