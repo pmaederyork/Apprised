@@ -8,6 +8,10 @@ import os
 import signal
 import threading
 import time
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Set the process name to "Plaud" for Activity Monitor
 setproctitle.setproctitle("Plaud")
@@ -17,7 +21,7 @@ app = Flask(__name__,
             template_folder='templates')
 
 client = anthropic.Anthropic(
-    api_key="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",
+    api_key=os.getenv('ANTHROPIC_API_KEY'),
     default_headers={
         "anthropic-beta": "pdfs-2024-09-25"
     }
