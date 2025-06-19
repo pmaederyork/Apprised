@@ -293,36 +293,6 @@ const Chat = {
         return [...this.currentMessages];
     },
 
-    // Export chat data (for backup/sharing)
-    exportChat(chatId = null) {
-        const targetChatId = chatId || this.currentChatId;
-        if (targetChatId && this.chats[targetChatId]) {
-            return JSON.stringify(this.chats[targetChatId], null, 2);
-        }
-        return null;
-    },
-
-    // Import chat data
-    importChat(chatData) {
-        try {
-            const chat = JSON.parse(chatData);
-            if (chat.id && chat.title && Array.isArray(chat.messages)) {
-                // Generate new ID to avoid conflicts
-                const newId = Storage.generateChatId();
-                chat.id = newId;
-                chat.title = `${chat.title} (imported)`;
-                chat.createdAt = Date.now();
-                
-                this.chats[newId] = chat;
-                Storage.saveChats(this.chats);
-                this.renderChatList();
-                return newId;
-            }
-        } catch (error) {
-            console.error('Failed to import chat:', error);
-        }
-        return null;
-    },
 
     // Rename chat
     renameChat(chatId, newTitle) {
@@ -336,20 +306,5 @@ const Chat = {
                 UI.elements.chatTitle.value = newTitle;
             }
         }
-    },
-
-    // Get chat statistics
-    getStats() {
-        const totalChats = Object.keys(this.chats).length;
-        const totalMessages = Object.values(this.chats).reduce((sum, chat) => sum + chat.messages.length, 0);
-        const oldestChat = Object.values(this.chats).reduce((oldest, chat) => 
-            !oldest || chat.createdAt < oldest.createdAt ? chat : oldest, null);
-        
-        return {
-            totalChats,
-            totalMessages,
-            oldestChatDate: oldestChat ? new Date(oldestChat.createdAt) : null,
-            currentChatId: this.currentChatId
-        };
     }
 };

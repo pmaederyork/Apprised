@@ -8,10 +8,7 @@ import os
 import signal
 import threading
 import time
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
+import base64
 
 # Set the process name to "Plaud" for Activity Monitor
 setproctitle.setproctitle("Plaud")
@@ -22,6 +19,53 @@ app = Flask(__name__,
 
 # Initialize client without API key - will be set per request
 default_headers = {"anthropic-beta": "pdfs-2024-09-25"}
+
+def process_files(files):
+    """Process file attachments and return content parts and text content."""
+    content_parts = []
+    text_files_content = ""
+    
+    for file_data in files:
+        file_type = file_data.get('type', '')
+        base64_data = file_data.get('data', '').split(',')[1] if ',' in file_data.get('data', '') else file_data.get('data', '')
+        
+        if file_type.startswith('image/'):
+            # Handle images (PNG, JPEG, GIF, WebP, SVG)
+            content_parts.append({
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": file_type,
+                    "data": base64_data
+                }
+            })
+        elif file_type == 'application/pdf':
+            # Handle PDFs (only PDF is supported for document type)
+            content_parts.append({
+                "type": "document",
+                "source": {
+                    "type": "base64",
+                    "media_type": file_type,
+                    "data": base64_data
+                }
+            })
+        elif file_type in [
+            'text/csv',
+            'text/plain',
+            'text/html',
+            'application/json',
+            'text/javascript',
+            'text/x-python',
+            'text/markdown'
+        ]:
+            # Handle text-based files by extracting content and including as text
+            try:
+                file_content = base64.b64decode(base64_data).decode('utf-8')
+                text_files_content += f"--- File: {file_data.get('name', 'unknown')} ({file_type}) ---\n{file_content}\n--- End of File ---\n\n"
+            except Exception as e:
+                print(f"Error processing text file {file_data.get('name', 'unknown')}: {e}")
+    
+    return content_parts, text_files_content
 
 @app.route('/')
 def index():
@@ -68,50 +112,7 @@ def chat():
             # Handle files in history
             msg_files = msg.get('files', [])
             if msg_files and role == "user":
-                content_parts = []
-                text_files_content = ""
-                
-                # Process files
-                for file_data in msg_files:
-                    file_type = file_data.get('type', '')
-                    base64_data = file_data.get('data', '').split(',')[1] if ',' in file_data.get('data', '') else file_data.get('data', '')
-                    
-                    if file_type.startswith('image/'):
-                        # Handle images (PNG, JPEG, GIF, WebP, SVG)
-                        content_parts.append({
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": file_type,
-                                "data": base64_data
-                            }
-                        })
-                    elif file_type == 'application/pdf':
-                        # Handle PDFs (only PDF is supported for document type)
-                        content_parts.append({
-                            "type": "document",
-                            "source": {
-                                "type": "base64",
-                                "media_type": file_type,
-                                "data": base64_data
-                            }
-                        })
-                    elif file_type in [
-                        'text/csv',
-                        'text/plain',
-                        'text/html',
-                        'application/json',
-                        'text/javascript',
-                        'text/x-python',
-                        'text/markdown'
-                    ]:
-                        # Handle text-based files by extracting content and including as text
-                        try:
-                            import base64
-                            file_content = base64.b64decode(base64_data).decode('utf-8')
-                            text_files_content += f"--- File: {file_data.get('name', 'unknown')} ({file_type}) ---\n{file_content}\n--- End of File ---\n\n"
-                        except Exception as e:
-                            print(f"Error processing text file {file_data.get('name', 'unknown')}: {e}")
+                content_parts, text_files_content = process_files(msg_files)
                 
                 # Add text content (original message + any text files)
                 final_text = text_files_content + msg.get('content', '') if text_files_content else msg.get('content', '')
@@ -132,50 +133,7 @@ def chat():
         
         # Add current question with files
         if files:
-            content_parts = []
-            text_files_content = ""
-            
-            # Process files
-            for file_data in files:
-                file_type = file_data.get('type', '')
-                base64_data = file_data.get('data', '').split(',')[1] if ',' in file_data.get('data', '') else file_data.get('data', '')
-                
-                if file_type.startswith('image/'):
-                    # Handle images (PNG, JPEG, GIF, WebP, SVG)
-                    content_parts.append({
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": file_type,
-                            "data": base64_data
-                        }
-                    })
-                elif file_type == 'application/pdf':
-                    # Handle PDFs (only PDF is supported for document type)
-                    content_parts.append({
-                        "type": "document",
-                        "source": {
-                            "type": "base64",
-                            "media_type": file_type,
-                            "data": base64_data
-                        }
-                    })
-                elif file_type in [
-                    'text/csv',
-                    'text/plain',
-                    'text/html',
-                    'application/json',
-                    'text/javascript',
-                    'text/x-python',
-                    'text/markdown'
-                ]:
-                    # Handle text-based files by extracting content and including as text
-                    try:
-                        import base64
-                        file_content = base64.b64decode(base64_data).decode('utf-8')
-                        text_files_content += f"--- File: {file_data.get('name', 'unknown')} ({file_type}) ---\n{file_content}\n--- End of File ---\n\n"
-                    except Exception as e:
-                        print(f"Error processing text file {file_data.get('name', 'unknown')}: {e}")
+            content_parts, text_files_content = process_files(files)
             
             # Add text content (any text files + original question)
             final_text = text_files_content + question if text_files_content else question

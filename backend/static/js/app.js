@@ -300,41 +300,6 @@ const App = {
         }
     },
 
-    // Debug utilities
-    debug: {
-        getState() {
-            return {
-                app: App.state,
-                chats: Storage.getChats(),
-                systemPrompts: Storage.getSystemPrompts(),
-                activePrompt: Storage.getActiveSystemPromptId()
-            };
-        },
-        
-        clearAllData() {
-            if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
-                localStorage.clear();
-                location.reload();
-            }
-        },
-        
-        exportData() {
-            const data = {
-                chats: Storage.getChats(),
-                systemPrompts: Storage.getSystemPrompts(),
-                activePrompt: Storage.getActiveSystemPromptId(),
-                exported: new Date().toISOString()
-            };
-            
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `plaud-backup-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-    }
 };
 
 // Initialize the app when DOM is ready
