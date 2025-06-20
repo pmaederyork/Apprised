@@ -29,6 +29,8 @@ const UI = {
         documentEditor: document.getElementById('documentEditor'),
         documentTitle: document.getElementById('documentTitle'),
         documentTextarea: document.getElementById('documentTextarea'),
+        undoBtn: document.getElementById('undoBtn'),
+        redoBtn: document.getElementById('redoBtn'),
         closeDocumentBtn: document.getElementById('closeDocumentBtn'),
         chatContainer: document.getElementById('chatContainer'),
         systemPromptEditor: document.getElementById('systemPromptEditor'),

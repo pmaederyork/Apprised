@@ -232,6 +232,24 @@
     border-color: #ea580c;
 }
 
+.markdown-btn:disabled {
+    background: #f9f9f9;
+    color: #a8a29e;
+    border-color: #e7e5e4;
+    cursor: not-allowed;
+}
+
+.markdown-btn:disabled:hover {
+    background: #f9f9f9;
+    border-color: #e7e5e4;
+}
+
+#boldBtn {
+    margin-left: 8px;
+    border-left: 1px solid #d6d3d1;
+    padding-left: 12px;
+}
+
 /* File Button */
 #fileBtn {
     padding: 12px 16px;

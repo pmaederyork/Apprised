@@ -1,4 +1,9 @@
-# Plaud Chat - Sidebar Section Implementation Pattern
+# Plaud Chat - RULES
+## For all edits with Claude Code:
+Ask followup questions.
+Review the code first, then make a plan, then implement. Don’t break or change anything else.
+I will test manually
+
 
 ## How to Add New Collapsible Sidebar Sections
 
@@ -254,3 +259,102 @@ try {
 - [ ] app.js - Add module initialization
 
 **Examples:** Documents system demonstrates all these patterns perfectly.
+
+---
+
+## Adding Undo/Redo to Text Editors
+
+Based on the Documents editor undo/redo implementation:
+
+### Implementation Strategy
+
+**Smart State Capture:**
+- **Immediate capture**: Before formatting operations (bold, italic, headers, etc.)
+- **Debounced capture**: After typing changes (1 second delay to avoid every keystroke)
+- **Duplicate prevention**: Don't capture if content hasn't actually changed
+- **Memory management**: Limit to 50 operations per document with automatic cleanup
+
+**Data Structure:**
+```javascript
+// Per document history management:
+{
+  undoStacks: {}, // Per document undo stacks  
+  redoStacks: {}, // Per document redo stacks
+  maxHistorySize: 50,
+  inputTimeout: null
+}
+
+// Each state entry:
+{
+  content: "document text",
+  selectionStart: 0,
+  selectionEnd: 0, 
+  timestamp: Date.now()
+}
+```
+
+### Key Implementation Patterns
+
+**1. Non-Breaking Extension:**
+- **Override existing methods**: Extend `wrapSelectedText`, `insertTextAtCursor`, `insertAtLineStart` instead of replacing
+- **Preserve all functionality**: Add history capture without changing existing behavior
+- **Maintain auto-save**: Undo/redo operations trigger existing `scheduleAutoSave()`
+
+**2. Smart Integration Points:**
+- **Format operations**: Capture state before each formatting operation
+- **Input events**: Debounced capture from textarea input events (1 second delay)
+- **Clear redo stack**: When new changes are made, clear redo history
+- **Button state management**: Enable/disable undo/redo buttons based on stack availability
+
+**3. Cursor Preservation:**
+- **Store selection**: Save `selectionStart` and `selectionEnd` with each state
+- **Restore selection**: Use `setSelectionRange()` to restore exact cursor position
+- **Focus management**: Maintain focus on textarea after operations
+
+**4. UI Integration:**
+```html
+<!-- Add to toolbar with visual separator -->
+<button class="markdown-btn" id="undoBtn" title="Undo (Ctrl+Z)">↶</button>
+<button class="markdown-btn" id="redoBtn" title="Redo (Ctrl+Y)">↷</button>
+<!-- Separator styling -->
+#boldBtn { margin-left: 8px; border-left: 1px solid #d6d3d1; }
+```
+
+**5. Keyboard Shortcuts:**
+```javascript
+// In existing keyboard handler, add:
+case 'z':
+    e.preventDefault();
+    if (e.shiftKey) {
+        this.redo(); // Ctrl+Shift+Z
+    } else {
+        this.undo(); // Ctrl+Z  
+    }
+    break;
+case 'y':
+    e.preventDefault();
+    this.redo(); // Ctrl+Y
+    break;
+```
+
+### Critical Success Factors
+
+**✅ Essential Patterns:**
+1. **Per-document history**: Each document maintains separate undo/redo stacks
+2. **Debounced input capture**: Avoid capturing every keystroke, use 1 second delay
+3. **State before operations**: Always capture state before formatting operations
+4. **Clear redo on new changes**: New edits should clear the redo stack
+5. **Preserve cursor position**: Store and restore selection with content
+6. **Button state updates**: Disable buttons when stacks are empty
+7. **Memory limits**: Prevent unlimited history growth
+8. **Integration with auto-save**: Undo/redo should trigger existing save mechanisms
+
+### File Modifications Required
+- [ ] **HTML**: Add undo/redo buttons to toolbar
+- [ ] **buttons.css**: Add disabled states and separator styling  
+- [ ] **ui.js**: Add DOM references for undo/redo buttons
+- [ ] **[module].js**: Add history state, capture methods, undo/redo operations
+- [ ] **[module].js**: Override text manipulation methods to capture history
+- [ ] **[module].js**: Add keyboard shortcuts to existing handler
+
+This approach provides professional-grade undo/redo without breaking existing functionality.
