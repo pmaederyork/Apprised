@@ -8,6 +8,237 @@
 
 ---
 
+## Full Stack Architecture
+
+### Directory Structure
+```
+backend/
+├── app.py                    # Flask backend with Anthropic API integration
+├── templates/
+│   └── index.html           # Main SPA template with all HTML structure
+└── static/
+    ├── js/
+    │   ├── app.js           # Main application orchestration & initialization
+    │   ├── ui.js            # DOM element references & UI utilities
+    │   ├── storage.js       # localStorage wrapper for all data persistence
+    │   ├── api.js           # Anthropic API communication & streaming
+    │   ├── components.js    # Reusable UI components (createListItem, etc.)
+    │   ├── chat.js          # Chat management (CRUD, messaging, UI)
+    │   ├── systemPrompts.js # System prompt management & editor
+    │   ├── documents.js     # Document management & markdown editor
+    │   ├── files.js         # File upload & focus-aware paste handling
+    │   ├── tools.js         # Tool toggles (web search, etc.)
+    │   └── settings.js      # API key management & settings modal
+    ├── css/
+    │   ├── main.css         # Global styles & layout
+    │   ├── sidebar.css      # Sidebar styling & responsive behavior
+    │   ├── chat.css         # Chat interface & message styling
+    │   ├── editor.css       # Document editor & markdown toolbar
+    │   ├── components.css   # Reusable component styles
+    │   └── buttons.css      # Button styles & states
+    └── icons/
+        └── claude-color.svg # App icon
+```
+
+### Module Dependencies & Data Flow
+**Initialization Order (app.js):**
+1. **SystemPrompts** → Chat dependencies
+2. **Documents** → Independent document system
+3. **Chat** → Core messaging functionality  
+4. **Tools** → Feature toggles
+5. **Files** → Upload & paste handling
+6. **Settings** → API configuration
+
+**Data Flow:**
+- **Storage.js** ↔ **localStorage** (all persistence)
+- **API.js** ↔ **Flask backend** ↔ **Anthropic API**
+- **UI.js** ← **All modules** (DOM references)
+- **Components.js** ← **All modules** (reusable UI)
+
+### Core Architectural Patterns
+
+**1. Module Pattern**
+```javascript
+const ModuleName = {
+    currentId: null,
+    items: {},
+    initialized: false,
+    
+    init() {
+        if (this.initialized) return;
+        this.items = Storage.getItems();
+        this.bindEvents();
+        this.renderList();
+        this.initialized = true;
+    },
+    
+    bindEvents() { /* Always use e.stopPropagation() on action buttons */ },
+    createNew() { /* Generate unique IDs, save immediately */ },
+    renderList() { /* Use Components.createListItem() */ }
+};
+```
+
+**2. Storage Pattern**
+- **Keys:** `[itemType]s` (e.g. `chats`, `documents`)
+- **IDs:** `[prefix]_[timestamp]_[random]` (e.g. `doc_1234567890_abc123`)
+- **All operations wrapped in try/catch**
+- **Immediate save after state changes**
+
+**3. Event Handling**
+```javascript
+// Action buttons - CRITICAL: Always prevent parent events
+button.addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevents unwanted section collapse
+    this.performAction();
+});
+
+// Collapsible headers
+header.addEventListener('click', () => {
+    this.toggleCollapse(); // No preventDefault needed
+});
+```
+
+**4. UI Components**
+- **Sidebar items:** Use `Components.createListItem()` for consistency
+- **Active states:** `.active` class with orange theme `#ea580c`
+- **Collapsible sections:** `.collapsed` class with rotate icons
+
+### Adding New Functionality - Clean Tree Process
+
+**Step 1: Plan & Design**
+1. **Identify scope:** Sidebar feature, editor enhancement, or API integration?
+2. **Review existing patterns:** Find similar functionality to follow
+3. **Plan data structure:** Follow established storage patterns
+4. **Design UI integration:** Sidebar section, editor pane, or modal?
+
+**Step 2: Implementation Order (CRITICAL)**
+```
+1. storage.js     - Add storage methods first
+2. [feature].js   - Create module following patterns  
+3. ui.js          - Add DOM references
+4. index.html     - Add HTML structure
+5. [relevant].css - Add styling following patterns
+6. app.js         - Add initialization (last)
+```
+
+**Step 3: File-by-File Implementation**
+
+**storage.js - Always First:**
+```javascript
+// Follow exact naming patterns
+get[FeatureName]s() { /* try/catch pattern */ },
+save[FeatureName]s() { /* immediate persistence */ },
+generate[FeatureName]Id() { /* timestamp + random */ }
+```
+
+**[feature].js - Core Logic:**
+```javascript
+const [FeatureName] = {
+    // State management
+    current[FeatureName]Id: null,
+    [featureName]s: {},
+    initialized: false,
+    
+    // Standard lifecycle
+    init() { /* Load, bind, render, mark initialized */ },
+    bindEvents() { /* e.stopPropagation() on actions */ },
+    
+    // CRUD operations
+    createNew() { /* Generate ID, save, render, open */ },
+    open[FeatureName]() { /* Update UI, save state */ },
+    delete[FeatureName]() { /* Confirm, cleanup, save */ },
+    
+    // UI management
+    render[FeatureName]List() { /* Use Components.createListItem() */ },
+    toggle[FeatureName]Collapse() { /* Standard collapse pattern */ }
+};
+```
+
+**ui.js - DOM References:**
+```javascript
+// Add to UI.elements object
+[featureName]Header: document.getElementById('[featureName]Header'),
+[featureName]Collapse: document.getElementById('[featureName]Collapse'),
+[featureName]List: document.getElementById('[featureName]List'),
+add[FeatureName]Btn: document.getElementById('add[FeatureName]Btn')
+```
+
+**index.html - Structure:**
+```html
+<!-- Follow exact section pattern -->
+<div class="[feature]-section">
+    <div class="section-header" id="[feature]Header">
+        <span class="collapse-icon" id="[feature]Collapse">▼</span>
+        <span class="section-title">[FEATURE NAME]</span>
+        <button class="add-[feature]-btn" id="add[Feature]Btn">+</button>
+    </div>
+    <div class="[feature]-list" id="[feature]List"></div>
+</div>
+
+<!-- Add script tag in dependency order -->
+<script src="/static/js/[feature].js"></script>
+```
+
+**CSS Files - Styling:**
+```css
+/* sidebar.css - Section styling */
+.[feature]-section { /* Follow section pattern */ }
+.[feature]-list { /* Follow list pattern */ }
+.[feature]-list.collapsed { display: none; }
+
+/* buttons.css - Action buttons */
+.add-[feature]-btn { /* Follow button pattern */ }
+
+/* components.css - If new component patterns needed */
+```
+
+**app.js - Initialization (Last):**
+```javascript
+// Add to initializeModules() in dependency order
+try {
+    [FeatureName].init();
+    console.log('[FeatureName] module initialized');
+} catch (error) {
+    console.error('Failed to initialize [FeatureName]:', error);
+}
+```
+
+### Integration Points
+
+**Focus-Aware Behavior:**
+- **files.js:** Global paste handler with focus detection
+- **documents.js:** Smart HTML-to-markdown conversion for document editor
+- **chat input:** Standard text paste behavior
+
+**Copy/Paste Integration:**
+- **Copy:** Markdown → Rich HTML for external apps (Google Docs)
+- **Paste:** HTML → Clean markdown from external apps
+- **Focus routing:** `document.activeElement` detection
+
+**API Integration:**
+- **Backend endpoints:** Add to app.py following patterns
+- **Frontend calls:** Use existing API.js patterns
+- **Error handling:** Consistent user feedback
+
+### Maintaining Clean Architecture
+
+**ALWAYS Follow:**
+1. **Dependency order:** Storage → Module → UI → HTML → CSS → App
+2. **Naming consistency:** Follow established patterns exactly
+3. **Event patterns:** `e.stopPropagation()` on all action buttons
+4. **Component reuse:** Use `Components.createListItem()` for sidebar items
+5. **Error handling:** try/catch all storage operations
+6. **State management:** Immediate persistence after changes
+
+**NEVER Do:**
+1. **Skip ui.js references:** Always add DOM elements first
+2. **Inline styles:** Use CSS files following patterns
+3. **Break initialization order:** Dependencies must load first
+4. **Forget e.stopPropagation():** Action buttons will break sections
+5. **Ignore existing patterns:** Follow established code style
+
+---
+
 ## Sidebar Section Implementation
 
 ### HTML Structure Pattern
