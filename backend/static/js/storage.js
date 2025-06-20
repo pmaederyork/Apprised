@@ -70,6 +70,19 @@ const Storage = {
         return 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     },
 
+    // Last open document persistence
+    getLastOpenDocumentId() {
+        return localStorage.getItem('lastOpenDocumentId') || null;
+    },
+
+    saveLastOpenDocumentId(documentId) {
+        if (documentId) {
+            localStorage.setItem('lastOpenDocumentId', documentId);
+        } else {
+            localStorage.removeItem('lastOpenDocumentId');
+        }
+    },
+
     // API Key storage
     getApiKey() {
         return localStorage.getItem('anthropicApiKey') || null;

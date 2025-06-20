@@ -28,6 +28,9 @@ const Documents = {
         this.bindEvents();
         this.renderDocumentList();
         
+        // Restore last open document if it exists
+        this.restoreLastOpenDocument();
+        
         this.initialized = true;
     },
 
@@ -100,6 +103,9 @@ const Documents = {
 
         this.currentDocumentId = documentId;
         
+        // Save as last open document
+        Storage.saveLastOpenDocumentId(documentId);
+        
         // Update UI
         UI.elements.documentTitle.value = document.title;
         UI.elements.documentTextarea.value = document.content;
@@ -124,6 +130,9 @@ const Documents = {
             this.saveCurrentDocument();
         }
         
+        // Clear last open document
+        Storage.saveLastOpenDocumentId(null);
+        
         UI.elements.documentEditor.classList.remove('active');
         this.currentDocumentId = null;
         
@@ -137,6 +146,12 @@ const Documents = {
             // Close editor if this document is currently open
             if (this.currentDocumentId === documentId) {
                 this.closeEditor();
+            }
+            
+            // Clear last open document if it matches the deleted document
+            const lastOpenDocumentId = Storage.getLastOpenDocumentId();
+            if (lastOpenDocumentId === documentId) {
+                Storage.saveLastOpenDocumentId(null);
             }
             
             delete this.documents[documentId];
@@ -1008,5 +1023,24 @@ const Documents = {
             .trim();
 
         return markdown;
+    },
+
+    // Restore the last open document if it exists
+    restoreLastOpenDocument() {
+        const lastOpenDocumentId = Storage.getLastOpenDocumentId();
+        
+        // If no document was previously open, do nothing
+        if (!lastOpenDocumentId) {
+            return;
+        }
+        
+        // Check if the document still exists
+        if (this.documents[lastOpenDocumentId]) {
+            // Silently reopen the document
+            this.openDocument(lastOpenDocumentId);
+        } else {
+            // Document was deleted, clear the stored ID and silently continue
+            Storage.saveLastOpenDocumentId(null);
+        }
     }
 };
