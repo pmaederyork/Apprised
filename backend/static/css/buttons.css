@@ -203,6 +203,35 @@
     background: #dc2626;
 }
 
+/* Markdown Toolbar Buttons */
+.markdown-btn {
+    padding: 6px 8px;
+    border: 1px solid #e7e5e4;
+    border-radius: 4px;
+    background: white;
+    color: #1c1917;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.markdown-btn:hover {
+    background: #f5f5f4;
+    border-color: #ea580c;
+}
+
+.markdown-btn:active {
+    background: #ea580c;
+    color: white;
+    border-color: #ea580c;
+}
+
 /* File Button */
 #fileBtn {
     padding: 12px 16px;

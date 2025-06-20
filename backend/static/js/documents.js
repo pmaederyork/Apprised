@@ -54,6 +54,12 @@ const Documents = {
         UI.elements.documentTextarea?.addEventListener('input', () => {
             this.scheduleAutoSave();
         });
+
+        // Markdown toolbar button events
+        this.bindMarkdownEvents();
+
+        // Markdown keyboard shortcuts
+        this.bindMarkdownShortcuts();
     },
 
     // Create a new document
@@ -242,5 +248,258 @@ const Documents = {
             list.classList.add('collapsed');
             icon.classList.add('collapsed');
         }
+    },
+
+    // Text manipulation utilities
+    getTextareaSelection() {
+        const textarea = UI.elements.documentTextarea;
+        if (!textarea) return null;
+        
+        return {
+            start: textarea.selectionStart,
+            end: textarea.selectionEnd,
+            text: textarea.value.substring(textarea.selectionStart, textarea.selectionEnd)
+        };
+    },
+
+    insertTextAtCursor(text) {
+        const textarea = UI.elements.documentTextarea;
+        if (!textarea) return;
+        
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const before = textarea.value.substring(0, start);
+        const after = textarea.value.substring(end);
+        
+        textarea.value = before + text + after;
+        
+        // Set cursor position after inserted text
+        const newPosition = start + text.length;
+        textarea.setSelectionRange(newPosition, newPosition);
+        textarea.focus();
+        
+        // Trigger auto-save
+        this.scheduleAutoSave();
+    },
+
+    wrapSelectedText(before, after = '') {
+        const textarea = UI.elements.documentTextarea;
+        if (!textarea) return;
+        
+        const selection = this.getTextareaSelection();
+        if (!selection) return;
+        
+        const start = selection.start;
+        const end = selection.end;
+        const selectedText = selection.text;
+        
+        let wrappedText;
+        if (selectedText) {
+            wrappedText = before + selectedText + after;
+        } else {
+            // No selection, insert template
+            const placeholder = this.getPlaceholderText(before, after);
+            wrappedText = before + placeholder + after;
+        }
+        
+        const beforeText = textarea.value.substring(0, start);
+        const afterText = textarea.value.substring(end);
+        
+        textarea.value = beforeText + wrappedText + afterText;
+        
+        // Set selection around placeholder text if no text was selected
+        if (!selectedText) {
+            const placeholderStart = start + before.length;
+            const placeholderEnd = placeholderStart + this.getPlaceholderText(before, after).length;
+            textarea.setSelectionRange(placeholderStart, placeholderEnd);
+        } else {
+            // Position cursor after the wrapped text
+            const newPosition = start + wrappedText.length;
+            textarea.setSelectionRange(newPosition, newPosition);
+        }
+        
+        textarea.focus();
+        this.scheduleAutoSave();
+    },
+
+    getPlaceholderText(before, after) {
+        if (before === '**' && after === '**') return 'bold text';
+        if (before === '*' && after === '*') return 'italic text';
+        if (before === '`' && after === '`') return 'code';
+        if (before === '~~' && after === '~~') return 'strikethrough';
+        if (before === '[' && after === '](url)') return 'link text';
+        return 'text';
+    },
+
+    insertAtLineStart(prefix) {
+        const textarea = UI.elements.documentTextarea;
+        if (!textarea) return;
+        
+        const start = textarea.selectionStart;
+        const value = textarea.value;
+        
+        // Find the start of the current line
+        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        const lineEnd = value.indexOf('\n', start);
+        const actualLineEnd = lineEnd === -1 ? value.length : lineEnd;
+        
+        const currentLine = value.substring(lineStart, actualLineEnd);
+        
+        // Check if line already has this prefix
+        if (currentLine.startsWith(prefix)) {
+            // Remove the prefix
+            const newLine = currentLine.substring(prefix.length);
+            textarea.value = value.substring(0, lineStart) + newLine + value.substring(actualLineEnd);
+            textarea.setSelectionRange(start - prefix.length, start - prefix.length);
+        } else {
+            // Add the prefix
+            textarea.value = value.substring(0, lineStart) + prefix + value.substring(lineStart);
+            textarea.setSelectionRange(start + prefix.length, start + prefix.length);
+        }
+        
+        textarea.focus();
+        this.scheduleAutoSave();
+    },
+
+    // Markdown formatting functions
+    formatBold() {
+        this.wrapSelectedText('**', '**');
+    },
+
+    formatItalic() {
+        this.wrapSelectedText('*', '*');
+    },
+
+    formatCode() {
+        this.wrapSelectedText('`', '`');
+    },
+
+    formatStrikethrough() {
+        this.wrapSelectedText('~~', '~~');
+    },
+
+    formatLink() {
+        const selection = this.getTextareaSelection();
+        if (selection && selection.text) {
+            this.wrapSelectedText('[', '](url)');
+        } else {
+            this.insertTextAtCursor('[link text](url)');
+        }
+    },
+
+    formatHeader(level) {
+        const prefix = '#'.repeat(level) + ' ';
+        this.insertAtLineStart(prefix);
+    },
+
+    formatList() {
+        this.insertAtLineStart('- ');
+    },
+
+    formatOrderedList() {
+        this.insertAtLineStart('1. ');
+    },
+
+    formatBlockquote() {
+        this.insertAtLineStart('> ');
+    },
+
+    formatHorizontalRule() {
+        this.insertTextAtCursor('\n---\n');
+    },
+
+    // Bind markdown toolbar button events
+    bindMarkdownEvents() {
+        const buttons = [
+            { id: 'boldBtn', handler: () => this.formatBold() },
+            { id: 'italicBtn', handler: () => this.formatItalic() },
+            { id: 'h1Btn', handler: () => this.formatHeader(1) },
+            { id: 'h2Btn', handler: () => this.formatHeader(2) },
+            { id: 'h3Btn', handler: () => this.formatHeader(3) },
+            { id: 'codeBtn', handler: () => this.formatCode() },
+            { id: 'linkBtn', handler: () => this.formatLink() },
+            { id: 'listBtn', handler: () => this.formatList() },
+            { id: 'orderedListBtn', handler: () => this.formatOrderedList() },
+            { id: 'quoteBtn', handler: () => this.formatBlockquote() },
+            { id: 'strikeBtn', handler: () => this.formatStrikethrough() },
+            { id: 'hrBtn', handler: () => this.formatHorizontalRule() }
+        ];
+
+        buttons.forEach(({ id, handler }) => {
+            const button = document.getElementById(id);
+            if (button) {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handler();
+                });
+            }
+        });
+    },
+
+    // Bind markdown keyboard shortcuts
+    bindMarkdownShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            // Only handle shortcuts when document editor is focused
+            const textarea = UI.elements.documentTextarea;
+            if (!textarea || document.activeElement !== textarea) return;
+            
+            const isCtrlCmd = e.ctrlKey || e.metaKey;
+            
+            if (isCtrlCmd) {
+                switch (e.key) {
+                    case 'b':
+                        e.preventDefault();
+                        this.formatBold();
+                        break;
+                    case 'i':
+                        e.preventDefault();
+                        this.formatItalic();
+                        break;
+                    case '1':
+                        e.preventDefault();
+                        this.formatHeader(1);
+                        break;
+                    case '2':
+                        e.preventDefault();
+                        this.formatHeader(2);
+                        break;
+                    case '3':
+                        e.preventDefault();
+                        this.formatHeader(3);
+                        break;
+                    case '`':
+                        e.preventDefault();
+                        this.formatCode();
+                        break;
+                    case 'k':
+                        e.preventDefault();
+                        this.formatLink();
+                        break;
+                    case 'l':
+                        e.preventDefault();
+                        if (e.shiftKey) {
+                            this.formatOrderedList();
+                        } else {
+                            this.formatList();
+                        }
+                        break;
+                    case '.':
+                    case '>':
+                        e.preventDefault();
+                        this.formatBlockquote();
+                        break;
+                    case 'r':
+                        e.preventDefault();
+                        this.formatHorizontalRule();
+                        break;
+                }
+                
+                // Handle Ctrl+Shift+X for strikethrough
+                if (e.shiftKey && e.key === 'X') {
+                    e.preventDefault();
+                    this.formatStrikethrough();
+                }
+            }
+        });
     }
 };

@@ -107,3 +107,14 @@
     border-color: #ea580c;
     background: white;
 }
+
+/* Markdown Toolbar */
+.markdown-toolbar {
+    background: #fafaf9;
+    border-bottom: 1px solid #e7e5e4;
+    padding: 8px 16px;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+}
