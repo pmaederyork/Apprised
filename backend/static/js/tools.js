@@ -4,6 +4,7 @@
 const Tools = {
     // State
     webSearchEnabled: false,
+    docContextEnabled: false,
 
     // Initialize tools
     init() {
@@ -18,9 +19,11 @@ const Tools = {
             try {
                 const state = JSON.parse(saved);
                 this.webSearchEnabled = state.webSearchEnabled || false;
+                this.docContextEnabled = state.docContextEnabled || false;
             } catch (error) {
                 console.warn('Failed to load tools state:', error);
                 this.webSearchEnabled = false;
+                this.docContextEnabled = false;
             }
         }
         this.updateUI();
@@ -29,7 +32,8 @@ const Tools = {
     // Save tool states to localStorage
     saveState() {
         const state = {
-            webSearchEnabled: this.webSearchEnabled
+            webSearchEnabled: this.webSearchEnabled,
+            docContextEnabled: this.docContextEnabled
         };
         localStorage.setItem('toolsState', JSON.stringify(state));
     },
@@ -42,6 +46,13 @@ const Tools = {
                 this.setWebSearch(e.target.checked);
             });
         }
+
+        const docContextToggle = document.getElementById('docContextToggle');
+        if (docContextToggle) {
+            docContextToggle.addEventListener('change', (e) => {
+                this.setDocContext(e.target.checked);
+            });
+        }
     },
 
     // Update UI to reflect current state
@@ -49,6 +60,25 @@ const Tools = {
         const webSearchToggle = document.getElementById('webSearchToggle');
         if (webSearchToggle) {
             webSearchToggle.checked = this.webSearchEnabled;
+        }
+
+        const docContextToggle = document.getElementById('docContextToggle');
+        if (docContextToggle) {
+            docContextToggle.checked = this.docContextEnabled;
+        }
+
+        this.updateDocContextIndicator();
+    },
+
+    // Update doc context indicator visibility
+    updateDocContextIndicator() {
+        const indicator = document.getElementById('docContextIndicator');
+        if (indicator) {
+            if (this.docContextEnabled && typeof Documents !== 'undefined' && Documents.currentDocumentId) {
+                indicator.classList.add('active');
+            } else {
+                indicator.classList.remove('active');
+            }
         }
     },
 
@@ -59,9 +89,55 @@ const Tools = {
         console.log('Web search', enabled ? 'enabled' : 'disabled');
     },
 
+    // Toggle doc context
+    setDocContext(enabled) {
+        this.docContextEnabled = enabled;
+        this.saveState();
+        this.updateDocContextIndicator();
+        console.log('Doc context', enabled ? 'enabled' : 'disabled');
+    },
+
     // Get current web search state
     isWebSearchEnabled() {
         return this.webSearchEnabled;
+    },
+
+    // Get current doc context state
+    isDocContextEnabled() {
+        return this.docContextEnabled;
+    },
+
+    // Get current document as file attachment
+    getCurrentDocumentAsFile() {
+        if (!this.docContextEnabled) {
+            return null;
+        }
+
+        // Check if Documents module is available and a document is open
+        if (typeof Documents === 'undefined' || !Documents.currentDocumentId) {
+            return null;
+        }
+
+        const currentDocument = Documents.documents[Documents.currentDocumentId];
+        if (!currentDocument) {
+            return null;
+        }
+
+        // Create file attachment in same format as Files module
+        const documentContent = currentDocument.content || '';
+        const documentTitle = currentDocument.title || 'Untitled Document';
+        const fileName = `${documentTitle}.md`;
+        
+        // Convert to base64 for consistency with file system
+        const base64Content = btoa(unescape(encodeURIComponent(documentContent)));
+        
+        return {
+            id: `doc_context_${currentDocument.id}`,
+            name: fileName,
+            type: 'text/markdown',
+            size: documentContent.length,
+            data: `data:text/markdown;base64,${base64Content}`
+        };
     },
 
     // Get tools configuration for API calls

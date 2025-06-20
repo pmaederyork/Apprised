@@ -71,6 +71,15 @@
                             </label>
                         </div>
                     </div>
+                    <div class="tool-item">
+                        <div class="tool-content">
+                            <span class="tool-name">Doc Context</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="docContextToggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="sidebar-resize-handle" id="sidebarResizeHandle"></div>
@@ -96,6 +105,7 @@
             <div class="chat-input-container">
                 <input type="text" id="messageInput" placeholder="Reply to Claude..." />
                 <input type="file" id="fileInput" multiple style="display: none;" />
+                <span id="docContextIndicator" class="doc-context-indicator" title="Document context active">✓</span>
                 <button id="fileBtn" title="Attach files">📎</button>
                 <button id="sendBtn">↗</button>
             </div>

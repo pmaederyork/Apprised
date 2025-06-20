@@ -288,6 +288,14 @@ const Files = {
     async prepareFilesForAPI() {
         const filesData = [];
         
+        // Add document context if enabled and available
+        if (typeof Tools !== 'undefined') {
+            const docContextFile = Tools.getCurrentDocumentAsFile();
+            if (docContextFile) {
+                filesData.push(docContextFile);
+            }
+        }
+        
         for (const fileData of this.selectedFiles) {
             try {
                 const base64 = await this.fileToBase64(fileData.file);
