@@ -66,6 +66,17 @@ const Documents = {
             this.scheduleHistoryCapture();
         });
 
+        // Cursor position tracking for header button states
+        UI.elements.documentTextarea?.addEventListener('selectionchange', () => {
+            this.updateHeaderButtonStates();
+        });
+        UI.elements.documentTextarea?.addEventListener('click', () => {
+            this.updateHeaderButtonStates();
+        });
+        UI.elements.documentTextarea?.addEventListener('keyup', () => {
+            this.updateHeaderButtonStates();
+        });
+
         // Markdown toolbar button events
         this.bindMarkdownEvents();
 
@@ -121,6 +132,9 @@ const Documents = {
         
         // Focus the textarea
         UI.elements.documentTextarea.focus();
+        
+        // Update header button states
+        this.updateHeaderButtonStates();
     },
 
     // Close the document editor
@@ -417,8 +431,60 @@ const Documents = {
     },
 
     formatHeader(level) {
-        const prefix = '#'.repeat(level) + ' ';
-        this.insertAtLineStart(prefix);
+        // Capture state before making changes
+        this.captureCurrentState();
+        
+        const textarea = UI.elements.documentTextarea;
+        if (!textarea) return;
+        
+        const start = textarea.selectionStart;
+        const value = textarea.value;
+        
+        // Find the start of the current line
+        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        const lineEnd = value.indexOf('\n', start);
+        const actualLineEnd = lineEnd === -1 ? value.length : lineEnd;
+        
+        const currentLine = value.substring(lineStart, actualLineEnd);
+        const currentHeaderLevel = this.getCurrentHeaderLevel();
+        
+        let newLine;
+        let cursorOffset = 0;
+        
+        if (currentHeaderLevel === level) {
+            // Same header level clicked - remove header formatting
+            newLine = currentLine.replace(/^#{1,6}\s/, '');
+            cursorOffset = -(level + 1); // Account for removed # and space
+        } else if (currentHeaderLevel > 0) {
+            // Different header level - replace existing header
+            const newPrefix = '#'.repeat(level) + ' ';
+            newLine = newPrefix + currentLine.replace(/^#{1,6}\s/, '');
+            cursorOffset = level + 1 - (currentHeaderLevel + 1); // Net change in prefix length
+        } else {
+            // No header - add new header
+            const newPrefix = '#'.repeat(level) + ' ';
+            newLine = newPrefix + currentLine;
+            cursorOffset = level + 1; // Added # and space
+        }
+        
+        // Update textarea content
+        textarea.value = value.substring(0, lineStart) + newLine + value.substring(actualLineEnd);
+        
+        // Adjust cursor position
+        const newCursorPosition = Math.max(lineStart, start + cursorOffset);
+        textarea.setSelectionRange(newCursorPosition, newCursorPosition);
+        
+        textarea.focus();
+        this.scheduleAutoSave();
+        
+        // Clear redo stack since we made a new change
+        if (this.currentDocumentId) {
+            this.redoStacks[this.currentDocumentId] = [];
+            this.updateUndoRedoButtons();
+        }
+        
+        // Update button states after formatting
+        this.updateHeaderButtonStates();
     },
 
     formatList() {
@@ -770,6 +836,26 @@ const Documents = {
         }
     },
 
+    // Get current header level at cursor position (0 = no header, 1-6 = header level)
+    getCurrentHeaderLevel() {
+        const textarea = UI.elements.documentTextarea;
+        if (!textarea) return 0;
+        
+        const start = textarea.selectionStart;
+        const value = textarea.value;
+        
+        // Find the start of the current line
+        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        const lineEnd = value.indexOf('\n', start);
+        const actualLineEnd = lineEnd === -1 ? value.length : lineEnd;
+        
+        const currentLine = value.substring(lineStart, actualLineEnd);
+        
+        // Check for header patterns
+        const headerMatch = currentLine.match(/^(#{1,6})\s/);
+        return headerMatch ? headerMatch[1].length : 0;
+    },
+
     insertAtLineStart(prefix) {
         // Capture state before making changes
         this.captureCurrentState();
@@ -806,6 +892,30 @@ const Documents = {
         if (this.currentDocumentId) {
             this.redoStacks[this.currentDocumentId] = [];
             this.updateUndoRedoButtons();
+        }
+    },
+
+    // Update header button visual states based on current cursor position
+    updateHeaderButtonStates() {
+        const h1Btn = document.getElementById('h1Btn');
+        const h2Btn = document.getElementById('h2Btn');
+        const h3Btn = document.getElementById('h3Btn');
+        
+        if (!h1Btn || !h2Btn || !h3Btn) return;
+        
+        // Clear all active states
+        h1Btn.classList.remove('active');
+        h2Btn.classList.remove('active');
+        h3Btn.classList.remove('active');
+        
+        // Set active state based on current header level
+        const currentLevel = this.getCurrentHeaderLevel();
+        if (currentLevel === 1) {
+            h1Btn.classList.add('active');
+        } else if (currentLevel === 2) {
+            h2Btn.classList.add('active');
+        } else if (currentLevel === 3) {
+            h3Btn.classList.add('active');
         }
     },
 

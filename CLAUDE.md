@@ -1,8 +1,9 @@
 # Plaud Chat - Development Guide
 
 ## Development Rules
+- **Read this claude.md file everytime before making any edits
 - **Ask followup questions before starting**
-- **Review code first, make plan, then implement**
+- **Review code first, make plan for clean and simple implementation, then execute**
 - **Don't break existing functionality**
 - **Manual testing required after changes**
 

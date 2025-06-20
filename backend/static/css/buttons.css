@@ -244,6 +244,18 @@
     border-color: #e7e5e4;
 }
 
+/* Active state for header buttons */
+.markdown-btn.active {
+    background: #ea580c;
+    color: white;
+    border-color: #ea580c;
+}
+
+.markdown-btn.active:hover {
+    background: #dc2626;
+    border-color: #dc2626;
+}
+
 #boldBtn {
     margin-left: 8px;
     border-left: 1px solid #d6d3d1;
