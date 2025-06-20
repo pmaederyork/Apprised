@@ -492,7 +492,57 @@ const Documents = {
     },
 
     formatOrderedList() {
-        this.insertAtLineStart('1. ');
+        // Capture state before making changes
+        this.captureCurrentState();
+        
+        const textarea = UI.elements.documentTextarea;
+        if (!textarea) return;
+        
+        const content = textarea.value;
+        const lines = content.split('\n');
+        let counter = 1;
+        let hasChanges = false;
+        
+        // Process each line
+        const processedLines = lines.map(line => {
+            // Check if line contains bold text at the start (after any existing numbering)
+            const boldMatch = line.match(/^(\d+\.\s*)?(\*\*.*?\*\*)(.*)$/);
+            
+            if (boldMatch) {
+                const existingNumber = boldMatch[1];
+                const boldText = boldMatch[2];
+                const restOfLine = boldMatch[3];
+                
+                if (existingNumber) {
+                    // Remove existing numbering - toggle off
+                    hasChanges = true;
+                    return boldText + restOfLine;
+                } else {
+                    // Add sequential numbering
+                    hasChanges = true;
+                    return `${counter++}. ${boldText}${restOfLine}`;
+                }
+            }
+            
+            return line;
+        });
+        
+        if (hasChanges) {
+            const newContent = processedLines.join('\n');
+            const cursorPosition = textarea.selectionStart;
+            
+            textarea.value = newContent;
+            textarea.setSelectionRange(cursorPosition, cursorPosition);
+            textarea.focus();
+            
+            this.scheduleAutoSave();
+            
+            // Clear redo stack since we made a new change
+            if (this.currentDocumentId) {
+                this.redoStacks[this.currentDocumentId] = [];
+                this.updateUndoRedoButtons();
+            }
+        }
     },
 
     formatBlockquote() {
