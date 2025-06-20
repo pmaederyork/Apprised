@@ -101,6 +101,12 @@ const UI = {
         }
         
         messageDiv.appendChild(bubbleDiv);
+        
+        // Add copy-to-document button for Claude messages when appropriate
+        if (!isUser) {
+            this.addCopyToDocumentButton(messageDiv, bubbleDiv);
+        }
+        
         this.elements.chatMessages.appendChild(messageDiv);
         this.autoScroll();
 
@@ -142,6 +148,9 @@ const UI = {
         // Remove cursor when complete
         if (isComplete) {
             bubbleDiv.classList.remove('streaming-cursor');
+            // Add copy-to-document button when streaming is complete
+            const messageDiv = bubbleDiv.parentElement;
+            this.addCopyToDocumentButton(messageDiv, bubbleDiv);
         }
         
         this.autoScroll();
@@ -242,5 +251,63 @@ const UI = {
                 document.body.style.userSelect = '';
             }
         });
+    },
+
+    // Add copy-to-document button to Claude messages
+    addCopyToDocumentButton(messageDiv, bubbleDiv) {
+        // Only show button when Doc Context is enabled and document is open
+        if (typeof Tools === 'undefined' || !Tools.isDocContextEnabled()) {
+            return;
+        }
+        
+        if (typeof Documents === 'undefined' || !Documents.currentDocumentId) {
+            return;
+        }
+
+        // Check if button already exists (prevent duplicates)
+        if (messageDiv.querySelector('.copy-to-document-btn')) {
+            return;
+        }
+
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'message-actions';
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-to-document-btn';
+        copyBtn.innerHTML = '→';
+        copyBtn.title = 'Copy to Document (Tab)';
+        
+        copyBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.copyMessageToDocument(bubbleDiv);
+        });
+
+        actionsDiv.appendChild(copyBtn);
+        messageDiv.appendChild(actionsDiv);
+    },
+
+    // Copy message content to document
+    copyMessageToDocument(bubbleDiv) {
+        if (typeof Documents === 'undefined' || !Documents.currentDocumentId) {
+            return;
+        }
+
+        // Extract text content and convert HTML back to markdown
+        let content = bubbleDiv.innerHTML;
+        
+        // Convert HTML back to markdown and clean up
+        content = content
+            .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
+            .replace(/<em>(.*?)<\/em>/g, '*$1*')
+            .replace(/<code>(.*?)<\/code>/g, '`$1`')
+            .replace(/<h1>(.*?)<\/h1>/g, '# $1')
+            .replace(/<h2>(.*?)<\/h2>/g, '## $1')
+            .replace(/<h3>(.*?)<\/h3>/g, '### $1')
+            .replace(/<br>/g, '\n')
+            .replace(/\n\s*\n/g, '\n') // Remove empty lines
+            .trim();
+
+        // Insert at cursor position
+        Documents.insertTextAtCursor(content);
     }
 };

@@ -44,6 +44,14 @@ const Chat = {
             }
         });
 
+        // Tab key to copy latest Claude message to document
+        UI.elements.messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                this.copyLatestClaudeMessageToDocument();
+            }
+        });
+
         // New chat button
         const newChatBtn = document.querySelector('.new-chat-btn');
         if (newChatBtn) {
@@ -297,6 +305,28 @@ const Chat = {
     // Get current messages
     getCurrentMessages() {
         return [...this.currentMessages];
+    },
+
+    // Copy latest Claude message to document
+    copyLatestClaudeMessageToDocument() {
+        // Check if Doc Context is enabled and document is open
+        if (typeof Tools === 'undefined' || !Tools.isDocContextEnabled()) {
+            return;
+        }
+        
+        if (typeof Documents === 'undefined' || !Documents.currentDocumentId) {
+            return;
+        }
+
+        // Find the latest Claude message
+        const claudeMessages = document.querySelectorAll('.message.claude .copy-to-document-btn');
+        if (claudeMessages.length === 0) {
+            return;
+        }
+
+        // Get the last Claude message button and trigger its click
+        const lastClaudeButton = claudeMessages[claudeMessages.length - 1];
+        lastClaudeButton.click();
     },
 
 

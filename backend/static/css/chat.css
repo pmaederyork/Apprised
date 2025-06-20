@@ -244,6 +244,40 @@
     white-space: nowrap;
 }
 
+/* Message actions */
+.message-actions {
+    margin-top: 8px;
+    margin-left: 4px;
+}
+
+.copy-to-document-btn {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 14px;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    min-width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.copy-to-document-btn:hover {
+    background: #ea580c;
+    color: white;
+    border-color: #ea580c;
+    transform: translateX(2px);
+}
+
+.copy-to-document-btn:active {
+    transform: translateX(1px);
+}
+
 /* Message formatting */
 .message-bubble h1, .message-bubble h2, .message-bubble h3 {
     margin: 16px 0 8px 0;
