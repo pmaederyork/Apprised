@@ -20,9 +20,6 @@
             <div class="sidebar-header">
                 <button class="quit-btn sidebar-quit-btn" id="quitBtn" title="Quit Plaud">Quit</button>
                 <button class="settings-btn" id="settingsBtn" title="API Settings">⚙️</button>
-                <button class="new-chat-btn" id="newChatBtn">
-                    + Chat
-                </button>
             </div>
             <div class="sidebar-content" id="sidebarContent">
                 <div class="system-prompt-section">
@@ -37,9 +34,30 @@
                         <!-- System prompt items will be populated by JavaScript -->
                     </div>
                 </div>
-                <div class="section-title">Conversations</div>
-                <div id="chatList">
-                    <!-- Chat items will be populated by JavaScript -->
+                <div class="conversations-section">
+                    <div class="section-header" id="conversationsHeader">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="collapse-icon" id="conversationsCollapse">▼</span>
+                            <span class="section-title" style="margin: 0;">CONVERSATIONS</span>
+                        </div>
+                        <button class="new-chat-btn" id="newChatBtn" title="Start new chat">+</button>
+                    </div>
+                    <div class="conversations-list" id="chatList">
+                        <!-- Chat items will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <div class="documents-section">
+                    <div class="section-header" id="documentsHeader">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="collapse-icon" id="documentsCollapse">▼</span>
+                            <span class="section-title" style="margin: 0;">DOCUMENTS</span>
+                        </div>
+                        <button class="add-document-btn" id="addDocumentBtn" title="Add new document">+</button>
+                    </div>
+                    <div class="documents-list" id="documentsList">
+                        <!-- Document items will be populated by JavaScript -->
+                    </div>
                 </div>
                 
                 <div class="tools-section">

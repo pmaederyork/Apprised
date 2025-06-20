@@ -32,6 +32,20 @@
     margin-bottom: 16px;
 }
 
+/* Conversations section */
+.conversations-section {
+    border-bottom: 1px solid #e7e5e4;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+}
+
+/* Documents section */
+.documents-section {
+    border-bottom: 1px solid #e7e5e4;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+}
+
 .section-header {
     display: flex;
     align-items: center;
@@ -70,6 +84,22 @@
 }
 
 .system-prompt-list.collapsed {
+    display: none;
+}
+
+.conversations-list {
+    display: block;
+}
+
+.conversations-list.collapsed {
+    display: none;
+}
+
+.documents-list {
+    display: block;
+}
+
+.documents-list.collapsed {
     display: none;
 }
 
@@ -184,9 +214,9 @@
 
 /* Tools section */
 .tools-section {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid #e7e5e4;
+    border-bottom: 1px solid #e7e5e4;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
 }
 
 .tool-item {

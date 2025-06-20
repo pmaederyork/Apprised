@@ -47,7 +47,8 @@ const Chat = {
         // New chat button
         const newChatBtn = document.querySelector('.new-chat-btn');
         if (newChatBtn) {
-            newChatBtn.addEventListener('click', () => {
+            newChatBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent collapsing the section
                 // If in system prompt editor, save and exit first
                 if (SystemPrompts.isEditing()) {
                     SystemPrompts.saveContent();
@@ -61,6 +62,11 @@ const Chat = {
         // Chat title saving
         UI.elements.chatTitle.addEventListener('input', () => this.saveChatTitle());
         UI.elements.chatTitle.addEventListener('blur', () => this.saveChatTitle());
+        
+        // Conversations collapse functionality
+        UI.elements.conversationsHeader?.addEventListener('click', () => {
+            this.toggleConversationsCollapse();
+        });
     },
 
     // Create a new chat
@@ -305,6 +311,22 @@ const Chat = {
             if (chatId === this.currentChatId) {
                 UI.elements.chatTitle.value = newTitle;
             }
+        }
+    },
+    
+    // Toggle collapse state of conversations section
+    toggleConversationsCollapse() {
+        const list = UI.elements.conversationsList;
+        const icon = UI.elements.conversationsCollapse;
+        
+        if (!list || !icon) return;
+        
+        if (list.classList.contains('collapsed')) {
+            list.classList.remove('collapsed');
+            icon.classList.remove('collapsed');
+        } else {
+            list.classList.add('collapsed');
+            icon.classList.add('collapsed');
         }
     }
 };
