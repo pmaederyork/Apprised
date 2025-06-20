@@ -52,6 +52,24 @@ const Storage = {
         return 'prompt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     },
 
+    // Document storage
+    getDocuments() {
+        try {
+            return JSON.parse(localStorage.getItem('documents') || '{}');
+        } catch (error) {
+            console.warn('Failed to parse documents from localStorage:', error);
+            return {};
+        }
+    },
+
+    saveDocuments(documents) {
+        localStorage.setItem('documents', JSON.stringify(documents));
+    },
+
+    generateDocumentId() {
+        return 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    },
+
     // API Key storage
     getApiKey() {
         return localStorage.getItem('anthropicApiKey') || null;

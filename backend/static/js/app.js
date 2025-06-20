@@ -67,6 +67,14 @@ const App = {
             console.error('Failed to initialize SystemPrompts:', error);
         }
         
+        // Initialize documents module
+        try {
+            Documents.init();
+            console.log('Documents module initialized');
+        } catch (error) {
+            console.error('Failed to initialize Documents:', error);
+        }
+        
         // Initialize chat module
         try {
             Chat.init();
