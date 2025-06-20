@@ -63,6 +63,12 @@ const Files = {
         const clipboardData = e.clipboardData || window.clipboardData;
         if (!clipboardData) return;
 
+        // Check if document editor is focused - if so, let it handle the paste naturally
+        const documentTextarea = document.getElementById('documentTextarea');
+        if (documentTextarea && document.activeElement === documentTextarea) {
+            return; // Let the document editor handle the paste normally
+        }
+
         let hasFileContent = false;
 
         // Handle files from clipboard (images, documents)
