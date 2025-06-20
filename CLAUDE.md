@@ -532,4 +532,92 @@ if (document.activeElement === documentTextarea) {
 
 ---
 
+## Implementation Learnings - Doc Context & Copy-to-Document Features
+
+### **Key Architectural Insights**
+
+**1. Cross-Module Integration Patterns**
+- **Tools → Files → Chat → Documents:** Successfully chained modules without tight coupling
+- **Validation at integration points:** Doc Context checked in `Files.prepareFilesForAPI()` for true validation
+- **Status propagation:** Used `Tools.updateDocContextIndicatorWithStatus()` for real validation feedback
+
+**2. Message UI Extension Strategy**
+- **Non-breaking additions:** Extended `UI.addMessage()` and `UI.updateStreamingMessage()` without changing core logic
+- **Conditional feature injection:** Added `UI.addCopyToDocumentButton()` only when conditions met
+- **Streaming message completion:** Used `isComplete` flag to add buttons after streaming finishes
+
+**3. Keyboard Event Handling Best Practices**
+- **Multiple event types:** Used `keypress` for Enter (text input) and `keydown` for Tab (navigation key)
+- **Event prevention:** Always `preventDefault()` for Tab to avoid unwanted focus changes
+- **Target-specific handlers:** Bound Tab handler to `messageInput` for focused behavior
+
+**4. Content Processing Pipeline**
+```javascript
+// HTML → Markdown conversion for document insertion
+content = content
+    .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
+    .replace(/<em>(.*?)<\/em>/g, '*$1*')
+    .replace(/<code>(.*?)<\/code>/g, '`$1`')
+    .replace(/<h[1-3]>(.*?)<\/h[1-3]>/g, '# $1')
+    .replace(/<br>/g, '\n')
+    .replace(/\n\s*\n/g, '\n') // Remove empty lines
+    .trim();
+```
+
+### **Successful Implementation Patterns**
+
+**1. Reusing Existing Infrastructure**
+- **Cursor management:** Leveraged `Documents.insertTextAtCursor()` - no custom cursor tracking needed
+- **File attachment system:** Doc Context used existing file preparation pipeline
+- **Button styling:** Extended existing `.copy-to-document-btn` patterns from buttons.css
+
+**2. Smart Visibility Logic**
+- **Triple condition check:** Tools enabled + Document open + Successful context addition
+- **Progressive enhancement:** Buttons appear dynamically as conditions are met
+- **No UI clutter:** Hidden by default, only show when actually functional
+
+**3. User Experience Optimizations**
+- **Visual feedback:** Button hover effects with `transform: translateX()` for direction indication
+- **Keyboard shortcuts:** Tab key for power users + mouse clicks for accessibility
+- **Multiple message targeting:** Each Claude response gets its own button for selective copying
+
+### **Development Workflow Success Factors**
+
+**1. Module-First Planning**
+```
+Tools (toggle) → Files (validation) → UI (buttons) → Chat (keyboard) → Documents (insertion)
+```
+
+**2. Incremental Testing Points**
+- Toggle state persistence ✓
+- Button visibility conditions ✓  
+- Content extraction accuracy ✓
+- Cursor position handling ✓
+- Keyboard shortcut functionality ✓
+
+**3. CSS Conflict Resolution**
+- **Fixed duplicate display properties:** Removed conflicting `display: flex` and `display: none`
+- **Container-based styling:** Used `.message-actions` wrapper for clean button placement
+- **Animation performance:** Used `transform` instead of layout-changing properties
+
+### **Future Feature Extension Guidelines**
+
+**1. For Chat Message Enhancements:**
+- Extend `UI.addMessage()` and `UI.updateStreamingMessage()` methods
+- Add conditional UI elements via separate methods (e.g., `addCopyToDocumentButton()`)
+- Use message completion hooks for streaming-based features
+
+**2. For Cross-Module Features:**
+- Validate at the integration point, not at the UI level
+- Use status-based updates rather than state-based updates
+- Chain modules through method calls, not shared state
+
+**3. For Keyboard Shortcuts:**
+- Use `keydown` for navigation keys (Tab, Escape, Arrow keys)
+- Use `keypress` for text input keys (Enter, letters, numbers)
+- Always prevent default behavior for repurposed keys
+- Target specific input elements rather than global document handlers
+
+---
+
 **Examples:** Documents system demonstrates all patterns perfectly.
