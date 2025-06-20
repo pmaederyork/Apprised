@@ -498,12 +498,24 @@ const Documents = {
         const textarea = UI.elements.documentTextarea;
         if (!textarea) return;
         
-        const content = textarea.value;
-        const lines = content.split('\n');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        
+        // If no text is selected, do nothing
+        if (start === end) {
+            return;
+        }
+        
+        const fullContent = textarea.value;
+        const selectedText = fullContent.substring(start, end);
+        const beforeSelection = fullContent.substring(0, start);
+        const afterSelection = fullContent.substring(end);
+        
+        const lines = selectedText.split('\n');
         let counter = 1;
         let hasChanges = false;
         
-        // Process each line
+        // Process each line in the selection
         const processedLines = lines.map(line => {
             // Check if line contains bold text at the start (after any existing numbering)
             const boldMatch = line.match(/^(\d+\.\s*)?(\*\*.*?\*\*)(.*)$/);
@@ -528,11 +540,14 @@ const Documents = {
         });
         
         if (hasChanges) {
-            const newContent = processedLines.join('\n');
-            const cursorPosition = textarea.selectionStart;
+            const newSelectedText = processedLines.join('\n');
+            const newContent = beforeSelection + newSelectedText + afterSelection;
             
             textarea.value = newContent;
-            textarea.setSelectionRange(cursorPosition, cursorPosition);
+            
+            // Maintain selection around the processed text
+            const newEnd = start + newSelectedText.length;
+            textarea.setSelectionRange(start, newEnd);
             textarea.focus();
             
             this.scheduleAutoSave();
