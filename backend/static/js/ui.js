@@ -287,7 +287,7 @@ const UI = {
     },
 
     // Copy message content to document
-    copyMessageToDocument(bubbleDiv) {
+    copyMessageToDocument(bubbleDiv, isTabTriggered = false) {
         if (typeof Documents === 'undefined' || !Documents.currentDocumentId) {
             return;
         }
@@ -309,5 +309,14 @@ const UI = {
 
         // Insert at cursor position
         Documents.insertTextAtCursor(content);
+
+        // Tab-specific enhancements: add newline and return focus to chat
+        if (isTabTriggered) {
+            Documents.insertTextAtCursor('\n');
+            // Return focus to chat input for seamless workflow
+            if (this.elements.messageInput) {
+                this.elements.messageInput.focus();
+            }
+        }
     }
 };

@@ -318,15 +318,15 @@ const Chat = {
             return;
         }
 
-        // Find the latest Claude message
-        const claudeMessages = document.querySelectorAll('.message.claude .copy-to-document-btn');
+        // Find the latest Claude message bubble directly
+        const claudeMessages = document.querySelectorAll('.message.claude .message-bubble');
         if (claudeMessages.length === 0) {
             return;
         }
 
-        // Get the last Claude message button and trigger its click
-        const lastClaudeButton = claudeMessages[claudeMessages.length - 1];
-        lastClaudeButton.click();
+        // Get the last Claude message bubble and copy with Tab-specific behavior
+        const lastClaudeBubble = claudeMessages[claudeMessages.length - 1];
+        UI.copyMessageToDocument(lastClaudeBubble, true); // true = isTabTriggered
     },
 
 
