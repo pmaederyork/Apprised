@@ -121,11 +121,6 @@ const Documents = {
         
         // Focus the textarea
         UI.elements.documentTextarea.focus();
-        
-        // Update doc context indicator
-        if (typeof Tools !== 'undefined') {
-            Tools.updateDocContextIndicator();
-        }
     },
 
     // Close the document editor
@@ -143,11 +138,6 @@ const Documents = {
         
         // Clear active state in sidebar
         this.updateActiveDocumentInSidebar(null);
-        
-        // Update doc context indicator
-        if (typeof Tools !== 'undefined') {
-            Tools.updateDocContextIndicator();
-        }
     },
 
     // Delete a document

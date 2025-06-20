@@ -82,6 +82,18 @@ const Tools = {
         }
     },
 
+    // Update doc context indicator with actual status from file preparation
+    updateDocContextIndicatorWithStatus(docContextAdded) {
+        const indicator = document.getElementById('docContextIndicator');
+        if (indicator) {
+            if (docContextAdded) {
+                indicator.classList.add('active');
+            } else {
+                indicator.classList.remove('active');
+            }
+        }
+    },
+
     // Toggle web search
     setWebSearch(enabled) {
         this.webSearchEnabled = enabled;

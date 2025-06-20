@@ -287,12 +287,14 @@ const Files = {
     // Convert files to base64 for API transmission
     async prepareFilesForAPI() {
         const filesData = [];
+        let docContextAdded = false;
         
         // Add document context if enabled and available
         if (typeof Tools !== 'undefined') {
             const docContextFile = Tools.getCurrentDocumentAsFile();
             if (docContextFile) {
                 filesData.push(docContextFile);
+                docContextAdded = true;
             }
         }
         
@@ -310,6 +312,11 @@ const Files = {
                 console.error('Failed to convert file to base64:', error);
                 UI.showError('Failed to process file: ' + fileData.name);
             }
+        }
+        
+        // Update doc context indicator based on whether document was actually added
+        if (typeof Tools !== 'undefined') {
+            Tools.updateDocContextIndicatorWithStatus(docContextAdded);
         }
         
         return filesData;
