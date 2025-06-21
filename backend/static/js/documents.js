@@ -367,9 +367,7 @@ const Documents = {
     getPlaceholderText(before, after) {
         if (before === '**' && after === '**') return 'bold text';
         if (before === '*' && after === '*') return 'italic text';
-        if (before === '`' && after === '`') return 'code';
         if (before === '~~' && after === '~~') return 'strikethrough';
-        if (before === '[' && after === '](url)') return 'link text';
         return 'text';
     },
 
@@ -399,43 +397,25 @@ const Documents = {
         this.scheduleAutoSave();
     },
 
-    formatCode() {
-        // For code, we'll use a span with monospace font
-        const selection = window.getSelection();
-        if (selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            const span = document.createElement('span');
-            span.style.fontFamily = 'monospace';
-            span.style.backgroundColor = '#f3f4f6';
-            span.style.padding = '2px 4px';
-            span.style.borderRadius = '3px';
-            try {
-                range.surroundContents(span);
-            } catch (e) {
-                // If can't surround, insert new code element
-                span.textContent = 'code';
-                range.insertNode(span);
-            }
-        }
-        this.scheduleAutoSave();
-    },
 
     formatStrikethrough() {
         document.execCommand('strikeThrough', false, null);
         this.scheduleAutoSave();
     },
 
-    formatLink() {
-        const url = prompt('Enter URL:', 'https://');
-        if (url) {
-            document.execCommand('createLink', false, url);
-        }
-        this.scheduleAutoSave();
-    },
 
     formatHeader(level) {
-        const headerTag = `h${level}`;
-        document.execCommand('formatBlock', false, headerTag);
+        const currentLevel = this.getCurrentHeaderLevel();
+        
+        if (currentLevel === level) {
+            // Same header level clicked - remove header formatting (convert to paragraph)
+            document.execCommand('formatBlock', false, 'p');
+        } else {
+            // Different level or no header - apply the header format
+            const headerTag = `h${level}`;
+            document.execCommand('formatBlock', false, headerTag);
+        }
+        
         this.scheduleAutoSave();
         this.updateHeaderButtonStates();
     },
@@ -450,15 +430,7 @@ const Documents = {
         this.scheduleAutoSave();
     },
 
-    formatBlockquote() {
-        document.execCommand('formatBlock', false, 'blockquote');
-        this.scheduleAutoSave();
-    },
 
-    formatHorizontalRule() {
-        document.execCommand('insertHorizontalRule', false, null);
-        this.scheduleAutoSave();
-    },
 
     // Bind markdown toolbar button events
     bindMarkdownEvents() {
@@ -470,13 +442,9 @@ const Documents = {
             { id: 'h1Btn', handler: () => this.formatHeader(1) },
             { id: 'h2Btn', handler: () => this.formatHeader(2) },
             { id: 'h3Btn', handler: () => this.formatHeader(3) },
-            { id: 'codeBtn', handler: () => this.formatCode() },
-            { id: 'linkBtn', handler: () => this.formatLink() },
             { id: 'listBtn', handler: () => this.formatList() },
             { id: 'orderedListBtn', handler: () => this.formatOrderedList() },
-            { id: 'quoteBtn', handler: () => this.formatBlockquote() },
-            { id: 'strikeBtn', handler: () => this.formatStrikethrough() },
-            { id: 'hrBtn', handler: () => this.formatHorizontalRule() }
+            { id: 'strikeBtn', handler: () => this.formatStrikethrough() }
         ];
 
         buttons.forEach(({ id, handler }) => {
@@ -521,14 +489,6 @@ const Documents = {
                         e.preventDefault();
                         this.formatHeader(3);
                         break;
-                    case '`':
-                        e.preventDefault();
-                        this.formatCode();
-                        break;
-                    case 'k':
-                        e.preventDefault();
-                        this.formatLink();
-                        break;
                     case 'l':
                         e.preventDefault();
                         if (e.shiftKey) {
@@ -536,15 +496,6 @@ const Documents = {
                         } else {
                             this.formatList();
                         }
-                        break;
-                    case '.':
-                    case '>':
-                        e.preventDefault();
-                        this.formatBlockquote();
-                        break;
-                    case 'r':
-                        e.preventDefault();
-                        this.formatHorizontalRule();
                         break;
                     case 'z':
                         e.preventDefault();
@@ -721,15 +672,20 @@ const Documents = {
         if (!selection.rangeCount) return 0;
         
         let node = selection.focusNode;
-        while (node) {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-                const tagName = node.tagName.toLowerCase();
-                if (tagName.match(/^h[1-6]$/)) {
-                    return parseInt(tagName.charAt(1));
-                }
-            }
+        
+        // If focus is on a text node, check its immediate parent
+        if (node.nodeType === Node.TEXT_NODE) {
             node = node.parentNode;
         }
+        
+        // Only check the immediate element, not ancestors
+        if (node && node.nodeType === Node.ELEMENT_NODE) {
+            const tagName = node.tagName.toLowerCase();
+            if (tagName.match(/^h[1-6]$/)) {
+                return parseInt(tagName.charAt(1));
+            }
+        }
+        
         return 0;
     },
 
