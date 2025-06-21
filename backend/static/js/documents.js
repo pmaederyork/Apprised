@@ -264,8 +264,8 @@ const Documents = {
         const document = this.documents[documentId];
         if (document) {
             const trimmedName = newName.trim() || 'New Document';
-            // Auto-add .md extension if not present
-            const finalName = trimmedName.endsWith('.md') ? trimmedName : trimmedName + '.md';
+            // Auto-add .html extension if not present
+            const finalName = trimmedName.endsWith('.html') ? trimmedName : trimmedName + '.html';
             
             document.title = finalName;
             document.lastModified = Date.now();
