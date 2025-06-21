@@ -292,27 +292,20 @@ const UI = {
             return;
         }
 
-        // Extract text content and convert HTML back to markdown
+        // For rich text editor, we can insert HTML directly
         let content = bubbleDiv.innerHTML;
         
-        // Convert HTML back to markdown and clean up
+        // Clean up the HTML for better document insertion
         content = content
-            .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
-            .replace(/<em>(.*?)<\/em>/g, '*$1*')
-            .replace(/<code>(.*?)<\/code>/g, '`$1`')
-            .replace(/<h1>(.*?)<\/h1>/g, '# $1')
-            .replace(/<h2>(.*?)<\/h2>/g, '## $1')
-            .replace(/<h3>(.*?)<\/h3>/g, '### $1')
-            .replace(/<br>/g, '\n')
             .replace(/\n\s*\n/g, '\n') // Remove empty lines
             .trim();
 
-        // Insert at cursor position
+        // Insert HTML content at cursor position
         Documents.insertTextAtCursor(content);
 
-        // Tab-specific enhancements: add newline and return focus to chat
+        // Tab-specific enhancements: add paragraph break and return focus to chat
         if (isTabTriggered) {
-            Documents.insertTextAtCursor('\n');
+            Documents.insertTextAtCursor('<p><br></p>');
             // Return focus to chat input for seamless workflow
             if (this.elements.messageInput) {
                 this.elements.messageInput.focus();

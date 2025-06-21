@@ -101,11 +101,62 @@
     outline: none;
     background: #fafaf9;
     transition: border-color 0.2s ease;
+    overflow-y: auto;
 }
 
 .document-textarea:focus {
     border-color: #ea580c;
     background: white;
+}
+
+.document-textarea:empty:before {
+    content: attr(data-placeholder);
+    color: #9ca3af;
+    font-style: italic;
+    pointer-events: none;
+}
+
+/* Rich text formatting styles */
+.document-textarea h1 {
+    font-size: 2em;
+    font-weight: bold;
+    margin: 0.67em 0;
+}
+
+.document-textarea h2 {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin: 0.75em 0;
+}
+
+.document-textarea h3 {
+    font-size: 1.17em;
+    font-weight: bold;
+    margin: 0.83em 0;
+}
+
+.document-textarea blockquote {
+    border-left: 4px solid #e7e5e4;
+    margin: 1em 0;
+    padding-left: 1em;
+    color: #6b7280;
+    font-style: italic;
+}
+
+.document-textarea ul, .document-textarea ol {
+    margin: 1em 0;
+    padding-left: 2em;
+}
+
+.document-textarea hr {
+    border: none;
+    border-top: 1px solid #e7e5e4;
+    margin: 2em 0;
+}
+
+.document-textarea a {
+    color: #ea580c;
+    text-decoration: underline;
 }
 
 /* Markdown Toolbar */

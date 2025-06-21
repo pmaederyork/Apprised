@@ -67,8 +67,10 @@ const Documents = {
         });
 
         // Cursor position tracking for header button states
-        UI.elements.documentTextarea?.addEventListener('selectionchange', () => {
-            this.updateHeaderButtonStates();
+        document.addEventListener('selectionchange', () => {
+            if (document.activeElement === UI.elements.documentTextarea) {
+                this.updateHeaderButtonStates();
+            }
         });
         UI.elements.documentTextarea?.addEventListener('click', () => {
             this.updateHeaderButtonStates();
@@ -93,7 +95,7 @@ const Documents = {
         const newDocument = {
             id: this.currentDocumentId,
             title: 'New Document',
-            content: '# New Document\n\n',
+            content: '<h1>New Document</h1><p><br></p>',
             createdAt: Date.now(),
             lastModified: Date.now()
         };
@@ -119,7 +121,7 @@ const Documents = {
         
         // Update UI
         UI.elements.documentTitle.value = document.title;
-        UI.elements.documentTextarea.value = document.content;
+        UI.elements.documentTextarea.innerHTML = document.content;
         
         // Show document editor
         UI.elements.documentEditor.classList.add('active');
@@ -130,7 +132,7 @@ const Documents = {
         // Initialize undo/redo for this document
         this.initializeHistory(documentId);
         
-        // Focus the textarea
+        // Focus the editor
         UI.elements.documentTextarea.focus();
         
         // Update header button states
@@ -181,7 +183,7 @@ const Documents = {
         this.isSaving = true;
         const document = this.documents[this.currentDocumentId];
         if (document) {
-            document.content = UI.elements.documentTextarea.value;
+            document.content = UI.elements.documentTextarea.innerHTML;
             document.lastModified = Date.now();
             Storage.saveDocuments(this.documents);
         }
@@ -294,74 +296,71 @@ const Documents = {
     },
 
     // Text manipulation utilities
-    getTextareaSelection() {
-        const textarea = UI.elements.documentTextarea;
-        if (!textarea) return null;
+    getEditorSelection() {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return null;
         
+        const range = selection.getRangeAt(0);
         return {
-            start: textarea.selectionStart,
-            end: textarea.selectionEnd,
-            text: textarea.value.substring(textarea.selectionStart, textarea.selectionEnd)
+            range: range,
+            text: range.toString()
         };
     },
 
     insertTextAtCursor(text) {
-        const textarea = UI.elements.documentTextarea;
-        if (!textarea) return;
+        const editor = UI.elements.documentTextarea;
+        if (!editor) return;
         
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const before = textarea.value.substring(0, start);
-        const after = textarea.value.substring(end);
+        editor.focus();
         
-        textarea.value = before + text + after;
-        
-        // Set cursor position after inserted text
-        const newPosition = start + text.length;
-        textarea.setSelectionRange(newPosition, newPosition);
-        textarea.focus();
+        // Use execCommand for better rich text insertion
+        if (text.includes('<') && text.includes('>')) {
+            // HTML content - insert as HTML
+            document.execCommand('insertHTML', false, text);
+        } else {
+            // Plain text
+            document.execCommand('insertText', false, text);
+        }
         
         // Trigger auto-save
         this.scheduleAutoSave();
     },
 
     wrapSelectedText(before, after = '') {
-        const textarea = UI.elements.documentTextarea;
-        if (!textarea) return;
+        const editor = UI.elements.documentTextarea;
+        if (!editor) return;
         
-        const selection = this.getTextareaSelection();
+        const selection = this.getEditorSelection();
         if (!selection) return;
         
-        const start = selection.start;
-        const end = selection.end;
         const selectedText = selection.text;
         
-        let wrappedText;
         if (selectedText) {
-            wrappedText = before + selectedText + after;
+            // Wrap selected text
+            const wrappedText = before + selectedText + after;
+            document.execCommand('insertHTML', false, wrappedText);
         } else {
-            // No selection, insert template
+            // No selection, insert template with placeholder
             const placeholder = this.getPlaceholderText(before, after);
-            wrappedText = before + placeholder + after;
+            const wrappedText = before + placeholder + after;
+            document.execCommand('insertHTML', false, wrappedText);
+            
+            // Select the placeholder text for easy replacement
+            setTimeout(() => {
+                const newSelection = window.getSelection();
+                const range = document.createRange();
+                const textNode = newSelection.focusNode;
+                if (textNode && textNode.textContent.includes(placeholder)) {
+                    const start = textNode.textContent.indexOf(placeholder);
+                    range.setStart(textNode, start);
+                    range.setEnd(textNode, start + placeholder.length);
+                    newSelection.removeAllRanges();
+                    newSelection.addRange(range);
+                }
+            }, 0);
         }
         
-        const beforeText = textarea.value.substring(0, start);
-        const afterText = textarea.value.substring(end);
-        
-        textarea.value = beforeText + wrappedText + afterText;
-        
-        // Set selection around placeholder text if no text was selected
-        if (!selectedText) {
-            const placeholderStart = start + before.length;
-            const placeholderEnd = placeholderStart + this.getPlaceholderText(before, after).length;
-            textarea.setSelectionRange(placeholderStart, placeholderEnd);
-        } else {
-            // Position cursor after the wrapped text
-            const newPosition = start + wrappedText.length;
-            textarea.setSelectionRange(newPosition, newPosition);
-        }
-        
-        textarea.focus();
+        editor.focus();
         this.scheduleAutoSave();
     },
 
@@ -375,197 +374,90 @@ const Documents = {
     },
 
     insertAtLineStart(prefix) {
-        const textarea = UI.elements.documentTextarea;
-        if (!textarea) return;
+        const editor = UI.elements.documentTextarea;
+        if (!editor) return;
         
-        const start = textarea.selectionStart;
-        const value = textarea.value;
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
         
-        // Find the start of the current line
-        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-        const lineEnd = value.indexOf('\n', start);
-        const actualLineEnd = lineEnd === -1 ? value.length : lineEnd;
+        // For contentEditable, we'll just insert the prefix at cursor
+        // This is a simplified implementation for rich text
+        document.execCommand('insertText', false, prefix);
         
-        const currentLine = value.substring(lineStart, actualLineEnd);
-        
-        // Check if line already has this prefix
-        if (currentLine.startsWith(prefix)) {
-            // Remove the prefix
-            const newLine = currentLine.substring(prefix.length);
-            textarea.value = value.substring(0, lineStart) + newLine + value.substring(actualLineEnd);
-            textarea.setSelectionRange(start - prefix.length, start - prefix.length);
-        } else {
-            // Add the prefix
-            textarea.value = value.substring(0, lineStart) + prefix + value.substring(lineStart);
-            textarea.setSelectionRange(start + prefix.length, start + prefix.length);
-        }
-        
-        textarea.focus();
+        editor.focus();
         this.scheduleAutoSave();
     },
 
-    // Markdown formatting functions
+    // Rich text formatting functions
     formatBold() {
-        this.wrapSelectedText('**', '**');
+        document.execCommand('bold', false, null);
+        this.scheduleAutoSave();
     },
 
     formatItalic() {
-        this.wrapSelectedText('*', '*');
+        document.execCommand('italic', false, null);
+        this.scheduleAutoSave();
     },
 
     formatCode() {
-        this.wrapSelectedText('`', '`');
+        // For code, we'll use a span with monospace font
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const span = document.createElement('span');
+            span.style.fontFamily = 'monospace';
+            span.style.backgroundColor = '#f3f4f6';
+            span.style.padding = '2px 4px';
+            span.style.borderRadius = '3px';
+            try {
+                range.surroundContents(span);
+            } catch (e) {
+                // If can't surround, insert new code element
+                span.textContent = 'code';
+                range.insertNode(span);
+            }
+        }
+        this.scheduleAutoSave();
     },
 
     formatStrikethrough() {
-        this.wrapSelectedText('~~', '~~');
+        document.execCommand('strikeThrough', false, null);
+        this.scheduleAutoSave();
     },
 
     formatLink() {
-        const selection = this.getTextareaSelection();
-        if (selection && selection.text) {
-            this.wrapSelectedText('[', '](url)');
-        } else {
-            this.insertTextAtCursor('[link text](url)');
+        const url = prompt('Enter URL:', 'https://');
+        if (url) {
+            document.execCommand('createLink', false, url);
         }
+        this.scheduleAutoSave();
     },
 
     formatHeader(level) {
-        // Capture state before making changes
-        this.captureCurrentState();
-        
-        const textarea = UI.elements.documentTextarea;
-        if (!textarea) return;
-        
-        const start = textarea.selectionStart;
-        const value = textarea.value;
-        
-        // Find the start of the current line
-        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-        const lineEnd = value.indexOf('\n', start);
-        const actualLineEnd = lineEnd === -1 ? value.length : lineEnd;
-        
-        const currentLine = value.substring(lineStart, actualLineEnd);
-        const currentHeaderLevel = this.getCurrentHeaderLevel();
-        
-        let newLine;
-        let cursorOffset = 0;
-        
-        if (currentHeaderLevel === level) {
-            // Same header level clicked - remove header formatting
-            newLine = currentLine.replace(/^#{1,6}\s/, '');
-            cursorOffset = -(level + 1); // Account for removed # and space
-        } else if (currentHeaderLevel > 0) {
-            // Different header level - replace existing header
-            const newPrefix = '#'.repeat(level) + ' ';
-            newLine = newPrefix + currentLine.replace(/^#{1,6}\s/, '');
-            cursorOffset = level + 1 - (currentHeaderLevel + 1); // Net change in prefix length
-        } else {
-            // No header - add new header
-            const newPrefix = '#'.repeat(level) + ' ';
-            newLine = newPrefix + currentLine;
-            cursorOffset = level + 1; // Added # and space
-        }
-        
-        // Update textarea content
-        textarea.value = value.substring(0, lineStart) + newLine + value.substring(actualLineEnd);
-        
-        // Adjust cursor position
-        const newCursorPosition = Math.max(lineStart, start + cursorOffset);
-        textarea.setSelectionRange(newCursorPosition, newCursorPosition);
-        
-        textarea.focus();
+        const headerTag = `h${level}`;
+        document.execCommand('formatBlock', false, headerTag);
         this.scheduleAutoSave();
-        
-        // Clear redo stack since we made a new change
-        if (this.currentDocumentId) {
-            this.redoStacks[this.currentDocumentId] = [];
-            this.updateUndoRedoButtons();
-        }
-        
-        // Update button states after formatting
         this.updateHeaderButtonStates();
     },
 
     formatList() {
-        this.insertAtLineStart('- ');
+        document.execCommand('insertUnorderedList', false, null);
+        this.scheduleAutoSave();
     },
 
     formatOrderedList() {
-        // Capture state before making changes
-        this.captureCurrentState();
-        
-        const textarea = UI.elements.documentTextarea;
-        if (!textarea) return;
-        
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        
-        // If no text is selected, do nothing
-        if (start === end) {
-            return;
-        }
-        
-        const fullContent = textarea.value;
-        const selectedText = fullContent.substring(start, end);
-        const beforeSelection = fullContent.substring(0, start);
-        const afterSelection = fullContent.substring(end);
-        
-        const lines = selectedText.split('\n');
-        let counter = 1;
-        let hasChanges = false;
-        
-        // Process each line in the selection
-        const processedLines = lines.map(line => {
-            // Check if line contains bold text at the start (after any existing numbering)
-            const boldMatch = line.match(/^(\d+\.\s*)?(\*\*.*?\*\*)(.*)$/);
-            
-            if (boldMatch) {
-                const existingNumber = boldMatch[1];
-                const boldText = boldMatch[2];
-                const restOfLine = boldMatch[3];
-                
-                if (existingNumber) {
-                    // Remove existing numbering - toggle off
-                    hasChanges = true;
-                    return boldText + restOfLine;
-                } else {
-                    // Add sequential numbering
-                    hasChanges = true;
-                    return `${counter++}. ${boldText}${restOfLine}`;
-                }
-            }
-            
-            return line;
-        });
-        
-        if (hasChanges) {
-            const newSelectedText = processedLines.join('\n');
-            const newContent = beforeSelection + newSelectedText + afterSelection;
-            
-            textarea.value = newContent;
-            
-            // Maintain selection around the processed text
-            const newEnd = start + newSelectedText.length;
-            textarea.setSelectionRange(start, newEnd);
-            textarea.focus();
-            
-            this.scheduleAutoSave();
-            
-            // Clear redo stack since we made a new change
-            if (this.currentDocumentId) {
-                this.redoStacks[this.currentDocumentId] = [];
-                this.updateUndoRedoButtons();
-            }
-        }
+        document.execCommand('insertOrderedList', false, null);
+        this.scheduleAutoSave();
     },
 
     formatBlockquote() {
-        this.insertAtLineStart('> ');
+        document.execCommand('formatBlock', false, 'blockquote');
+        this.scheduleAutoSave();
     },
 
     formatHorizontalRule() {
-        this.insertTextAtCursor('\n---\n');
+        document.execCommand('insertHorizontalRule', false, null);
+        this.scheduleAutoSave();
     },
 
     // Bind markdown toolbar button events
@@ -598,12 +490,12 @@ const Documents = {
         });
     },
 
-    // Bind markdown keyboard shortcuts
+    // Bind rich text keyboard shortcuts
     bindMarkdownShortcuts() {
         document.addEventListener('keydown', (e) => {
             // Only handle shortcuts when document editor is focused
-            const textarea = UI.elements.documentTextarea;
-            if (!textarea || document.activeElement !== textarea) return;
+            const editor = UI.elements.documentTextarea;
+            if (!editor || !editor.contains(document.activeElement) && document.activeElement !== editor) return;
             
             const isCtrlCmd = e.ctrlKey || e.metaKey;
             
@@ -692,13 +584,24 @@ const Documents = {
     },
 
     getCurrentState() {
-        const textarea = UI.elements.documentTextarea;
-        if (!textarea) return null;
+        const editor = UI.elements.documentTextarea;
+        if (!editor) return null;
+
+        // Save current selection
+        const selection = window.getSelection();
+        let range = null;
+        if (selection.rangeCount > 0) {
+            range = selection.getRangeAt(0);
+        }
 
         return {
-            content: textarea.value,
-            selectionStart: textarea.selectionStart,
-            selectionEnd: textarea.selectionEnd,
+            content: editor.innerHTML,
+            range: range ? {
+                startContainer: range.startContainer,
+                startOffset: range.startOffset,
+                endContainer: range.endContainer,
+                endOffset: range.endOffset
+            } : null,
             timestamp: Date.now()
         };
     },
@@ -745,12 +648,27 @@ const Documents = {
     },
 
     restoreState(state) {
-        const textarea = UI.elements.documentTextarea;
-        if (!textarea || !state) return;
+        const editor = UI.elements.documentTextarea;
+        if (!editor || !state) return;
 
-        textarea.value = state.content;
-        textarea.setSelectionRange(state.selectionStart, state.selectionEnd);
-        textarea.focus();
+        editor.innerHTML = state.content;
+        
+        // Restore selection if available
+        if (state.range) {
+            try {
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.setStart(state.range.startContainer, state.range.startOffset);
+                range.setEnd(state.range.endContainer, state.range.endOffset);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } catch (e) {
+                // If restoration fails, just focus the editor
+                editor.focus();
+            }
+        } else {
+            editor.focus();
+        }
 
         // Trigger auto-save
         this.scheduleAutoSave();
@@ -758,44 +676,18 @@ const Documents = {
 
     undo() {
         if (!this.currentDocumentId) return;
-
-        const undoStack = this.undoStacks[this.currentDocumentId];
-        const redoStack = this.redoStacks[this.currentDocumentId];
-
-        if (undoStack.length === 0) return;
-
-        // Save current state to redo stack before undoing
-        const currentState = this.getCurrentState();
-        if (currentState) {
-            redoStack.push(currentState);
-        }
-
-        // Restore previous state
-        const previousState = undoStack.pop();
-        this.restoreState(previousState);
-
-        this.updateUndoRedoButtons();
+        
+        // Use browser's built-in undo for contentEditable
+        document.execCommand('undo', false, null);
+        this.scheduleAutoSave();
     },
 
     redo() {
         if (!this.currentDocumentId) return;
-
-        const undoStack = this.undoStacks[this.currentDocumentId];
-        const redoStack = this.redoStacks[this.currentDocumentId];
-
-        if (redoStack.length === 0) return;
-
-        // Save current state to undo stack before redoing
-        const currentState = this.getCurrentState();
-        if (currentState) {
-            undoStack.push(currentState);
-        }
-
-        // Restore next state
-        const nextState = redoStack.pop();
-        this.restoreState(nextState);
-
-        this.updateUndoRedoButtons();
+        
+        // Use browser's built-in redo for contentEditable
+        document.execCommand('redo', false, null);
+        this.scheduleAutoSave();
     },
 
     updateUndoRedoButtons() {
@@ -822,143 +714,25 @@ const Documents = {
         }
     },
 
-    // Override existing text manipulation methods to capture history
-    wrapSelectedText(before, after = '') {
-        // Capture state before making changes
-        this.captureCurrentState();
-        
-        const textarea = UI.elements.documentTextarea;
-        if (!textarea) return;
-        
-        const selection = this.getTextareaSelection();
-        if (!selection) return;
-        
-        const start = selection.start;
-        const end = selection.end;
-        const selectedText = selection.text;
-        
-        let wrappedText;
-        if (selectedText) {
-            wrappedText = before + selectedText + after;
-        } else {
-            // No selection, insert template
-            const placeholder = this.getPlaceholderText(before, after);
-            wrappedText = before + placeholder + after;
-        }
-        
-        const beforeText = textarea.value.substring(0, start);
-        const afterText = textarea.value.substring(end);
-        
-        textarea.value = beforeText + wrappedText + afterText;
-        
-        // Set selection around placeholder text if no text was selected
-        if (!selectedText) {
-            const placeholderStart = start + before.length;
-            const placeholderEnd = placeholderStart + this.getPlaceholderText(before, after).length;
-            textarea.setSelectionRange(placeholderStart, placeholderEnd);
-        } else {
-            // Position cursor after the wrapped text
-            const newPosition = start + wrappedText.length;
-            textarea.setSelectionRange(newPosition, newPosition);
-        }
-        
-        textarea.focus();
-        this.scheduleAutoSave();
-        
-        // Clear redo stack since we made a new change
-        if (this.currentDocumentId) {
-            this.redoStacks[this.currentDocumentId] = [];
-            this.updateUndoRedoButtons();
-        }
-    },
-
-    insertTextAtCursor(text) {
-        // Capture state before making changes
-        this.captureCurrentState();
-        
-        const textarea = UI.elements.documentTextarea;
-        if (!textarea) return;
-        
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const before = textarea.value.substring(0, start);
-        const after = textarea.value.substring(end);
-        
-        textarea.value = before + text + after;
-        
-        // Set cursor position after inserted text
-        const newPosition = start + text.length;
-        textarea.setSelectionRange(newPosition, newPosition);
-        textarea.focus();
-        
-        // Trigger auto-save
-        this.scheduleAutoSave();
-        
-        // Clear redo stack since we made a new change
-        if (this.currentDocumentId) {
-            this.redoStacks[this.currentDocumentId] = [];
-            this.updateUndoRedoButtons();
-        }
-    },
 
     // Get current header level at cursor position (0 = no header, 1-6 = header level)
     getCurrentHeaderLevel() {
-        const textarea = UI.elements.documentTextarea;
-        if (!textarea) return 0;
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return 0;
         
-        const start = textarea.selectionStart;
-        const value = textarea.value;
-        
-        // Find the start of the current line
-        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-        const lineEnd = value.indexOf('\n', start);
-        const actualLineEnd = lineEnd === -1 ? value.length : lineEnd;
-        
-        const currentLine = value.substring(lineStart, actualLineEnd);
-        
-        // Check for header patterns
-        const headerMatch = currentLine.match(/^(#{1,6})\s/);
-        return headerMatch ? headerMatch[1].length : 0;
+        let node = selection.focusNode;
+        while (node) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                const tagName = node.tagName.toLowerCase();
+                if (tagName.match(/^h[1-6]$/)) {
+                    return parseInt(tagName.charAt(1));
+                }
+            }
+            node = node.parentNode;
+        }
+        return 0;
     },
 
-    insertAtLineStart(prefix) {
-        // Capture state before making changes
-        this.captureCurrentState();
-        
-        const textarea = UI.elements.documentTextarea;
-        if (!textarea) return;
-        
-        const start = textarea.selectionStart;
-        const value = textarea.value;
-        
-        // Find the start of the current line
-        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-        const lineEnd = value.indexOf('\n', start);
-        const actualLineEnd = lineEnd === -1 ? value.length : lineEnd;
-        
-        const currentLine = value.substring(lineStart, actualLineEnd);
-        
-        // Check if line already has this prefix
-        if (currentLine.startsWith(prefix)) {
-            // Remove the prefix
-            const newLine = currentLine.substring(prefix.length);
-            textarea.value = value.substring(0, lineStart) + newLine + value.substring(actualLineEnd);
-            textarea.setSelectionRange(start - prefix.length, start - prefix.length);
-        } else {
-            // Add the prefix
-            textarea.value = value.substring(0, lineStart) + prefix + value.substring(lineStart);
-            textarea.setSelectionRange(start + prefix.length, start + prefix.length);
-        }
-        
-        textarea.focus();
-        this.scheduleAutoSave();
-        
-        // Clear redo stack since we made a new change
-        if (this.currentDocumentId) {
-            this.redoStacks[this.currentDocumentId] = [];
-            this.updateUndoRedoButtons();
-        }
-    },
 
     // Update header button visual states based on current cursor position
     updateHeaderButtonStates() {
@@ -986,101 +760,29 @@ const Documents = {
 
     // Smart copy/paste functionality for Google Docs integration
     bindSmartCopyPaste() {
-        const textarea = UI.elements.documentTextarea;
-        if (!textarea) return;
+        const editor = UI.elements.documentTextarea;
+        if (!editor) return;
 
-        // Enhanced copy handler - convert markdown to rich HTML
-        textarea.addEventListener('copy', async (e) => {
+        // Rich text editor doesn't need special copy handling - browser handles it
+        // Just ensure paste events trigger auto-save
+        editor.addEventListener('paste', (e) => {
             if (!this.isDocumentEditorActive()) return;
-
-            const selectedText = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
-            if (!selectedText) return;
-
-            // Convert markdown to HTML
-            const htmlContent = this.markdownToHTML(selectedText);
             
-            try {
-                // Use modern clipboard API for rich text
-                await navigator.clipboard.write([
-                    new ClipboardItem({
-                        'text/html': new Blob([htmlContent], { type: 'text/html' }),
-                        'text/plain': new Blob([selectedText], { type: 'text/plain' })
-                    })
-                ]);
-            } catch (error) {
-                // Fallback to legacy clipboard API
-                e.clipboardData.setData('text/html', htmlContent);
-                e.clipboardData.setData('text/plain', selectedText);
-                e.preventDefault();
-            }
-        });
-
-        // Enhanced paste handler - convert HTML to markdown
-        textarea.addEventListener('paste', async (e) => {
-            if (!this.isDocumentEditorActive()) return;
-
-            e.preventDefault();
-            
-            let htmlContent = '';
-            let plainText = '';
-
-            // Try legacy clipboard API first (better for HTML from Google Docs)
-            const clipboardData = e.clipboardData || window.clipboardData;
-            if (clipboardData) {
-                htmlContent = clipboardData.getData('text/html');
-                plainText = clipboardData.getData('text/plain');
-                
-                // Also try other possible HTML formats
-                if (!htmlContent) {
-                    htmlContent = clipboardData.getData('text/rtf') || 
-                                 clipboardData.getData('application/rtf') ||
-                                 clipboardData.getData('text/richtext');
-                }
-            }
-            
-            // Fallback to modern clipboard API if legacy didn't work
-            if (!htmlContent && !plainText) {
-                try {
-                    const clipboardItems = await navigator.clipboard.read();
-                    
-                    for (const item of clipboardItems) {
-                        if (item.types.includes('text/html')) {
-                            const blob = await item.getType('text/html');
-                            htmlContent = await blob.text();
-                        }
-                        if (item.types.includes('text/plain')) {
-                            const blob = await item.getType('text/plain');
-                            plainText = await blob.text();
-                        }
-                    }
-                } catch (error) {
-                    // Silently fall back to plain text
-                }
-            }
-
-            // Convert HTML to markdown if available, otherwise use plain text
-            let contentToInsert = '';
-            if (htmlContent && htmlContent.trim()) {
-                contentToInsert = this.htmlToMarkdown(htmlContent);
-            } else {
-                contentToInsert = plainText;
-            }
-
-            // Insert the converted content
-            if (contentToInsert) {
-                this.insertTextAtCursor(contentToInsert);
-            }
+            // Let browser handle rich text paste naturally
+            setTimeout(() => {
+                this.scheduleAutoSave();
+            }, 0);
         });
     },
 
     // Check if document editor is currently active
     isDocumentEditorActive() {
         const documentEditor = UI.elements.documentEditor;
-        const textarea = UI.elements.documentTextarea;
+        const editor = UI.elements.documentTextarea;
         return documentEditor && 
-               documentEditor.style.display !== 'none' && 
-               textarea && 
-               document.activeElement === textarea;
+               documentEditor.classList.contains('active') && 
+               editor && 
+               (document.activeElement === editor || editor.contains(document.activeElement));
     },
 
     // Convert markdown to HTML for Google Docs compatibility
