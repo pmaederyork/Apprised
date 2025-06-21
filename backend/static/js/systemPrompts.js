@@ -111,9 +111,16 @@ const SystemPrompts = {
         const prompt = this.state.systemPrompts[promptId];
         if (!prompt) return;
         
+        // If clicking the same prompt that's already being edited, close the editor
+        if (this.state.editingSystemPromptId === promptId && this.state.isEditingSystemPrompt) {
+            this.exitEdit();
+            return;
+        }
+        
         this.state.isEditingSystemPrompt = true;
         this.state.editingSystemPromptId = promptId;
         this.showEditor(prompt);
+        this.render(); // Re-render to update highlight
     },
 
     // Show the system prompt editor
@@ -147,6 +154,8 @@ const SystemPrompts = {
             clearTimeout(this.state.autoSaveTimeout);
             this.state.autoSaveTimeout = null;
         }
+        
+        this.render(); // Re-render to remove highlight
     },
 
     // Save system prompt content with debouncing
@@ -272,7 +281,7 @@ const SystemPrompts = {
     createPromptItem(prompt) {
         return Components.createListItem({
             text: prompt.name,
-            isActive: false,
+            isActive: prompt.id === this.state.editingSystemPromptId,
             className: 'prompt-item',
             maxLength: 25,
             onClick: () => this.edit(prompt.id),

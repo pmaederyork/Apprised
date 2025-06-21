@@ -107,6 +107,11 @@ const Tools = {
         this.saveState();
         this.updateDocContextIndicator();
         console.log('Doc context', enabled ? 'enabled' : 'disabled');
+        
+        // Refresh copy-to-document buttons in chat when doc context is toggled
+        if (typeof UI !== 'undefined' && UI.refreshCopyToDocumentButtons) {
+            UI.refreshCopyToDocumentButtons();
+        }
     },
 
     // Get current web search state
@@ -138,7 +143,7 @@ const Tools = {
         // Create file attachment in same format as Files module
         const documentContent = currentDocument.content || '';
         const documentTitle = currentDocument.title || 'Untitled Document';
-        const fileName = `${documentTitle}.md`;
+        const fileName = documentTitle;
         
         // Convert to base64 for consistency with file system
         const base64Content = btoa(unescape(encodeURIComponent(documentContent)));
@@ -146,9 +151,9 @@ const Tools = {
         return {
             id: `doc_context_${currentDocument.id}`,
             name: fileName,
-            type: 'text/markdown',
+            type: 'text/html',
             size: documentContent.length,
-            data: `data:text/markdown;base64,${base64Content}`
+            data: `data:text/html;base64,${base64Content}`
         };
     },
 

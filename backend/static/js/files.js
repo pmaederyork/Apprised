@@ -63,10 +63,13 @@ const Files = {
         const clipboardData = e.clipboardData || window.clipboardData;
         if (!clipboardData) return;
 
-        // Check if document editor is focused - if so, let the documents module handle smart conversion
+        // Check if document editor or system prompt editor is focused - if so, let them handle paste
         const documentTextarea = document.getElementById('documentTextarea');
-        if (documentTextarea && document.activeElement === documentTextarea) {
-            return; // Let the documents module handle the paste with smart conversion
+        const systemPromptTextarea = document.getElementById('systemPromptTextarea');
+        
+        if ((documentTextarea && document.activeElement === documentTextarea) ||
+            (systemPromptTextarea && document.activeElement === systemPromptTextarea)) {
+            return; // Let the editor handle the paste normally
         }
 
         let hasFileContent = false;

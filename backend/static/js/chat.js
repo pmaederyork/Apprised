@@ -30,6 +30,9 @@ const Chat = {
         
         UI.focusMessageInput();
         
+        // Initialize textarea auto-resize
+        this.autoResizeTextarea();
+        
         // Mark as initialized
         this.initialized = true;
     },
@@ -39,9 +42,15 @@ const Chat = {
         // Send message events
         UI.elements.sendBtn.addEventListener('click', () => this.sendMessage());
         UI.elements.messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
                 this.sendMessage();
             }
+        });
+
+        // Auto-resize textarea as user types
+        UI.elements.messageInput.addEventListener('input', () => {
+            this.autoResizeTextarea();
         });
 
         // Tab key to copy latest Claude message to document
@@ -358,5 +367,18 @@ const Chat = {
             list.classList.add('collapsed');
             icon.classList.add('collapsed');
         }
+    },
+
+    // Auto-resize textarea based on content
+    autoResizeTextarea() {
+        const textarea = UI.elements.messageInput;
+        if (!textarea) return;
+
+        // Reset height to auto to get the correct scrollHeight
+        textarea.style.height = 'auto';
+        
+        // Set height based on scroll height, constrained by min/max
+        const newHeight = Math.min(Math.max(textarea.scrollHeight, 20), 160);
+        textarea.style.height = newHeight + 'px';
     }
 };

@@ -207,6 +207,8 @@ const UI = {
 
     clearMessageInput() {
         this.elements.messageInput.value = '';
+        // Reset textarea height to single line
+        this.elements.messageInput.style.height = 'auto';
     },
 
     // Initialize sidebar resizing
@@ -311,5 +313,34 @@ const UI = {
                 this.elements.messageInput.focus();
             }
         }
+    },
+
+    // Refresh copy-to-document button visibility based on current document state
+    refreshCopyToDocumentButtons() {
+        const claudeMessages = document.querySelectorAll('.message.claude');
+        
+        claudeMessages.forEach(messageDiv => {
+            const existingButton = messageDiv.querySelector('.copy-to-document-btn');
+            const bubbleDiv = messageDiv.querySelector('.message-bubble');
+            
+            // Check if button should be visible
+            const shouldShowButton = (
+                typeof Tools !== 'undefined' && 
+                Tools.isDocContextEnabled() &&
+                typeof Documents !== 'undefined' && 
+                Documents.currentDocumentId
+            );
+            
+            if (shouldShowButton && !existingButton && bubbleDiv) {
+                // Add button if it should be visible but doesn't exist
+                this.addCopyToDocumentButton(messageDiv, bubbleDiv);
+            } else if (!shouldShowButton && existingButton) {
+                // Remove button if it shouldn't be visible but exists
+                const actionsDiv = existingButton.parentElement;
+                if (actionsDiv && actionsDiv.className === 'message-actions') {
+                    actionsDiv.remove();
+                }
+            }
+        });
     }
 };

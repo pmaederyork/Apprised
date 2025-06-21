@@ -54,7 +54,7 @@ const Documents = {
 
         // Document title saving
         UI.elements.documentTitle?.addEventListener('input', () => {
-            this.saveDocumentTitle();
+            this.saveDocumentTitleImmediate();
         });
         UI.elements.documentTitle?.addEventListener('blur', () => {
             this.saveDocumentTitle();
@@ -94,7 +94,7 @@ const Documents = {
         this.currentDocumentId = Storage.generateDocumentId();
         const newDocument = {
             id: this.currentDocumentId,
-            title: 'New Document',
+            title: 'New Document.html',
             content: '<h1>New Document</h1><p><br></p>',
             createdAt: Date.now(),
             lastModified: Date.now()
@@ -119,8 +119,10 @@ const Documents = {
         // Save as last open document
         Storage.saveLastOpenDocumentId(documentId);
         
-        // Update UI
-        UI.elements.documentTitle.value = document.title;
+        // Update UI - hide .html extension in document editor
+        const displayTitle = document.title.endsWith('.html') ? 
+            document.title.slice(0, -5) : document.title;
+        UI.elements.documentTitle.value = displayTitle;
         UI.elements.documentTextarea.innerHTML = document.content;
         
         // Show document editor
@@ -137,6 +139,11 @@ const Documents = {
         
         // Update header button states
         this.updateHeaderButtonStates();
+        
+        // Refresh copy-to-document buttons in chat
+        if (typeof UI !== 'undefined' && UI.refreshCopyToDocumentButtons) {
+            UI.refreshCopyToDocumentButtons();
+        }
     },
 
     // Close the document editor
@@ -154,6 +161,11 @@ const Documents = {
         
         // Clear active state in sidebar
         this.updateActiveDocumentInSidebar(null);
+        
+        // Refresh copy-to-document buttons in chat
+        if (typeof UI !== 'undefined' && UI.refreshCopyToDocumentButtons) {
+            UI.refreshCopyToDocumentButtons();
+        }
     },
 
     // Delete a document
@@ -190,8 +202,8 @@ const Documents = {
         this.isSaving = false;
     },
 
-    // Save document title
-    saveDocumentTitle() {
+    // Save document title immediately (without extension logic)
+    saveDocumentTitleImmediate() {
         if (!this.currentDocumentId) return;
         
         const newTitle = UI.elements.documentTitle.value.trim() || 'New Document';
@@ -201,6 +213,27 @@ const Documents = {
             document.lastModified = Date.now();
             Storage.saveDocuments(this.documents);
             this.renderDocumentList();
+        }
+    },
+
+    // Save document title with extension logic (on blur)
+    saveDocumentTitle() {
+        if (!this.currentDocumentId) return;
+        
+        const rawTitle = UI.elements.documentTitle.value.trim() || 'New Document';
+        // Auto-add .html extension if not present
+        const newTitle = rawTitle.endsWith('.html') ? rawTitle : rawTitle + '.html';
+        const document = this.documents[this.currentDocumentId];
+        if (document && document.title !== newTitle) {
+            document.title = newTitle;
+            document.lastModified = Date.now();
+            Storage.saveDocuments(this.documents);
+            this.renderDocumentList();
+            
+            // Update the input field to show the final name without extension
+            const displayTitle = newTitle.endsWith('.html') ? 
+                newTitle.slice(0, -5) : newTitle;
+            UI.elements.documentTitle.value = displayTitle;
         }
     },
 
@@ -224,8 +257,12 @@ const Documents = {
         const sortedDocuments = Object.values(this.documents).sort((a, b) => b.lastModified - a.lastModified);
         
         sortedDocuments.forEach(document => {
+            // Hide .html extension in sidebar display
+            const displayTitle = document.title.endsWith('.html') ? 
+                document.title.slice(0, -5) : document.title;
+            
             const documentItem = Components.createListItem({
-                text: document.title,
+                text: displayTitle,
                 isActive: document.id === this.currentDocumentId,
                 className: 'document-item',
                 maxLength: 25,
@@ -263,7 +300,7 @@ const Documents = {
     renameDocument(documentId, newName) {
         const document = this.documents[documentId];
         if (document) {
-            const trimmedName = newName.trim() || 'New Document';
+            const trimmedName = newName.trim() || 'New Document.html';
             // Auto-add .html extension if not present
             const finalName = trimmedName.endsWith('.html') ? trimmedName : trimmedName + '.html';
             
@@ -272,9 +309,11 @@ const Documents = {
             Storage.saveDocuments(this.documents);
             this.renderDocumentList();
             
-            // Update title input if this is the current document
+            // Update title input if this is the current document - hide .html extension
             if (documentId === this.currentDocumentId) {
-                UI.elements.documentTitle.value = finalName;
+                const displayTitle = finalName.endsWith('.html') ? 
+                    finalName.slice(0, -5) : finalName;
+                UI.elements.documentTitle.value = displayTitle;
             }
         }
     },
