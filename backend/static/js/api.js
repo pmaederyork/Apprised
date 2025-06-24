@@ -2,7 +2,7 @@
  * API communication utilities
  */
 const API = {
-    async sendMessage(message, history, systemPrompt, files = []) {
+    async sendMessage(message, history, systemPrompt, files = [], screenshotData = null) {
         // Check if API key is available before making request
         if (!Settings.checkApiKeyBeforeRequest()) {
             throw new Error('API key required');
@@ -14,6 +14,22 @@ const API = {
         // Get API key for request
         const apiKey = Settings.getApiKeyForRequest();
         
+        // Prepare message content - include screenshot if present
+        let messageContent = message;
+        if (screenshotData) {
+            messageContent = [
+                { type: "text", text: message },
+                { 
+                    type: "image", 
+                    source: {
+                        type: "base64",
+                        media_type: "image/jpeg",
+                        data: screenshotData.split(',')[1] // Remove data:image/jpeg;base64, prefix
+                    }
+                }
+            ];
+        }
+
         const response = await fetch('/chat', {
             method: 'POST',
             headers: {
@@ -21,8 +37,8 @@ const API = {
                 'X-API-Key': apiKey
             },
             body: JSON.stringify({ 
-                message: message,
-                history: history.slice(-10), // Send last 10 messages for context
+                message: messageContent,
+                history: history.slice(-10), // Send last 10 messages for context (text only)
                 systemPrompt: systemPrompt,
                 tools: tools.length > 0 ? tools : undefined,
                 files: files.length > 0 ? files : undefined

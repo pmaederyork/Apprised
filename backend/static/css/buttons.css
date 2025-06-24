@@ -316,3 +316,36 @@
     width: 100%;
     outline: none;
 }
+
+/* Tool Toggle Button (for screenshare) */
+.tool-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    font-family: inherit;
+    color: inherit;
+    transition: opacity 0.2s ease;
+}
+
+.tool-toggle:hover {
+    opacity: 0.8;
+}
+
+/* Tool Indicator */
+.tool-indicator {
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #f5f5f4;
+    color: #44403c;
+    transition: all 0.2s ease;
+    border: 1px solid #e7e5e4;
+}
+
+.tool-indicator.active {
+    background: #ea580c;
+    color: white;
+    border-color: #ea580c;
+}

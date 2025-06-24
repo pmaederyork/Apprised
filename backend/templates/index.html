@@ -80,6 +80,14 @@
                             </label>
                         </div>
                     </div>
+                    <div class="tool-item">
+                        <div class="tool-content">
+                            <span class="tool-name">Screenshare</span>
+                            <button class="tool-toggle" id="screenshareToggle">
+                                <span class="tool-indicator" id="screenshareIndicator">📸 OFF</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="sidebar-resize-handle" id="sidebarResizeHandle"></div>
@@ -101,6 +109,12 @@
             </div>
             <div class="file-preview-area" id="filePreviewArea" style="display: none;">
                 <!-- File thumbnails will be populated here -->
+            </div>
+            <div class="screenshare-preview-container" id="screensharePreviewContainer" style="display: none;">
+                <div class="screenshare-preview-item">
+                    <img class="screenshare-preview-image" id="screensharePreviewImage" alt="Live Screenshot">
+                    <span class="screenshare-preview-label">Live Screenshot</span>
+                </div>
             </div>
             <div class="chat-input-container">
                 <textarea id="messageInput" placeholder="Reply to Claude..." rows="1"></textarea>
@@ -190,6 +204,7 @@
     <script src="/static/js/systemPrompts.js"></script>
     <script src="/static/js/documents.js"></script>
     <script src="/static/js/tools.js"></script>
+    <script src="/static/js/screenshare.js"></script>
     <script src="/static/js/files.js"></script>
     <script src="/static/js/settings.js"></script>
     <script src="/static/js/app.js"></script>

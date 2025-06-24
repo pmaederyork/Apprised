@@ -238,12 +238,20 @@ const Chat = {
             this.createNewChat();
         }
 
+        // Get pre-captured screenshot if screenshare is enabled
+        let screenshotData = null;
+        let displayText = message;
+        if (Tools.screenshareEnabled) {
+            displayText += '\n\n📸 Screenshot attached';
+            screenshotData = ScreenShare.getCurrentScreenshot();
+        }
+
         // Get selected files and clear immediately
         const filesData = await Files.prepareFilesForAPI();
         Files.clearSelectedFiles();
 
-        // Add user message to UI and clear input
-        UI.addMessage(message, true, filesData);
+        // Add user message to UI with screenshot indicator (if captured)
+        UI.addMessage(displayText, true, filesData);
         UI.clearMessageInput();
         UI.setSendButtonState(false);
         UI.hideLoading();
@@ -259,8 +267,8 @@ const Chat = {
             const systemPrompt = activeSystemPromptId && systemPrompts[activeSystemPromptId] ? 
                 systemPrompts[activeSystemPromptId].content : null;
             
-            // Send message to API
-            const response = await API.sendMessage(message, this.currentMessages, systemPrompt, filesData);
+            // Send message to API (include screenshot data but don't store it)
+            const response = await API.sendMessage(message, this.currentMessages, systemPrompt, filesData, screenshotData);
 
             // Process streaming response
             for await (const data of API.streamResponse(response)) {
@@ -276,13 +284,14 @@ const Chat = {
                 if (data.done) {
                     // Complete the streaming message and save both messages to history
                     UI.updateStreamingMessage(streamingBubble, fullResponse, true);
+                    // Save only the original text message, not the screenshot data
                     this.saveMessageToHistory(message, true, filesData);
                     this.saveMessageToHistory(fullResponse, false);
                 }
             }
         } catch (error) {
             UI.updateStreamingMessage(streamingBubble, `Error: ${error.message}`, true);
-            // Save user message to history even if API call failed
+            // Save user message to history even if API call failed (only original text)
             this.saveMessageToHistory(message, true, filesData);
         } finally {
             this.isSending = false;

@@ -5,6 +5,7 @@ const Tools = {
     // State
     webSearchEnabled: false,
     docContextEnabled: false,
+    screenshareEnabled: false,
 
     // Initialize tools
     init() {
@@ -20,10 +21,12 @@ const Tools = {
                 const state = JSON.parse(saved);
                 this.webSearchEnabled = state.webSearchEnabled || false;
                 this.docContextEnabled = state.docContextEnabled || false;
+                this.screenshareEnabled = state.screenshareEnabled || false;
             } catch (error) {
                 console.warn('Failed to load tools state:', error);
                 this.webSearchEnabled = false;
                 this.docContextEnabled = false;
+                this.screenshareEnabled = false;
             }
         }
         this.updateUI();
@@ -33,7 +36,8 @@ const Tools = {
     saveState() {
         const state = {
             webSearchEnabled: this.webSearchEnabled,
-            docContextEnabled: this.docContextEnabled
+            docContextEnabled: this.docContextEnabled,
+            screenshareEnabled: this.screenshareEnabled
         };
         localStorage.setItem('toolsState', JSON.stringify(state));
     },
@@ -53,6 +57,14 @@ const Tools = {
                 this.setDocContext(e.target.checked);
             });
         }
+
+        const screenshareToggle = document.getElementById('screenshareToggle');
+        if (screenshareToggle) {
+            screenshareToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleScreenshare();
+            });
+        }
     },
 
     // Update UI to reflect current state
@@ -68,6 +80,7 @@ const Tools = {
         }
 
         this.updateDocContextIndicator();
+        this.updateScreenshareIndicator();
     },
 
     // Update doc context indicator visibility
@@ -122,6 +135,38 @@ const Tools = {
     // Get current doc context state
     isDocContextEnabled() {
         return this.docContextEnabled;
+    },
+
+    // Toggle screenshare
+    async toggleScreenshare() {
+        this.screenshareEnabled = !this.screenshareEnabled;
+        
+        if (this.screenshareEnabled) {
+            // Start stream immediately (prompts for window selection)
+            await ScreenShare.startStream();
+            // If stream failed to start, ScreenShare will call toggleScreenshare again to turn it off
+        } else {
+            // Stop stream immediately
+            ScreenShare.stopStream();
+        }
+        
+        this.saveState();
+        this.updateScreenshareIndicator();
+        console.log('Screenshare', this.screenshareEnabled ? 'enabled' : 'disabled');
+    },
+
+    // Update screenshare indicator
+    updateScreenshareIndicator() {
+        const indicator = document.getElementById('screenshareIndicator');
+        if (indicator) {
+            indicator.classList.toggle('active', this.screenshareEnabled);
+            indicator.textContent = this.screenshareEnabled ? '📸 ON' : '📸 OFF';
+        }
+    },
+
+    // Get current screenshare state
+    isScreenshareEnabled() {
+        return this.screenshareEnabled;
     },
 
     // Get current document as file attachment

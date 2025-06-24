@@ -39,7 +39,11 @@ const UI = {
         exitEditorBtn: document.getElementById('exitEditorBtn'),
         quitBtn: document.getElementById('quitBtn'),
         sidebar: document.getElementById('sidebar'),
-        sidebarResizeHandle: document.getElementById('sidebarResizeHandle')
+        sidebarResizeHandle: document.getElementById('sidebarResizeHandle'),
+        screenshareToggle: document.getElementById('screenshareToggle'),
+        screenshareIndicator: document.getElementById('screenshareIndicator'),
+        screensharePreviewContainer: document.getElementById('screensharePreviewContainer'),
+        screensharePreviewImage: document.getElementById('screensharePreviewImage')
     },
 
     // Message utilities
