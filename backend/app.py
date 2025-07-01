@@ -20,6 +20,18 @@ app = Flask(__name__,
 # Initialize client without API key - will be set per request
 default_headers = {"anthropic-beta": "pdfs-2024-09-25"}
 
+def extract_message_text(message):
+    """Extract text content from message (handles both string and array formats)"""
+    if isinstance(message, str):
+        return message
+    elif isinstance(message, list):
+        # Find text part in array format (from screenshare)
+        for part in message:
+            if part.get('type') == 'text':
+                return part.get('text', '')
+        return ''
+    return str(message)  # Fallback
+
 def process_files(files):
     """Process file attachments and return content parts and text content."""
     content_parts = []
@@ -135,12 +147,17 @@ def chat():
         if files:
             content_parts, text_files_content = process_files(files)
             
-            # Add text content (any text files + original question)
-            final_text = text_files_content + question if text_files_content else question
-            content_parts.append({
-                "type": "text",
-                "text": final_text
-            })
+            # Extract text from question (handles both string and array)
+            question_text = extract_message_text(question)
+            final_text = text_files_content + question_text if text_files_content else question_text
+            
+            # Handle message format (preserve original structure if array)
+            if isinstance(question, list):
+                # Screenshare case: add files to existing array
+                content_parts.extend(question)
+            else:
+                # Text-only case: add text part
+                content_parts.append({"type": "text", "text": final_text})
             
             messages.append({
                 "role": "user",
