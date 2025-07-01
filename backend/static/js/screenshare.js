@@ -33,6 +33,16 @@ const ScreenShare = {
                 this.previewContainer.style.display = 'flex';
             }
             
+            // Show loading state immediately
+            if (this.previewImage) {
+                this.previewImage.src = 'data:image/svg+xml;base64,' + btoa(`
+                    <svg width="200" height="150" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="100%" height="100%" fill="#f3f4f6"/>
+                        <text x="50%" y="50%" text-anchor="middle" fill="#6b7280">Loading...</text>
+                    </svg>
+                `);
+            }
+            
             // Set up stream ended handler (auto-cleanup if user closes window)
             this.stream.getTracks().forEach(track => {
                 track.addEventListener('ended', () => {
