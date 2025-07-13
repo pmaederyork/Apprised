@@ -64,9 +64,8 @@ const Tools = {
 
         const screenshareToggle = document.getElementById('screenshareToggle');
         if (screenshareToggle) {
-            screenshareToggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.toggleScreenshare();
+            screenshareToggle.addEventListener('change', (e) => {
+                this.setScreenshare(e.target.checked);
             });
         }
 
@@ -95,8 +94,12 @@ const Tools = {
             chatgptToggle.checked = this.chatgptEnabled;
         }
 
+        const screenshareToggle = document.getElementById('screenshareToggle');
+        if (screenshareToggle) {
+            screenshareToggle.checked = this.screenshareEnabled;
+        }
+
         this.updateDocContextIndicator();
-        this.updateScreenshareIndicator();
     },
 
     // Update doc context indicator visibility
@@ -165,9 +168,9 @@ const Tools = {
         return this.chatgptEnabled;
     },
 
-    // Toggle screenshare
-    async toggleScreenshare() {
-        this.screenshareEnabled = !this.screenshareEnabled;
+    // Set screenshare state
+    async setScreenshare(enabled) {
+        this.screenshareEnabled = enabled;
         
         if (this.screenshareEnabled) {
             // Start stream immediately (prompts for window selection)
@@ -179,18 +182,30 @@ const Tools = {
         }
         
         this.saveState();
-        this.updateScreenshareIndicator();
         console.log('Screenshare', this.screenshareEnabled ? 'enabled' : 'disabled');
     },
 
-    // Update screenshare indicator
-    updateScreenshareIndicator() {
-        const indicator = document.getElementById('screenshareIndicator');
-        if (indicator) {
-            indicator.classList.toggle('active', this.screenshareEnabled);
-            indicator.textContent = this.screenshareEnabled ? '📸 ON' : '📸 OFF';
+    // Toggle screenshare (for compatibility with existing ScreenShare module)
+    async toggleScreenshare() {
+        this.screenshareEnabled = !this.screenshareEnabled;
+        
+        if (this.screenshareEnabled) {
+            await ScreenShare.startStream();
+        } else {
+            ScreenShare.stopStream();
         }
+        
+        this.saveState();
+        
+        // Update the checkbox to reflect the new state
+        const screenshareToggle = document.getElementById('screenshareToggle');
+        if (screenshareToggle) {
+            screenshareToggle.checked = this.screenshareEnabled;
+        }
+        
+        console.log('Screenshare', this.screenshareEnabled ? 'enabled' : 'disabled');
     },
+
 
     // Get current screenshare state
     isScreenshareEnabled() {
