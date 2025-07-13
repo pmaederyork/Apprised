@@ -95,6 +95,9 @@ def chat():
     if not api_key:
         return jsonify({'error': 'API key required. Please add your Anthropic API key in Settings.'}), 401
     
+    # Get ChatGPT API key from request headers (capture outside generator)
+    chatgpt_api_key = request.headers.get('X-ChatGPT-API-Key')
+    
     # Create client with the provided API key
     try:
         client = anthropic.Anthropic(
@@ -200,8 +203,7 @@ def chat():
                         chatgpt_tool_calls = [block for block in response.content if block.type == "tool_use" and block.name == "chatgpt"]
                         
                         if chatgpt_tool_calls:
-                            # Get ChatGPT API key 
-                            chatgpt_api_key = request.headers.get('X-ChatGPT-API-Key')
+                            # Check if ChatGPT API key is available
                             if not chatgpt_api_key:
                                 yield f"data: {json.dumps({'error': 'ChatGPT API key required for this request.'})}\n\n"
                                 return

@@ -7,6 +7,8 @@
 - **Don't break existing functionality
 - **Manual testing required after changes
 - **Never make changes until I tell you to!
+- **Always use Python3 and Pip3
+- **When referencing external tools, review the online documentation with websearch first before implementing.  
 ---
 
 ## Full Stack Architecture
