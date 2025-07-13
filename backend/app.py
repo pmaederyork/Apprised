@@ -10,13 +10,31 @@ import signal
 import threading
 import time
 import base64
+import logging
 
 # Set the process name to "Plaud" for Activity Monitor
 setproctitle.setproctitle("Plaud")
 
+# Configure logging
+logging.basicConfig(
+    filename='/tmp/plaud.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
 app = Flask(__name__, 
             static_folder='static',
             template_folder='templates')
+
+# Add request logging
+@app.before_request
+def log_request():
+    logging.info(f"{request.method} {request.path} from {request.remote_addr}")
+
+@app.after_request
+def log_response(response):
+    logging.info(f"Response {response.status_code} for {request.method} {request.path}")
+    return response
 
 # Initialize client without API key - will be set per request
 default_headers = {"anthropic-beta": "pdfs-2024-09-25"}
@@ -97,7 +115,7 @@ def chat():
     
     # Get ChatGPT API key from request headers (capture outside generator)
     chatgpt_api_key = request.headers.get('X-ChatGPT-API-Key')
-    print(f"DEBUG: ChatGPT API key present: {bool(chatgpt_api_key)}")  # Debug logging
+    logging.info(f"ChatGPT API key present: {bool(chatgpt_api_key)}")
     
     # Create client with the provided API key
     try:
@@ -193,7 +211,7 @@ def chat():
                 
                 # Check for ChatGPT tool - if present, handle non-streaming
                 has_chatgpt_tool = any(tool.get('name') == 'chatgpt' for tool in tools)
-                print(f"DEBUG: Has ChatGPT tool: {has_chatgpt_tool}, Tools count: {len(tools)}")  # Debug logging
+                logging.info(f"Has ChatGPT tool: {has_chatgpt_tool}, Tools count: {len(tools)}")
                 
                 if has_chatgpt_tool:
                     # Use non-streaming approach for tool calls
@@ -243,7 +261,7 @@ def chat():
                                     
                                 except Exception as e:
                                     error_msg = f"ChatGPT API error: {str(e)}"
-                                    print(f"ChatGPT API Error Details: {e}")  # Log actual error
+                                    logging.error(f"ChatGPT API Error Details: {e}")
                                     tool_results.append({
                                         "type": "tool_result",
                                         "tool_use_id": tool_call.id,
@@ -281,7 +299,7 @@ def chat():
                                         for text in continue_stream.text_stream:
                                             yield f"data: {json.dumps({'chunk': text})}\n\n"
                                 except Exception as e:
-                                    print(f"Claude continuation error: {e}")  # Log continuation errors
+                                    logging.error(f"Claude continuation error: {e}")
                                     yield f"data: {json.dumps({'error': f'Error processing ChatGPT response: {str(e)}'})}\n\n"
                     else:
                         # No tool calls, stream the response
@@ -299,6 +317,7 @@ def chat():
                 
             except Exception as e:
                 error_message = str(e)
+                logging.error(f"Anthropic API error: {e}")
                 # Handle specific Anthropic API errors
                 if 'authentication' in error_message.lower() or 'api key' in error_message.lower():
                     error_message = 'Invalid API key. Please check your API key in Settings.'
@@ -309,6 +328,7 @@ def chat():
         return Response(generate(), mimetype='text/plain')
         
     except Exception as e:
+        logging.error(f"Chat endpoint error: {e}")
         return jsonify({'error': str(e)}), 500
 
 # Health check endpoint
@@ -333,10 +353,12 @@ def shutdown():
 # ChatGPT endpoint
 @app.route('/chatgpt', methods=['POST'])
 def chatgpt():
+    logging.info("ChatGPT endpoint called")
     # Get ChatGPT API key from request headers
     api_key = request.headers.get('X-ChatGPT-API-Key')
     
     if not api_key:
+        logging.warning("ChatGPT API key missing")
         return jsonify({'error': 'ChatGPT API key required. Please add your OpenAI API key in Settings.'}), 401
     
     try:
@@ -349,6 +371,7 @@ def chatgpt():
         
         # Create OpenAI client with the provided API key
         client = openai.OpenAI(api_key=api_key)
+        logging.info(f"Calling ChatGPT with prompt length: {len(prompt)}")
         
         # Call ChatGPT API
         response = client.chat.completions.create(
@@ -361,6 +384,7 @@ def chatgpt():
         )
         
         chatgpt_response = response.choices[0].message.content
+        logging.info("ChatGPT API call successful")
         
         return jsonify({
             'response': chatgpt_response,
@@ -369,6 +393,7 @@ def chatgpt():
         
     except Exception as e:
         error_message = str(e)
+        logging.error(f"ChatGPT API error: {e}")
         # Handle specific OpenAI API errors
         if 'authentication' in error_message.lower() or 'api key' in error_message.lower():
             error_message = 'Invalid ChatGPT API key. Please check your OpenAI API key in Settings.'
