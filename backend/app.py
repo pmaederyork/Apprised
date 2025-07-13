@@ -241,6 +241,7 @@ def chat():
                                     
                                 except Exception as e:
                                     error_msg = f"ChatGPT API error: {str(e)}"
+                                    print(f"ChatGPT API Error Details: {e}")  # Log actual error
                                     tool_results.append({
                                         "type": "tool_result",
                                         "tool_use_id": tool_call.id,
@@ -249,8 +250,17 @@ def chat():
                             
                             # Continue conversation with tool results
                             if tool_results:
+                                # Convert response.content array to string for assistant message
+                                assistant_content = []
+                                for block in response.content:
+                                    if block.type == "text":
+                                        assistant_content.append(block.text)
+                                    elif block.type == "tool_use":
+                                        # Include tool use blocks as-is
+                                        assistant_content.append(block)
+                                
                                 continue_messages = api_params["messages"] + [
-                                    {"role": "assistant", "content": response.content},
+                                    {"role": "assistant", "content": assistant_content},
                                     {"role": "user", "content": tool_results}
                                 ]
                                 
@@ -264,9 +274,13 @@ def chat():
                                 if system_prompt:
                                     continue_params["system"] = system_prompt
                                 
-                                with client.messages.stream(**continue_params) as continue_stream:
-                                    for text in continue_stream.text_stream:
-                                        yield f"data: {json.dumps({'chunk': text})}\n\n"
+                                try:
+                                    with client.messages.stream(**continue_params) as continue_stream:
+                                        for text in continue_stream.text_stream:
+                                            yield f"data: {json.dumps({'chunk': text})}\n\n"
+                                except Exception as e:
+                                    print(f"Claude continuation error: {e}")  # Log continuation errors
+                                    yield f"data: {json.dumps({'error': f'Error processing ChatGPT response: {str(e)}'})}\n\n"
                     else:
                         # No tool calls, stream the response
                         for block in response.content:
