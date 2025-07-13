@@ -12,13 +12,19 @@ const Settings = {
         saveApiKeyBtn: null,
         deleteApiKeyBtn: null,
         apiKeyNotification: null,
-        openSettingsFromNotification: null
+        openSettingsFromNotification: null,
+        chatgptApiKeyInput: null,
+        chatgptShowHideBtn: null,
+        chatgptApiKeyStatus: null,
+        saveChatGPTApiKeyBtn: null,
+        deleteChatGPTApiKeyBtn: null
     },
 
     init() {
         this.initElements();
         this.bindEvents();
         this.loadApiKey();
+        this.loadChatGPTApiKey();
         this.updateUI();
     },
 
@@ -33,6 +39,11 @@ const Settings = {
         this.elements.deleteApiKeyBtn = document.getElementById('deleteApiKeyBtn');
         this.elements.apiKeyNotification = document.getElementById('apiKeyNotification');
         this.elements.openSettingsFromNotification = document.getElementById('openSettingsFromNotification');
+        this.elements.chatgptApiKeyInput = document.getElementById('chatgptApiKeyInput');
+        this.elements.chatgptShowHideBtn = document.getElementById('chatgptShowHideBtn');
+        this.elements.chatgptApiKeyStatus = document.getElementById('chatgptApiKeyStatus');
+        this.elements.saveChatGPTApiKeyBtn = document.getElementById('saveChatGPTApiKeyBtn');
+        this.elements.deleteChatGPTApiKeyBtn = document.getElementById('deleteChatGPTApiKeyBtn');
     },
 
     bindEvents() {
@@ -73,6 +84,17 @@ const Settings = {
             this.hideApiKeyNotification();
             this.openSettings();
         });
+
+        // ChatGPT API key events
+        this.elements.chatgptShowHideBtn?.addEventListener('click', () => this.toggleChatGPTPasswordVisibility());
+        this.elements.saveChatGPTApiKeyBtn?.addEventListener('click', () => this.saveChatGPTApiKey());
+        this.elements.deleteChatGPTApiKeyBtn?.addEventListener('click', () => this.deleteChatGPTApiKey());
+        this.elements.chatgptApiKeyInput?.addEventListener('input', () => this.validateChatGPTApiKey());
+        this.elements.chatgptApiKeyInput?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.saveChatGPTApiKey();
+            }
+        });
         
         // ESC key to close
         document.addEventListener('keydown', (e) => {
@@ -98,10 +120,23 @@ const Settings = {
         }
     },
 
+    loadChatGPTApiKey() {
+        const apiKey = Storage.getChatGPTApiKey();
+        if (apiKey) {
+            this.elements.chatgptApiKeyInput.value = apiKey;
+            this.showChatGPTStatus('ChatGPT API key loaded', 'success');
+        } else {
+            this.elements.chatgptApiKeyInput.value = '';
+            this.showChatGPTStatus('No ChatGPT API key found', 'warning');
+        }
+    },
+
     openSettings() {
         this.elements.settingsModal.style.display = 'flex';
         this.loadApiKey();
+        this.loadChatGPTApiKey();
         this.validateApiKey();
+        this.validateChatGPTApiKey();
         // Focus on input after modal opens
         setTimeout(() => {
             this.elements.apiKeyInput?.focus();
@@ -235,5 +270,98 @@ const Settings = {
     // Get API key for API requests
     getApiKeyForRequest() {
         return Storage.getApiKey();
+    },
+
+    // ChatGPT API key methods
+    toggleChatGPTPasswordVisibility() {
+        const input = this.elements.chatgptApiKeyInput;
+        const button = this.elements.chatgptShowHideBtn;
+        
+        if (!input || !button) return;
+        
+        if (input.type === 'password') {
+            input.type = 'text';
+            button.textContent = '🙈';
+        } else {
+            input.type = 'password';
+            button.textContent = '👁️';
+        }
+    },
+
+    validateChatGPTApiKey() {
+        const input = this.elements.chatgptApiKeyInput;
+        if (!input) return false;
+        
+        const apiKey = input.value.trim();
+        const isValid = apiKey.length > 0 && apiKey.startsWith('sk-');
+        
+        // Update button state
+        this.elements.saveChatGPTApiKeyBtn.disabled = !isValid;
+        
+        // Show validation messages
+        if (apiKey.length === 0) {
+            this.showChatGPTStatus('Enter your ChatGPT API key', 'info');
+        } else if (!apiKey.startsWith('sk-')) {
+            this.showChatGPTStatus('Invalid key format. ChatGPT keys start with "sk-"', 'error');
+        } else if (apiKey.length < 40) {
+            this.showChatGPTStatus('Key appears too short', 'warning');
+        } else {
+            this.showChatGPTStatus('Key format looks correct', 'success');
+        }
+        
+        return isValid;
+    },
+
+    saveChatGPTApiKey() {
+        const apiKey = this.elements.chatgptApiKeyInput.value.trim();
+        
+        if (!this.validateChatGPTApiKey()) {
+            return;
+        }
+        
+        try {
+            // Save the API key
+            Storage.saveChatGPTApiKey(apiKey);
+            
+            // Show success message
+            this.showChatGPTStatus('ChatGPT API key saved successfully!', 'success');
+            
+            // Update UI
+            this.updateUI();
+            
+        } catch (error) {
+            console.error('Error saving ChatGPT API key:', error);
+            this.showChatGPTStatus('Error saving API key', 'error');
+        }
+    },
+
+    deleteChatGPTApiKey() {
+        if (confirm('Are you sure you want to delete your ChatGPT API key?')) {
+            try {
+                Storage.deleteChatGPTApiKey();
+                
+                // Clear input and update UI
+                this.elements.chatgptApiKeyInput.value = '';
+                this.showChatGPTStatus('ChatGPT API key deleted', 'info');
+                this.updateUI();
+                
+            } catch (error) {
+                console.error('Error deleting ChatGPT API key:', error);
+                this.showChatGPTStatus('Error deleting API key', 'error');
+            }
+        }
+    },
+
+    showChatGPTStatus(message, type) {
+        if (!this.elements.chatgptApiKeyStatus) return;
+        
+        this.elements.chatgptApiKeyStatus.textContent = message;
+        this.elements.chatgptApiKeyStatus.className = `api-key-status ${type}`;
+        this.elements.chatgptApiKeyStatus.style.display = 'block';
+    },
+
+    // Get ChatGPT API key for API requests
+    getChatGPTApiKeyForRequest() {
+        return Storage.getChatGPTApiKey();
     }
 };

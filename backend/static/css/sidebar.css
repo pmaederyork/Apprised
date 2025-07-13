@@ -422,7 +422,14 @@
 }
 
 .api-key-section {
-    margin-bottom: 20px;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f5f5f4;
+}
+
+.api-key-section:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
 }
 
 .api-key-section label {

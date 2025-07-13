@@ -105,6 +105,28 @@ const Storage = {
         return apiKey && apiKey.length > 0;
     },
 
+    // ChatGPT API Key storage
+    getChatGPTApiKey() {
+        return localStorage.getItem('chatgptApiKey') || null;
+    },
+
+    saveChatGPTApiKey(apiKey) {
+        if (apiKey && apiKey.trim()) {
+            localStorage.setItem('chatgptApiKey', apiKey.trim());
+        } else {
+            localStorage.removeItem('chatgptApiKey');
+        }
+    },
+
+    deleteChatGPTApiKey() {
+        localStorage.removeItem('chatgptApiKey');
+    },
+
+    hasChatGPTApiKey() {
+        const apiKey = this.getChatGPTApiKey();
+        return apiKey && apiKey.length > 0;
+    },
+
     // Conversation history storage with image data protection
     saveConversationHistory(history) {
         try {

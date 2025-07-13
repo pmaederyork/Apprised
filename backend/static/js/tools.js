@@ -6,6 +6,7 @@ const Tools = {
     webSearchEnabled: false,
     docContextEnabled: false,
     screenshareEnabled: false,
+    chatgptEnabled: false,
 
     // Initialize tools
     init() {
@@ -22,11 +23,13 @@ const Tools = {
                 this.webSearchEnabled = state.webSearchEnabled || false;
                 this.docContextEnabled = state.docContextEnabled || false;
                 this.screenshareEnabled = state.screenshareEnabled || false;
+                this.chatgptEnabled = state.chatgptEnabled || false;
             } catch (error) {
                 console.warn('Failed to load tools state:', error);
                 this.webSearchEnabled = false;
                 this.docContextEnabled = false;
                 this.screenshareEnabled = false;
+                this.chatgptEnabled = false;
             }
         }
         this.updateUI();
@@ -37,7 +40,8 @@ const Tools = {
         const state = {
             webSearchEnabled: this.webSearchEnabled,
             docContextEnabled: this.docContextEnabled,
-            screenshareEnabled: this.screenshareEnabled
+            screenshareEnabled: this.screenshareEnabled,
+            chatgptEnabled: this.chatgptEnabled
         };
         localStorage.setItem('toolsState', JSON.stringify(state));
     },
@@ -65,6 +69,13 @@ const Tools = {
                 this.toggleScreenshare();
             });
         }
+
+        const chatgptToggle = document.getElementById('chatgptToggle');
+        if (chatgptToggle) {
+            chatgptToggle.addEventListener('change', (e) => {
+                this.setChatGPT(e.target.checked);
+            });
+        }
     },
 
     // Update UI to reflect current state
@@ -77,6 +88,11 @@ const Tools = {
         const docContextToggle = document.getElementById('docContextToggle');
         if (docContextToggle) {
             docContextToggle.checked = this.docContextEnabled;
+        }
+
+        const chatgptToggle = document.getElementById('chatgptToggle');
+        if (chatgptToggle) {
+            chatgptToggle.checked = this.chatgptEnabled;
         }
 
         this.updateDocContextIndicator();
@@ -135,6 +151,18 @@ const Tools = {
     // Get current doc context state
     isDocContextEnabled() {
         return this.docContextEnabled;
+    },
+
+    // Toggle ChatGPT
+    setChatGPT(enabled) {
+        this.chatgptEnabled = enabled;
+        this.saveState();
+        console.log('ChatGPT', enabled ? 'enabled' : 'disabled');
+    },
+
+    // Get current ChatGPT state
+    isChatGPTEnabled() {
+        return this.chatgptEnabled;
     },
 
     // Toggle screenshare
@@ -212,6 +240,28 @@ const Tools = {
                 type: "web_search_20250305",
                 name: "web_search",
                 max_uses: 5
+            });
+        }
+
+        if (this.chatgptEnabled) {
+            tools.push({
+                name: "chatgpt",
+                description: "Call ChatGPT API only when explicitly asked by the user. Use this tool when the user specifically requests ChatGPT, asks to compare responses, or wants to see what ChatGPT would say.",
+                input_schema: {
+                    type: "object",
+                    properties: {
+                        prompt: {
+                            type: "string",
+                            description: "The prompt to send to ChatGPT"
+                        },
+                        show_response: {
+                            type: "boolean",
+                            description: "Whether to show the ChatGPT response separately to the user (true) or just integrate it into the response (false)",
+                            default: false
+                        }
+                    },
+                    required: ["prompt"]
+                }
             });
         }
         
