@@ -97,6 +97,7 @@ def chat():
     
     # Get ChatGPT API key from request headers (capture outside generator)
     chatgpt_api_key = request.headers.get('X-ChatGPT-API-Key')
+    print(f"DEBUG: ChatGPT API key present: {bool(chatgpt_api_key)}")  # Debug logging
     
     # Create client with the provided API key
     try:
@@ -192,6 +193,7 @@ def chat():
                 
                 # Check for ChatGPT tool - if present, handle non-streaming
                 has_chatgpt_tool = any(tool.get('name') == 'chatgpt' for tool in tools)
+                print(f"DEBUG: Has ChatGPT tool: {has_chatgpt_tool}, Tools count: {len(tools)}")  # Debug logging
                 
                 if has_chatgpt_tool:
                     # Use non-streaming approach for tool calls
