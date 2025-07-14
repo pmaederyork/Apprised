@@ -261,11 +261,7 @@ const UI = {
 
     // Add copy-to-document button to Claude messages
     addCopyToDocumentButton(messageDiv, bubbleDiv) {
-        // Only show button when Doc Context is enabled and document is open
-        if (typeof Tools === 'undefined' || !Tools.isDocContextEnabled()) {
-            return;
-        }
-        
+        // Only show button when document is open
         if (typeof Documents === 'undefined' || !Documents.currentDocumentId) {
             return;
         }
