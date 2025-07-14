@@ -54,10 +54,14 @@ const Chat = {
         });
 
         // Tab key to copy latest Claude message to document
+        // Up arrow to copy last user message
         UI.elements.messageInput.addEventListener('keydown', (e) => {
             if (e.key === 'Tab') {
                 e.preventDefault();
                 this.copyLatestClaudeMessageToDocument();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                this.copyLastMessage();
             }
         });
 
@@ -341,6 +345,17 @@ const Chat = {
     interruptMessage() {
         if (this.isSending) {
             API.interrupt();
+        }
+    },
+
+    // Copy last user message to input
+    copyLastMessage() {
+        // Find last user message
+        for (let i = this.currentMessages.length - 1; i >= 0; i--) {
+            if (this.currentMessages[i].isUser) {
+                UI.elements.messageInput.value = this.currentMessages[i].content;
+                break;
+            }
         }
     },
 
