@@ -81,13 +81,17 @@
 
 /* Document editor styles */
 .document-editor {
-    display: none;
     flex-direction: column;
     height: 100vh;
     flex: 1;
-    min-width: 400px;
-    max-width: 50vw;
+    min-width: 200px;
+    max-width: 500px;
+    border-left: 1px solid #d1e7ff;
+    display: flex;
+    position: relative;
 }
+
+
 
 .document-editor.active {
     display: flex;

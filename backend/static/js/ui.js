@@ -344,8 +344,6 @@ const UI = {
             
             // Check if button should be visible
             const shouldShowButton = (
-                typeof Tools !== 'undefined' && 
-                Tools.isDocContextEnabled() &&
                 typeof Documents !== 'undefined' && 
                 Documents.currentDocumentId
             );

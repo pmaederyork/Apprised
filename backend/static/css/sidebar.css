@@ -1,6 +1,6 @@
 /* Sidebar styles */
 .sidebar {
-    width: 280px;
+    width: 200px;
     min-width: 200px;
     max-width: 500px;
     background: #f0f8ff;
@@ -11,7 +11,7 @@
 }
 
 .sidebar-header {
-    padding: 16px;
+    padding: 8px;
     border-bottom: 1px solid #d1e7ff;
     display: flex;
     align-items: center;
