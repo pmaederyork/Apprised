@@ -261,7 +261,7 @@ const Tools = {
         if (this.chatgptEnabled) {
             tools.push({
                 name: "chatgpt",
-                description: "Call ChatGPT API only when explicitly asked by the user. Use this tool when the user specifically requests ChatGPT, asks to compare responses, or wants to see what ChatGPT would say.",
+                description: "Call ChatGPT API only when explicitly asked by the user. Use this tool when the user specifically requests ChatGPT, asks to compare responses, or wants to see what ChatGPT would say. Set enable_web_search to true when current information is needed.",
                 input_schema: {
                     type: "object",
                     properties: {
@@ -272,6 +272,11 @@ const Tools = {
                         show_response: {
                             type: "boolean",
                             description: "Whether to show the ChatGPT response separately to the user (true) or just integrate it into the response (false)",
+                            default: false
+                        },
+                        enable_web_search: {
+                            type: "boolean",
+                            description: "Whether to enable web search for this ChatGPT call",
                             default: false
                         }
                     },

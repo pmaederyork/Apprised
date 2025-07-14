@@ -235,15 +235,24 @@ def chat():
                                     tool_input = tool_call.input
                                     prompt = tool_input.get('prompt', '')
                                     show_response = tool_input.get('show_response', False)
+                                    enable_web_search = tool_input.get('enable_web_search', False)
                                     
                                     # Call ChatGPT API
                                     chatgpt_client = openai.OpenAI(api_key=chatgpt_api_key)
-                                    chatgpt_response = chatgpt_client.chat.completions.create(
-                                        model="gpt-4o",
-                                        messages=[{"role": "user", "content": prompt}],
-                                        temperature=0.7,
-                                        max_tokens=4000
-                                    )
+                                    
+                                    # Build API parameters
+                                    api_params = {
+                                        "model": "gpt-4o",
+                                        "messages": [{"role": "user", "content": prompt}],
+                                        "temperature": 0.7,
+                                        "max_tokens": 4000
+                                    }
+                                    
+                                    # Add web search tool if enabled
+                                    if enable_web_search:
+                                        api_params["tools"] = [{"type": "web_search_preview"}]
+                                    
+                                    chatgpt_response = chatgpt_client.chat.completions.create(**api_params)
                                     
                                     chatgpt_result = chatgpt_response.choices[0].message.content
                                     
