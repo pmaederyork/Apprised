@@ -235,37 +235,50 @@ def chat():
                                     tool_input = tool_call.input
                                     prompt = tool_input.get('prompt', '')
                                     show_response = tool_input.get('show_response', False)
-                                    enable_web_search = tool_input.get('enable_web_search', False)
                                     
                                     # Call ChatGPT API
                                     chatgpt_client = openai.OpenAI(api_key=chatgpt_api_key)
                                     
-                                    # Build API parameters
-                                    api_params = {
-                                        "model": "gpt-4o",
-                                        "messages": [{"role": "user", "content": prompt}],
-                                        "temperature": 0.7,
-                                        "max_tokens": 4000
-                                    }
+                                    # Always use Responses API with web search for ChatGPT
+                                    try:
+                                        api_params = {
+                                            "model": "gpt-4o",
+                                            "tools": [{"type": "web_search"}],
+                                            "input": f"You have web search capabilities. Use them when you need current information. Provide direct answers based on your search results.\n\n{prompt}"
+                                        }
+                                        chatgpt_response = chatgpt_client.responses.create(**api_params)
+                                        logging.info("ChatGPT Responses API with web search succeeded")
+                                    except Exception as e:
+                                        logging.error(f"ChatGPT Responses API with web search failed: {str(e)}")
+                                        logging.error(f"Error type: {type(e)}")
+                                        raise e
                                     
-                                    # Add web search tool if enabled
-                                    if enable_web_search:
-                                        api_params["tools"] = [{"type": "web_search_preview"}]
-                                    
-                                    chatgpt_response = chatgpt_client.chat.completions.create(**api_params)
-                                    
-                                    chatgpt_result = chatgpt_response.choices[0].message.content
+                                    # Handle different response formats
+                                    if hasattr(chatgpt_response, 'choices'):
+                                        # Chat Completions API response
+                                        chatgpt_result = chatgpt_response.choices[0].message.content
+                                    else:
+                                        # Responses API response - use output attribute
+                                        if hasattr(chatgpt_response, 'output'):
+                                            chatgpt_result = chatgpt_response.output
+                                            logging.info(f"ChatGPT response output type: {type(chatgpt_result)}")
+                                            logging.info(f"ChatGPT response output preview: {str(chatgpt_result)[:200]}...")
+                                        else:
+                                            # Debug unknown response format
+                                            logging.error(f"Unknown Responses API format: {type(chatgpt_response)}")
+                                            logging.error(f"Available attributes: {dir(chatgpt_response)}")
+                                            chatgpt_result = str(chatgpt_response)
                                     
                                     # Show the result to user if requested
                                     if show_response:
                                         chatgpt_display = f"\n\n**ChatGPT Response:**\n{chatgpt_result}\n\n"
                                         yield f"data: {json.dumps({'chunk': chatgpt_display})}\n\n"
                                     
-                                    # Add tool result for Claude
+                                    # Add tool result for Claude - ensure it's properly formatted as text
                                     tool_results.append({
                                         "type": "tool_result",
                                         "tool_use_id": tool_call.id,
-                                        "content": chatgpt_result
+                                        "content": str(chatgpt_result)  # Ensure it's a string
                                     })
                                     
                                 except Exception as e:
@@ -296,7 +309,7 @@ def chat():
                                             "input": block.input
                                         })
                                 
-                                continue_messages = api_params["messages"] + [
+                                continue_messages = messages + [
                                     {"role": "assistant", "content": assistant_content},
                                     {"role": "user", "content": tool_results}
                                 ]
