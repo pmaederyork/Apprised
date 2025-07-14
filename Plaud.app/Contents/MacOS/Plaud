@@ -18,6 +18,31 @@ fi
 
 cd "$BACKEND_DIR"
 
+# Function to focus existing Chrome tab or return false if not found
+focus_existing_chrome_tab() {
+    result=$(osascript <<EOF
+tell application "Google Chrome"
+    if it is running then
+        repeat with w in (windows)
+            set j to 0
+            repeat with t in (tabs of w)
+                set j to j + 1
+                if URL of t is "http://127.0.0.1:5000/" then
+                    set (active tab index of w) to j
+                    set index of w to 1
+                    activate
+                    return "true"
+                end if
+            end repeat
+        end repeat
+    end if
+    return "false"
+end tell
+EOF
+)
+    [[ "$result" == "true" ]]
+}
+
 # Check if Python 3 is available
 if ! command -v python3 &> /dev/null; then
     osascript -e 'display dialog "Python 3 is required but not installed. Please install Python 3 and try again." buttons {"OK"} default button "OK"'
@@ -32,9 +57,13 @@ fi
 
 # Check if server is already running
 if lsof -Pi :5000 -sTCP:LISTEN -t >/dev/null 2>&1; then
-    # Server is already running, just open browser
-    open "http://127.0.0.1:5000"
-    osascript -e 'display notification "Plaud Chat was already running" with title "Plaud"'
+    # Server is already running, try to focus existing Chrome tab
+    if focus_existing_chrome_tab; then
+        osascript -e 'display notification "Focused existing Plaud tab" with title "Plaud"'
+    else
+        open -a "Google Chrome" "http://127.0.0.1:5000"
+        osascript -e 'display notification "Opened new Plaud tab" with title "Plaud"'
+    fi
     exit 0
 fi
 
@@ -52,8 +81,8 @@ sleep 4
 
 # Check if server started successfully
 if lsof -Pi :5000 -sTCP:LISTEN -t >/dev/null 2>&1; then
-    # Open the application in the default browser
-    open "http://127.0.0.1:5000"
+    # Open the application in Chrome
+    open -a "Google Chrome" "http://127.0.0.1:5000"
     
     # Show success notification
     osascript -e 'display notification "Plaud Chat is now running at http://127.0.0.1:5000" with title "Plaud Started"'
