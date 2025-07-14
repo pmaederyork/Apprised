@@ -31,6 +31,8 @@ body {
     display: flex;
     height: 100vh;
     background: #fef7ed;
+    width: 100vw;
+    overflow: hidden;
 }
 
 /* Loading states */

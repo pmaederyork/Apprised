@@ -85,6 +85,8 @@
     flex-direction: column;
     height: 100vh;
     flex: 1;
+    min-width: 400px;
+    max-width: 50vw;
 }
 
 .document-editor.active {
