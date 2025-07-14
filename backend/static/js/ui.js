@@ -306,6 +306,21 @@ const UI = {
             .replace(/\n\s*\n/g, '\n') // Remove empty lines
             .trim();
 
+        // Tab-specific: move cursor to end of document first
+        if (isTabTriggered) {
+            const editor = UI.elements.documentTextarea;
+            if (editor) {
+                editor.focus();
+                // Move cursor to very end
+                const range = document.createRange();
+                range.selectNodeContents(editor);
+                range.collapse(false); // false = end of range
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
+        }
+
         // Insert HTML content at cursor position
         Documents.insertTextAtCursor(content);
 
