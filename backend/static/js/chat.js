@@ -61,6 +61,14 @@ const Chat = {
             }
         });
 
+        // Global Ctrl+C listener for interrupting streaming
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'c' && this.isSending) {
+                e.preventDefault();
+                this.interruptMessage();
+            }
+        });
+
         // New chat button
         const newChatBtn = document.querySelector('.new-chat-btn');
         if (newChatBtn) {
@@ -290,7 +298,11 @@ const Chat = {
                 }
             }
         } catch (error) {
-            UI.updateStreamingMessage(streamingBubble, `Error: ${error.message}`, true);
+            if (error.name === 'AbortError') {
+                UI.updateStreamingMessage(streamingBubble, 'Message interrupted by user', true);
+            } else {
+                UI.updateStreamingMessage(streamingBubble, `Error: ${error.message}`, true);
+            }
             // Save user message to history even if API call failed (only original text)
             this.saveMessageToHistory(message, true, filesData);
         } finally {
@@ -323,6 +335,13 @@ const Chat = {
     // Get current messages
     getCurrentMessages() {
         return [...this.currentMessages];
+    },
+
+    // Interrupt current message streaming
+    interruptMessage() {
+        if (this.isSending) {
+            API.interrupt();
+        }
     },
 
     // Copy latest Claude message to document

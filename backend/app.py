@@ -270,14 +270,22 @@ def chat():
                             
                             # Continue conversation with tool results
                             if tool_results:
-                                # Convert response.content array to string for assistant message
+                                # Convert response.content array to proper format for assistant message
                                 assistant_content = []
                                 for block in response.content:
                                     if block.type == "text":
-                                        assistant_content.append(block.text)
+                                        assistant_content.append({
+                                            "type": "text",
+                                            "text": block.text
+                                        })
                                     elif block.type == "tool_use":
-                                        # Include tool use blocks as-is
-                                        assistant_content.append(block)
+                                        # Include tool use blocks in proper format
+                                        assistant_content.append({
+                                            "type": "tool_use",
+                                            "id": block.id,
+                                            "name": block.name,
+                                            "input": block.input
+                                        })
                                 
                                 continue_messages = api_params["messages"] + [
                                     {"role": "assistant", "content": assistant_content},

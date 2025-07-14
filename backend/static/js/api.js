@@ -2,11 +2,16 @@
  * API communication utilities
  */
 const API = {
+    currentAbortController: null,
+    
     async sendMessage(message, history, systemPrompt, files = [], screenshotData = null) {
         // Check if API key is available before making request
         if (!Settings.checkApiKeyBeforeRequest()) {
             throw new Error('API key required');
         }
+
+        // Create new AbortController for this request
+        this.currentAbortController = new AbortController();
 
         // Get tools configuration
         const tools = Tools.getToolsConfig();
@@ -52,7 +57,8 @@ const API = {
                 systemPrompt: systemPrompt,
                 tools: tools.length > 0 ? tools : undefined,
                 files: files.length > 0 ? files : undefined
-            })
+            }),
+            signal: this.currentAbortController.signal
         });
 
         if (!response.ok) {
@@ -63,6 +69,13 @@ const API = {
         }
 
         return response;
+    },
+
+    interrupt() {
+        if (this.currentAbortController) {
+            this.currentAbortController.abort();
+            this.currentAbortController = null;
+        }
     },
 
     async *streamResponse(response) {
