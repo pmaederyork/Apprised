@@ -365,11 +365,7 @@ const Chat = {
 
     // Copy latest Claude message to document
     copyLatestClaudeMessageToDocument() {
-        // Check if Doc Context is enabled and document is open
-        if (typeof Tools === 'undefined' || !Tools.isDocContextEnabled()) {
-            return;
-        }
-        
+        // Check if document is open
         if (typeof Documents === 'undefined' || !Documents.currentDocumentId) {
             return;
         }
