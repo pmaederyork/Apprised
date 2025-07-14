@@ -55,6 +55,7 @@ const Chat = {
 
         // Tab key to copy latest Claude message to document
         // Up arrow to copy last user message
+        // Escape to clear input
         UI.elements.messageInput.addEventListener('keydown', (e) => {
             if (e.key === 'Tab') {
                 e.preventDefault();
@@ -62,6 +63,9 @@ const Chat = {
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 this.copyLastMessage();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                UI.elements.messageInput.value = '';
             }
         });
 
