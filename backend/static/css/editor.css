@@ -86,7 +86,7 @@
     flex: 1;
     min-width: 400px;
     border-left: 1px solid #d1e7ff;
-    display: flex;
+    display: none;
     position: relative;
 }
 
