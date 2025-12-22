@@ -50,6 +50,15 @@ const ClaudeChanges = {
     },
 
     /**
+     * Capture document state for undo history
+     */
+    captureHistoryState() {
+        if (Documents && Documents.captureCurrentState) {
+            Documents.captureCurrentState();
+        }
+    },
+
+    /**
      * Navigate to next change
      */
     nextChange() {
@@ -223,6 +232,9 @@ const ClaudeChanges = {
         const changeElement = document.querySelector(`[data-change-id="${changeId}"]`);
         if (!changeElement) return;
 
+        // Capture state BEFORE applying change (for undo)
+        this.captureHistoryState();
+
         if (change.type === 'delete') {
             // Remove the deleted content
             changeElement.remove();
@@ -253,6 +265,15 @@ const ClaudeChanges = {
             changes: this.changes
         });
 
+        // Capture state AFTER applying change (creates undo point)
+        setTimeout(() => {
+            this.captureHistoryState();
+            // Update undo/redo buttons
+            if (Documents && Documents.updateUndoRedoButtons) {
+                Documents.updateUndoRedoButtons();
+            }
+        }, 100);
+
         // Move to next pending change
         this.moveToNextPendingChange();
     },
@@ -281,6 +302,9 @@ const ClaudeChanges = {
 
         const changeElement = document.querySelector(`[data-change-id="${changeId}"]`);
         if (!changeElement) return;
+
+        // Capture state BEFORE rejecting change (for undo)
+        this.captureHistoryState();
 
         if (change.type === 'delete') {
             // Keep original content, remove highlighting
@@ -312,6 +336,15 @@ const ClaudeChanges = {
             timestamp: Date.now(),
             changes: this.changes
         });
+
+        // Capture state AFTER rejecting change (creates undo point)
+        setTimeout(() => {
+            this.captureHistoryState();
+            // Update undo/redo buttons
+            if (Documents && Documents.updateUndoRedoButtons) {
+                Documents.updateUndoRedoButtons();
+            }
+        }, 100);
 
         // Move to next pending change
         this.moveToNextPendingChange();

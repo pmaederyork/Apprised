@@ -502,34 +502,45 @@ const Documents = {
         document.addEventListener('keydown', (e) => {
             // Only handle shortcuts when document editor is focused
             const editor = UI.elements.documentTextarea;
-            if (!editor || !editor.contains(document.activeElement) && document.activeElement !== editor) return;
-            
+            const documentEditor = UI.elements.documentEditor;
+
+            // Enhanced focus check with proper grouping
+            if (!editor || !documentEditor) return;
+            if (!documentEditor.classList.contains('active')) return; // Editor not open
+            if (document.activeElement !== editor && !editor.contains(document.activeElement)) return;
+
             const isCtrlCmd = e.ctrlKey || e.metaKey;
-            
+
             if (isCtrlCmd) {
                 switch (e.key) {
                     case 'b':
                         e.preventDefault();
+                        e.stopPropagation();
                         this.formatBold();
                         break;
                     case 'i':
                         e.preventDefault();
+                        e.stopPropagation();
                         this.formatItalic();
                         break;
                     case '1':
                         e.preventDefault();
+                        e.stopPropagation();
                         this.formatHeader(1);
                         break;
                     case '2':
                         e.preventDefault();
+                        e.stopPropagation();
                         this.formatHeader(2);
                         break;
                     case '3':
                         e.preventDefault();
+                        e.stopPropagation();
                         this.formatHeader(3);
                         break;
                     case 'l':
                         e.preventDefault();
+                        e.stopPropagation();
                         if (e.shiftKey) {
                             this.formatOrderedList();
                         } else {
@@ -538,6 +549,7 @@ const Documents = {
                         break;
                     case 'z':
                         e.preventDefault();
+                        e.stopPropagation();
                         if (e.shiftKey) {
                             this.redo();
                         } else {
@@ -546,13 +558,15 @@ const Documents = {
                         break;
                     case 'y':
                         e.preventDefault();
+                        e.stopPropagation();
                         this.redo();
                         break;
                 }
-                
+
                 // Handle Ctrl+Shift+X for strikethrough
                 if (e.shiftKey && e.key === 'X') {
                     e.preventDefault();
+                    e.stopPropagation();
                     this.formatStrikethrough();
                 }
             }
@@ -627,6 +641,9 @@ const Documents = {
     },
 
     scheduleHistoryCapture() {
+        // Don't capture history during undo/redo restoration
+        if (this.isRestoring) return;
+
         // Debounce history capture to avoid capturing every keystroke
         if (this.inputTimeout) {
             clearTimeout(this.inputTimeout);
@@ -641,8 +658,11 @@ const Documents = {
         const editor = UI.elements.documentTextarea;
         if (!editor || !state) return;
 
+        // Set flag to prevent history capture during restoration
+        this.isRestoring = true;
+
         editor.innerHTML = state.content;
-        
+
         // Restore selection if available
         if (state.range) {
             try {
@@ -660,24 +680,52 @@ const Documents = {
             editor.focus();
         }
 
-        // Trigger auto-save
+        // Clear restoration flag
+        this.isRestoring = false;
+
+        // Trigger auto-save but NOT history capture
         this.scheduleAutoSave();
     },
 
     undo() {
         if (!this.currentDocumentId) return;
-        
-        // Use browser's built-in undo for contentEditable
-        document.execCommand('undo', false, null);
-        this.scheduleAutoSave();
+
+        // Block undo during review mode
+        if (this.isInEditReviewMode()) return;
+
+        const undoStack = this.undoStacks[this.currentDocumentId];
+        const redoStack = this.redoStacks[this.currentDocumentId];
+
+        if (!undoStack || undoStack.length <= 1) return; // Need at least 2 states
+
+        // Save current state to redo stack
+        const currentState = undoStack.pop();
+        redoStack.push(currentState);
+
+        // Restore previous state
+        const previousState = undoStack[undoStack.length - 1];
+        this.restoreState(previousState);
+
+        this.updateUndoRedoButtons();
     },
 
     redo() {
         if (!this.currentDocumentId) return;
-        
-        // Use browser's built-in redo for contentEditable
-        document.execCommand('redo', false, null);
-        this.scheduleAutoSave();
+
+        // Block redo during review mode
+        if (this.isInEditReviewMode()) return;
+
+        const undoStack = this.undoStacks[this.currentDocumentId];
+        const redoStack = this.redoStacks[this.currentDocumentId];
+
+        if (!redoStack || redoStack.length === 0) return;
+
+        // Restore next state from redo stack
+        const nextState = redoStack.pop();
+        undoStack.push(nextState);
+        this.restoreState(nextState);
+
+        this.updateUndoRedoButtons();
     },
 
     updateUndoRedoButtons() {
@@ -686,22 +734,31 @@ const Documents = {
 
         if (!undoBtn || !redoBtn || !this.currentDocumentId) return;
 
+        // Disable during review mode
+        if (this.isInEditReviewMode()) {
+            undoBtn.disabled = true;
+            redoBtn.disabled = true;
+            undoBtn.classList.add('review-mode-disabled');
+            redoBtn.classList.add('review-mode-disabled');
+            undoBtn.title = 'Undo disabled during review';
+            redoBtn.title = 'Redo disabled during review';
+            return;
+        }
+
+        // Remove review mode styling
+        undoBtn.classList.remove('review-mode-disabled');
+        redoBtn.classList.remove('review-mode-disabled');
+        undoBtn.title = 'Undo (Ctrl+Z)';
+        redoBtn.title = 'Redo (Ctrl+Y)';
+
         const undoStack = this.undoStacks[this.currentDocumentId] || [];
         const redoStack = this.redoStacks[this.currentDocumentId] || [];
 
-        // Update undo button
-        if (undoStack.length > 0) {
-            undoBtn.disabled = false;
-        } else {
-            undoBtn.disabled = true;
-        }
+        // Update undo button (need at least 2 states to undo)
+        undoBtn.disabled = undoStack.length <= 1;
 
         // Update redo button
-        if (redoStack.length > 0) {
-            redoBtn.disabled = false;
-        } else {
-            redoBtn.disabled = true;
-        }
+        redoBtn.disabled = redoStack.length === 0;
     },
 
 
