@@ -2,6 +2,11 @@
  * Storage utilities for localStorage operations
  */
 const Storage = {
+    // Passphrase and encryption state
+    sessionPassphrase: null, // In-memory only, cleared on lock/logout
+    inactivityTimer: null,
+    PASSPHRASE_STORAGE_DAYS: 7,
+    INACTIVITY_TIMEOUT_MS: 60 * 60 * 1000, // 1 hour
     // Chat storage
     getChats() {
         try {
@@ -83,48 +88,250 @@ const Storage = {
         }
     },
 
-    // API Key storage
-    getApiKey() {
-        return localStorage.getItem('anthropicApiKey') || null;
+    // Passphrase management
+    async setSessionPassphrase(passphrase, rememberFor7Days = false) {
+        this.sessionPassphrase = passphrase;
+
+        // Store encrypted passphrase for 7-day convenience if requested
+        if (rememberFor7Days) {
+            try {
+                const encryptedPassphrase = await CryptoUtils.encryptPassphraseForStorage(passphrase);
+                const expiryDate = new Date();
+                expiryDate.setDate(expiryDate.getDate() + this.PASSPHRASE_STORAGE_DAYS);
+
+                localStorage.setItem('storedPassphrase', encryptedPassphrase);
+                localStorage.setItem('passphraseExpiry', expiryDate.getTime().toString());
+            } catch (error) {
+                console.error('Failed to store passphrase:', error);
+            }
+        }
+
+        this.resetInactivityTimer();
     },
 
-    saveApiKey(apiKey) {
-        if (apiKey && apiKey.trim()) {
-            localStorage.setItem('anthropicApiKey', apiKey.trim());
+    async getStoredPassphrase() {
+        try {
+            const encrypted = localStorage.getItem('storedPassphrase');
+            const expiry = localStorage.getItem('passphraseExpiry');
+
+            if (!encrypted || !expiry) {
+                return null;
+            }
+
+            // Check if expired
+            const expiryDate = parseInt(expiry);
+            if (Date.now() > expiryDate) {
+                this.clearStoredPassphrase();
+                return null;
+            }
+
+            // Decrypt and return
+            const passphrase = await CryptoUtils.decryptStoredPassphrase(encrypted);
+            return passphrase;
+        } catch (error) {
+            console.error('Failed to retrieve stored passphrase:', error);
+            this.clearStoredPassphrase();
+            return null;
+        }
+    },
+
+    clearStoredPassphrase() {
+        localStorage.removeItem('storedPassphrase');
+        localStorage.removeItem('passphraseExpiry');
+    },
+
+    clearSession() {
+        this.sessionPassphrase = null;
+        if (this.inactivityTimer) {
+            clearTimeout(this.inactivityTimer);
+            this.inactivityTimer = null;
+        }
+    },
+
+    resetInactivityTimer() {
+        // Clear existing timer
+        if (this.inactivityTimer) {
+            clearTimeout(this.inactivityTimer);
+        }
+
+        // Set new timer to auto-lock after inactivity
+        this.inactivityTimer = setTimeout(() => {
+            console.log('Auto-locking due to inactivity');
+            this.clearSession();
+
+            // Notify user and refresh UI
+            if (window.App && typeof App.handleAutoLock === 'function') {
+                App.handleAutoLock();
+            }
+        }, this.INACTIVITY_TIMEOUT_MS);
+    },
+
+    isLocked() {
+        return this.isEncryptionEnabled() && !this.sessionPassphrase;
+    },
+
+    isEncryptionEnabled() {
+        return localStorage.getItem('encryptionEnabled') === 'true';
+    },
+
+    enableEncryption() {
+        localStorage.setItem('encryptionEnabled', 'true');
+    },
+
+    // API Key storage - Encrypted
+    async getApiKey() {
+        // Check if encryption is enabled
+        if (!this.isEncryptionEnabled()) {
+            // Legacy plain text storage
+            return localStorage.getItem('anthropicApiKey') || null;
+        }
+
+        // Encrypted storage
+        const encrypted = localStorage.getItem('anthropicApiKey_encrypted');
+        if (!encrypted) {
+            return null;
+        }
+
+        // Check if we have passphrase in memory
+        if (!this.sessionPassphrase) {
+            return null; // Locked state
+        }
+
+        try {
+            return await CryptoUtils.decrypt(encrypted, this.sessionPassphrase);
+        } catch (error) {
+            console.error('Failed to decrypt API key:', error);
+            return null;
+        }
+    },
+
+    async saveApiKey(apiKey, passphrase = null) {
+        if (!apiKey || !apiKey.trim()) {
+            this.deleteApiKey();
+            return;
+        }
+
+        const trimmedKey = apiKey.trim();
+
+        // If passphrase provided, use encryption
+        if (passphrase) {
+            try {
+                const encrypted = await CryptoUtils.encrypt(trimmedKey, passphrase);
+                localStorage.setItem('anthropicApiKey_encrypted', encrypted);
+                localStorage.removeItem('anthropicApiKey'); // Remove plain text if exists
+                this.enableEncryption();
+                this.sessionPassphrase = passphrase;
+                this.resetInactivityTimer();
+                return true;
+            } catch (error) {
+                console.error('Failed to encrypt API key:', error);
+                throw error;
+            }
         } else {
-            localStorage.removeItem('anthropicApiKey');
+            // Use existing session passphrase if available
+            if (this.sessionPassphrase) {
+                return this.saveApiKey(trimmedKey, this.sessionPassphrase);
+            }
+
+            // Fallback to plain text (backward compatibility)
+            localStorage.setItem('anthropicApiKey', trimmedKey);
+            return true;
         }
     },
 
     deleteApiKey() {
         localStorage.removeItem('anthropicApiKey');
+        localStorage.removeItem('anthropicApiKey_encrypted');
     },
 
-    hasApiKey() {
-        const apiKey = this.getApiKey();
+    async hasApiKey() {
+        const apiKey = await this.getApiKey();
         return apiKey && apiKey.length > 0;
     },
 
-    // ChatGPT API Key storage
-    getChatGPTApiKey() {
-        return localStorage.getItem('chatgptApiKey') || null;
+    // ChatGPT API Key storage - Encrypted
+    async getChatGPTApiKey() {
+        // Check if encryption is enabled
+        if (!this.isEncryptionEnabled()) {
+            // Legacy plain text storage
+            return localStorage.getItem('chatgptApiKey') || null;
+        }
+
+        // Encrypted storage
+        const encrypted = localStorage.getItem('chatgptApiKey_encrypted');
+        if (!encrypted) {
+            return null;
+        }
+
+        // Check if we have passphrase in memory
+        if (!this.sessionPassphrase) {
+            return null; // Locked state
+        }
+
+        try {
+            return await CryptoUtils.decrypt(encrypted, this.sessionPassphrase);
+        } catch (error) {
+            console.error('Failed to decrypt ChatGPT API key:', error);
+            return null;
+        }
     },
 
-    saveChatGPTApiKey(apiKey) {
-        if (apiKey && apiKey.trim()) {
-            localStorage.setItem('chatgptApiKey', apiKey.trim());
+    async saveChatGPTApiKey(apiKey, passphrase = null) {
+        if (!apiKey || !apiKey.trim()) {
+            this.deleteChatGPTApiKey();
+            return;
+        }
+
+        const trimmedKey = apiKey.trim();
+
+        // If passphrase provided, use encryption
+        if (passphrase) {
+            try {
+                const encrypted = await CryptoUtils.encrypt(trimmedKey, passphrase);
+                localStorage.setItem('chatgptApiKey_encrypted', encrypted);
+                localStorage.removeItem('chatgptApiKey'); // Remove plain text if exists
+                this.enableEncryption();
+                return true;
+            } catch (error) {
+                console.error('Failed to encrypt ChatGPT API key:', error);
+                throw error;
+            }
         } else {
-            localStorage.removeItem('chatgptApiKey');
+            // Use existing session passphrase if available
+            if (this.sessionPassphrase) {
+                return this.saveChatGPTApiKey(trimmedKey, this.sessionPassphrase);
+            }
+
+            // Fallback to plain text (backward compatibility)
+            localStorage.setItem('chatgptApiKey', trimmedKey);
+            return true;
         }
     },
 
     deleteChatGPTApiKey() {
         localStorage.removeItem('chatgptApiKey');
+        localStorage.removeItem('chatgptApiKey_encrypted');
     },
 
-    hasChatGPTApiKey() {
-        const apiKey = this.getChatGPTApiKey();
+    async hasChatGPTApiKey() {
+        const apiKey = await this.getChatGPTApiKey();
         return apiKey && apiKey.length > 0;
+    },
+
+    // Migration utility - Convert plain text keys to encrypted
+    async migratePlainTextKeys(passphrase) {
+        const anthropicKey = localStorage.getItem('anthropicApiKey');
+        const chatgptKey = localStorage.getItem('chatgptApiKey');
+
+        if (anthropicKey) {
+            await this.saveApiKey(anthropicKey, passphrase);
+        }
+
+        if (chatgptKey) {
+            await this.saveChatGPTApiKey(chatgptKey, passphrase);
+        }
+
+        return { migrated: !!(anthropicKey || chatgptKey) };
     },
 
     // Conversation history storage with image data protection

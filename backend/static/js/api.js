@@ -6,7 +6,8 @@ const API = {
     
     async sendMessage(message, history, systemPrompt, files = [], screenshotData = null) {
         // Check if API key is available before making request
-        if (!Settings.checkApiKeyBeforeRequest()) {
+        const hasApiKey = await Settings.checkApiKeyBeforeRequest();
+        if (!hasApiKey) {
             throw new Error('API key required');
         }
 
@@ -15,17 +16,17 @@ const API = {
 
         // Get tools configuration
         const tools = Tools.getToolsConfig();
-        
+
         // Get API key for request
-        const apiKey = Settings.getApiKeyForRequest();
-        
+        const apiKey = await Settings.getApiKeyForRequest();
+
         // Prepare message content - include screenshot if present
         let messageContent = message;
         if (screenshotData) {
             messageContent = [
                 { type: "text", text: message },
-                { 
-                    type: "image", 
+                {
+                    type: "image",
                     source: {
                         type: "base64",
                         media_type: "image/jpeg",
@@ -36,7 +37,7 @@ const API = {
         }
 
         // Get ChatGPT API key if ChatGPT tool is enabled
-        const chatgptApiKey = Tools.isChatGPTEnabled() ? Settings.getChatGPTApiKeyForRequest() : null;
+        const chatgptApiKey = Tools.isChatGPTEnabled() ? await Settings.getChatGPTApiKeyForRequest() : null;
         
         const headers = {
             'Content-Type': 'application/json',

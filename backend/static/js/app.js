@@ -118,17 +118,23 @@ const App = {
             if (e.key === 'Escape' && this.state.currentView === 'editor') {
                 SystemPrompts.exitEdit();
             }
-            
+
             // Ctrl/Cmd + N for new chat
             if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
                 e.preventDefault();
                 Chat.createNewChat();
             }
-            
+
             // Ctrl/Cmd + Q for quit
             if ((e.ctrlKey || e.metaKey) && e.key === 'q') {
                 e.preventDefault();
                 this.quit();
+            }
+
+            // Ctrl/Cmd + L for lock
+            if ((e.ctrlKey || e.metaKey) && e.key === 'l' && Storage.isEncryptionEnabled()) {
+                e.preventDefault();
+                this.lock();
             }
         });
 
@@ -144,6 +150,18 @@ const App = {
             }
         });
 
+        // Reset inactivity timer on user activity
+        const resetTimer = () => {
+            if (Storage.sessionPassphrase) {
+                Storage.resetInactivityTimer();
+            }
+        };
+
+        // Track user activity to reset auto-lock timer
+        document.addEventListener('mousemove', resetTimer, { passive: true });
+        document.addEventListener('keypress', resetTimer, { passive: true });
+        document.addEventListener('click', resetTimer, { passive: true });
+
         // Error handling for unhandled promise rejections
         window.addEventListener('unhandledrejection', (event) => {
             console.error('Unhandled promise rejection:', event.reason);
@@ -154,17 +172,41 @@ const App = {
         UI.elements.quitBtn?.addEventListener('click', () => {
             this.quit();
         });
+
+        // Lock button
+        UI.elements.lockBtn?.addEventListener('click', () => {
+            this.lock();
+        });
+
+        // Unlock button
+        UI.elements.unlockBtn?.addEventListener('click', () => {
+            this.unlock();
+        });
     },
 
     // Load initial application state
-    loadInitialState() {
+    async loadInitialState() {
         try {
+            // Check if app needs to be unlocked on startup
+            if (Storage.isLocked()) {
+                // Try to auto-unlock with stored passphrase
+                const storedPassphrase = await Storage.getStoredPassphrase();
+                if (storedPassphrase) {
+                    await Storage.setSessionPassphrase(storedPassphrase, false);
+                    console.log('Auto-unlocked with stored passphrase');
+                } else {
+                    // Show locked overlay
+                    this.showLockedOverlay();
+                    return;
+                }
+            }
+
             // Render system prompts list
             SystemPrompts.render();
-            
+
             // Render chat list
             Chat.renderChatList();
-            
+
             // Load most recent chat or create new one
             const chats = Storage.getChats();
             if (Object.keys(chats).length === 0) {
@@ -174,6 +216,11 @@ const App = {
                 // Load the most recent chat
                 const sortedChats = Object.values(chats).sort((a, b) => b.createdAt - a.createdAt);
                 Chat.loadChat(sortedChats[0].id);
+            }
+
+            // Show lock button if encryption is enabled
+            if (Storage.isEncryptionEnabled() && UI.elements.lockBtn) {
+                UI.elements.lockBtn.style.display = 'flex';
             }
         } catch (error) {
             console.error('Failed to load initial state:', error);
@@ -258,6 +305,57 @@ const App = {
                 successDiv.remove();
             }
         }, 3000);
+    },
+
+    // Lock application
+    lock() {
+        if (!Storage.isEncryptionEnabled()) {
+            return;
+        }
+
+        // Clear session passphrase
+        Storage.clearSession();
+
+        // Show locked overlay
+        this.showLockedOverlay();
+
+        this.showSuccess('App locked securely');
+    },
+
+    // Unlock application
+    async unlock() {
+        const passphrase = await Settings.promptForPassphrase('unlock');
+
+        if (passphrase) {
+            // Hide locked overlay
+            this.hideLockedOverlay();
+
+            // Reload UI
+            await this.loadInitialState();
+
+            this.showSuccess('App unlocked');
+        }
+    },
+
+    // Handle auto-lock (called from Storage timeout)
+    handleAutoLock() {
+        console.log('Auto-lock triggered');
+        this.showLockedOverlay();
+        this.showError('App auto-locked due to inactivity');
+    },
+
+    // Show locked overlay
+    showLockedOverlay() {
+        if (UI.elements.lockedOverlay) {
+            UI.elements.lockedOverlay.style.display = 'flex';
+        }
+    },
+
+    // Hide locked overlay
+    hideLockedOverlay() {
+        if (UI.elements.lockedOverlay) {
+            UI.elements.lockedOverlay.style.display = 'none';
+        }
     },
 
     // Quit application

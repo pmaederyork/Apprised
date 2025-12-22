@@ -43,7 +43,26 @@ const UI = {
         screenshareToggle: document.getElementById('screenshareToggle'),
         screenshareIndicator: document.getElementById('screenshareIndicator'),
         screensharePreviewContainer: document.getElementById('screensharePreviewContainer'),
-        screensharePreviewImage: document.getElementById('screensharePreviewImage')
+        screensharePreviewImage: document.getElementById('screensharePreviewImage'),
+        // Passphrase modal elements
+        lockBtn: document.getElementById('lockBtn'),
+        passphraseModal: document.getElementById('passphraseModal'),
+        passphraseModalTitle: document.getElementById('passphraseModalTitle'),
+        passphraseModalDescription: document.getElementById('passphraseModalDescription'),
+        passphraseInput: document.getElementById('passphraseInput'),
+        passphraseShowHideBtn: document.getElementById('passphraseShowHideBtn'),
+        passphraseStrengthIndicator: document.getElementById('passphraseStrengthIndicator'),
+        strengthBarFill: document.getElementById('strengthBarFill'),
+        strengthLabel: document.getElementById('strengthLabel'),
+        strengthFeedback: document.getElementById('strengthFeedback'),
+        passphraseOptions: document.getElementById('passphraseOptions'),
+        rememberPassphraseCheckbox: document.getElementById('rememberPassphraseCheckbox'),
+        passphraseSubmitBtn: document.getElementById('passphraseSubmitBtn'),
+        passphraseCancelBtn: document.getElementById('passphraseCancelBtn'),
+        forgotPassphraseBtn: document.getElementById('forgotPassphraseBtn'),
+        passphraseStatus: document.getElementById('passphraseStatus'),
+        lockedOverlay: document.getElementById('lockedOverlay'),
+        unlockBtn: document.getElementById('unlockBtn')
     },
 
     // Message utilities
