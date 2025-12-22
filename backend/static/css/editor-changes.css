@@ -6,17 +6,18 @@
 /* Change Review Panel */
 .change-review-panel {
     position: fixed;
-    right: 20px;
-    top: 80px;
-    width: 320px;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 360px;
     background: white;
-    border: 1px solid #e7e5e4;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    padding: 16px;
+    border-left: 1px solid #e7e5e4;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
+    padding: 20px;
     z-index: 1000;
-    max-height: calc(100vh - 100px);
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
 }
 
 .review-header {
@@ -43,10 +44,12 @@
 .changes-count {
     background: #ea580c;
     color: white;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 /* Navigation Controls */
@@ -357,4 +360,20 @@
 /* Smooth scrolling for change navigation */
 html {
     scroll-behavior: smooth;
+}
+
+/* Adjust document editor when review panel is open */
+.document-editor:has(~ #documentChangeReview:not([style*="display: none"])) {
+    margin-right: 360px;
+}
+
+/* Alternative: Add class-based approach for better browser support */
+body.review-mode-active .document-editor {
+    margin-right: 360px;
+    transition: margin-right 0.3s ease;
+}
+
+body:not(.review-mode-active) .document-editor {
+    margin-right: 0;
+    transition: margin-right 0.3s ease;
 }

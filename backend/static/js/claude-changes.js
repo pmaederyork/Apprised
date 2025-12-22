@@ -17,6 +17,9 @@ const ClaudeChanges = {
         this.currentChangeIndex = 0;
         this.initialized = true;
 
+        // Add body class for layout adjustment
+        document.body.classList.add('review-mode-active');
+
         console.log(`ClaudeChanges initialized with ${changes.length} changes for document ${documentId}`);
     },
 
@@ -429,6 +432,9 @@ const ClaudeChanges = {
         if (UI.elements.documentChangeReview) {
             UI.elements.documentChangeReview.style.display = 'none';
         }
+
+        // Remove body class for layout adjustment
+        document.body.classList.remove('review-mode-active');
 
         // Remove all change markers
         document.querySelectorAll('[data-change-id]').forEach(el => {
