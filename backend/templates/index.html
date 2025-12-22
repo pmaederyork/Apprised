@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="/static/css/sidebar.css">
     <link rel="stylesheet" href="/static/css/chat.css">
     <link rel="stylesheet" href="/static/css/editor.css">
+    <link rel="stylesheet" href="/static/css/editor-changes.css">
     <link rel="stylesheet" href="/static/css/components.css">
     <link rel="stylesheet" href="/static/css/buttons.css">
 </head>
@@ -165,6 +166,52 @@
             </div>
         </div>
 
+        <!-- Claude Change Review Panel -->
+        <div id="documentChangeReview" class="change-review-panel" style="display: none;">
+            <!-- Header -->
+            <div class="review-header">
+                <h3>Review Claude's Changes</h3>
+                <div class="review-stats">
+                    <span class="changes-count" id="changeReviewStats">0 changes pending</span>
+                </div>
+            </div>
+
+            <!-- Navigation Controls -->
+            <div class="review-controls">
+                <button id="prevChangeBtn">← Previous</button>
+                <button id="nextChangeBtn">Next →</button>
+                <span class="change-position" id="changePosition">Change 1 of 1</span>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="review-actions">
+                <button id="acceptChangeBtn" class="accept-btn">✓ Accept</button>
+                <button id="rejectChangeBtn" class="reject-btn">✗ Reject</button>
+                <button id="acceptAllBtn" class="accept-all-btn">Accept All</button>
+                <button id="rejectAllBtn" class="reject-all-btn">Reject All</button>
+            </div>
+
+            <!-- Current Change Detail -->
+            <div class="current-change-detail">
+                <div class="change-type-indicator" id="changeTypeIndicator">MODIFY</div>
+                <div class="change-content-preview" id="changeContentPreview"></div>
+            </div>
+
+            <!-- Keyboard Shortcuts Help -->
+            <div class="review-shortcuts-help">
+                <h4>Keyboard Shortcuts</h4>
+                <ul>
+                    <li><kbd>→</kbd> Next change</li>
+                    <li><kbd>←</kbd> Previous change</li>
+                    <li><kbd>Enter</kbd> Accept change</li>
+                    <li><kbd>Delete</kbd> Reject change</li>
+                    <li><kbd>Ctrl+A</kbd> Accept all</li>
+                    <li><kbd>Ctrl+R</kbd> Reject all</li>
+                    <li><kbd>Esc</kbd> Cancel review</li>
+                </ul>
+            </div>
+        </div>
+
         <!-- API Key Settings Modal -->
         <div class="settings-modal" id="settingsModal" style="display: none;">
             <div class="settings-modal-content">
@@ -246,6 +293,7 @@
     </div>
 
     <!-- JavaScript Modules -->
+    <script src="/static/js/diff-match-patch.js"></script>
     <script src="/static/js/crypto-utils.js"></script>
     <script src="/static/js/storage.js"></script>
     <script src="/static/js/api.js"></script>
@@ -254,6 +302,7 @@
     <script src="/static/js/chat.js"></script>
     <script src="/static/js/systemPrompts.js"></script>
     <script src="/static/js/documents.js"></script>
+    <script src="/static/js/claude-changes.js"></script>
     <script src="/static/js/tools.js"></script>
     <script src="/static/js/screenshare.js"></script>
     <script src="/static/js/files.js"></script>

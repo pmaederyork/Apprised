@@ -61,7 +61,19 @@ const UI = {
         forgotPassphraseBtn: document.getElementById('forgotPassphraseBtn'),
         passphraseStatus: document.getElementById('passphraseStatus'),
         lockedOverlay: document.getElementById('lockedOverlay'),
-        unlockBtn: document.getElementById('unlockBtn')
+        unlockBtn: document.getElementById('unlockBtn'),
+        // Claude change review panel elements
+        documentChangeReview: document.getElementById('documentChangeReview'),
+        changeReviewStats: document.getElementById('changeReviewStats'),
+        prevChangeBtn: document.getElementById('prevChangeBtn'),
+        nextChangeBtn: document.getElementById('nextChangeBtn'),
+        changePosition: document.getElementById('changePosition'),
+        acceptChangeBtn: document.getElementById('acceptChangeBtn'),
+        rejectChangeBtn: document.getElementById('rejectChangeBtn'),
+        acceptAllBtn: document.getElementById('acceptAllBtn'),
+        rejectAllBtn: document.getElementById('rejectAllBtn'),
+        changeTypeIndicator: document.getElementById('changeTypeIndicator'),
+        changeContentPreview: document.getElementById('changeContentPreview')
     },
 
     // Message utilities

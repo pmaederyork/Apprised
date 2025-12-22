@@ -280,9 +280,57 @@ const Chat = {
             // Get system prompt if active
             const systemPrompts = Storage.getSystemPrompts();
             const activeSystemPromptId = Storage.getActiveSystemPromptId();
-            const systemPrompt = activeSystemPromptId && systemPrompts[activeSystemPromptId] ? 
+            let systemPrompt = activeSystemPromptId && systemPrompts[activeSystemPromptId] ?
                 systemPrompts[activeSystemPromptId].content : null;
-            
+
+            // Append document editing instructions if document is open
+            if (Documents && Documents.currentDocumentId) {
+                const documentEditingInstructions = `
+
+DOCUMENT EDITING CAPABILITY:
+The user has a document open in the editor. When they ask you to edit, modify, or make changes to their document, you can propose structured edits using this XML format:
+
+<document_edit>
+<change type="delete">
+<original>[content to delete]</original>
+</change>
+
+<change type="add">
+<new>[content to add]</new>
+</change>
+
+<change type="modify">
+<original>[original content]</original>
+<new>[modified content]</new>
+</change>
+</document_edit>
+
+Rules:
+- Use type="delete" for content to remove
+- Use type="add" for new content to insert
+- Use type="modify" for content to change
+- Include the original content so the system can locate it precisely
+- Use HTML formatting (not markdown) since this is a rich text editor
+- Make targeted, surgical edits rather than rewriting everything
+- Always explain your changes in natural language before the XML
+
+Example:
+"I'll make this paragraph more professional:
+
+<document_edit>
+<change type="modify">
+<original><p>Hey there! This is my cool project.</p></original>
+<new><p>This document presents a comprehensive overview of the project.</p></new>
+</change>
+</document_edit>
+
+I've revised the introduction to use more formal language."
+
+The user will review each change with visual highlighting (deletions in red, additions in green) and can accept or reject individual changes.`;
+
+                systemPrompt = systemPrompt ? systemPrompt + documentEditingInstructions : documentEditingInstructions;
+            }
+
             // Send message to API (include screenshot data but don't store it)
             const response = await API.sendMessage(message, this.currentMessages, systemPrompt, filesData, screenshotData);
 
@@ -303,6 +351,19 @@ const Chat = {
                     // Save only the original text message, not the screenshot data
                     this.saveMessageToHistory(message, true, filesData);
                     this.saveMessageToHistory(fullResponse, false);
+
+                    // Check if response contains document edits (only if document is open)
+                    if (Documents && Documents.currentDocumentId) {
+                        const changes = Documents.parseClaudeEditResponse(fullResponse);
+                        if (changes && changes.length > 0) {
+                            // Claude proposed document edits
+                            console.log(`Detected ${changes.length} document edits from Claude`);
+                            Documents.applyClaudeEdits(changes);
+
+                            // Show notification in chat
+                            this.addSystemMessage(`Claude proposed ${changes.length} change${changes.length !== 1 ? 's' : ''} to your document. Review them in the editor.`);
+                        }
+                    }
                 }
             }
         } catch (error) {
@@ -419,9 +480,29 @@ const Chat = {
 
         // Reset height to auto to get the correct scrollHeight
         textarea.style.height = 'auto';
-        
+
         // Set height based on scroll height, constrained by min/max
         const newHeight = Math.min(Math.max(textarea.scrollHeight, 20), 160);
         textarea.style.height = newHeight + 'px';
+    },
+
+    // Add system notification message to chat
+    addSystemMessage(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message system';
+        messageDiv.style.cssText = `
+            text-align: center;
+            font-size: 13px;
+            color: #78716c;
+            padding: 8px 16px;
+            margin: 8px 0;
+            background: #fafaf9;
+            border-radius: 6px;
+            font-style: italic;
+        `;
+        messageDiv.textContent = message;
+
+        UI.elements.chatMessages.appendChild(messageDiv);
+        UI.autoScroll();
     }
 };

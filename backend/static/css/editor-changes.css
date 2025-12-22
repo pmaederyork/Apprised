@@ -1,0 +1,360 @@
+/**
+ * Claude Change Tracking - Diff Styling
+ * Visual styles for document change review
+ */
+
+/* Change Review Panel */
+.change-review-panel {
+    position: fixed;
+    right: 20px;
+    top: 80px;
+    width: 320px;
+    background: white;
+    border: 1px solid #e7e5e4;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 16px;
+    z-index: 1000;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e7e5e4;
+}
+
+.review-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    color: #1c1917;
+}
+
+.review-stats {
+    font-size: 13px;
+    color: #78716c;
+}
+
+.changes-count {
+    background: #ea580c;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* Navigation Controls */
+.review-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.review-controls button {
+    flex: 1;
+    padding: 6px 12px;
+    background: #f5f5f4;
+    border: 1px solid #e7e5e4;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.review-controls button:hover:not(:disabled) {
+    background: #e7e5e4;
+}
+
+.review-controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.change-position {
+    font-size: 12px;
+    color: #78716c;
+    white-space: nowrap;
+    min-width: 100px;
+    text-align: center;
+}
+
+/* Action Buttons */
+.review-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.accept-btn {
+    background: #16a34a;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.accept-btn:hover {
+    background: #15803d;
+}
+
+.reject-btn {
+    background: #dc2626;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.reject-btn:hover {
+    background: #b91c1c;
+}
+
+.accept-all-btn,
+.reject-all-btn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.accept-all-btn {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+}
+
+.accept-all-btn:hover {
+    background: #bbf7d0;
+}
+
+.reject-all-btn {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+}
+
+.reject-all-btn:hover {
+    background: #fecaca;
+}
+
+/* Current Change Detail */
+.current-change-detail {
+    padding: 12px;
+    background: #fafaf9;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.change-type-indicator {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.change-type-delete {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.change-type-add {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.change-type-modify {
+    background: #fef3c7;
+    color: #a16207;
+}
+
+.change-content-preview {
+    font-size: 12px;
+    color: #57534e;
+    line-height: 1.5;
+}
+
+.preview-original,
+.preview-new {
+    margin: 8px 0;
+    padding: 8px;
+    border-radius: 4px;
+    background: white;
+}
+
+.preview-original strong,
+.preview-new strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Inline Change Highlighting */
+.claude-change-delete {
+    background-color: #ffebee;
+    text-decoration: line-through;
+    border-left: 3px solid #ef5350;
+    padding-left: 8px;
+    margin: 4px 0;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.claude-change-add {
+    background-color: #e8f5e9;
+    border-left: 3px solid #66bb6a;
+    padding-left: 8px;
+    margin: 4px 0;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.claude-change-modify {
+    background-color: #fff9c4;
+    border-left: 3px solid #ffa726;
+    padding-left: 8px;
+    margin: 4px 0;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+/* Currently focused change */
+.claude-change-active {
+    outline: 2px solid #2196f3;
+    outline-offset: 2px;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+}
+
+/* Change number indicator */
+.claude-change-number {
+    position: absolute;
+    left: -24px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #2196f3;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+/* Keyboard Shortcuts Help */
+.review-shortcuts-help {
+    padding: 12px;
+    background: #fafaf9;
+    border-radius: 6px;
+    margin-top: 12px;
+    border-top: 1px solid #e7e5e4;
+}
+
+.review-shortcuts-help h4 {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: #1c1917;
+}
+
+.review-shortcuts-help ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.review-shortcuts-help li {
+    font-size: 12px;
+    color: #57534e;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.review-shortcuts-help kbd {
+    background: white;
+    border: 1px solid #e7e5e4;
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-family: monospace;
+    font-size: 11px;
+    margin-right: 8px;
+    min-width: 32px;
+    text-align: center;
+    display: inline-block;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .change-review-panel {
+        position: fixed;
+        right: 0;
+        left: 0;
+        top: auto;
+        bottom: 0;
+        width: 100%;
+        border-radius: 12px 12px 0 0;
+        max-height: 60vh;
+    }
+
+    .review-controls {
+        flex-direction: column;
+    }
+
+    .change-position {
+        order: -1;
+        margin-bottom: 8px;
+    }
+}
+
+/* Animation for entering/exiting review mode */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.change-review-panel {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Hover effects for change elements */
+[data-change-id]:hover {
+    opacity: 0.9;
+    cursor: pointer;
+}
+
+/* Smooth scrolling for change navigation */
+html {
+    scroll-behavior: smooth;
+}

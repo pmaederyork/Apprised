@@ -74,7 +74,16 @@ const App = {
         } catch (error) {
             console.error('Failed to initialize Documents:', error);
         }
-        
+
+        // Initialize Claude changes module
+        try {
+            ClaudeChanges.bindKeyboardShortcuts();
+            this.bindClaudeChangesEvents();
+            console.log('ClaudeChanges module initialized');
+        } catch (error) {
+            console.error('Failed to initialize ClaudeChanges:', error);
+        }
+
         // Initialize chat module
         try {
             Chat.init();
@@ -108,6 +117,49 @@ const App = {
         }
         
         console.log('Module initialization completed');
+    },
+
+    // Bind Claude changes review panel events
+    bindClaudeChangesEvents() {
+        // Previous change button
+        UI.elements.prevChangeBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            ClaudeChanges.prevChange();
+        });
+
+        // Next change button
+        UI.elements.nextChangeBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            ClaudeChanges.nextChange();
+        });
+
+        // Accept change button
+        UI.elements.acceptChangeBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            ClaudeChanges.acceptCurrentChange();
+        });
+
+        // Reject change button
+        UI.elements.rejectChangeBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            ClaudeChanges.rejectCurrentChange();
+        });
+
+        // Accept all button
+        UI.elements.acceptAllBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm('Accept all pending changes?')) {
+                ClaudeChanges.acceptAll();
+            }
+        });
+
+        // Reject all button
+        UI.elements.rejectAllBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm('Reject all pending changes?')) {
+                ClaudeChanges.rejectAll();
+            }
+        });
     },
 
     // Set up global event listeners

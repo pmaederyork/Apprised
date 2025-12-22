@@ -900,12 +900,12 @@ const Documents = {
     // Restore the last open document if it exists
     restoreLastOpenDocument() {
         const lastOpenDocumentId = Storage.getLastOpenDocumentId();
-        
+
         // If no document was previously open, do nothing
         if (!lastOpenDocumentId) {
             return;
         }
-        
+
         // Check if the document still exists
         if (this.documents[lastOpenDocumentId]) {
             // Silently reopen the document
@@ -914,5 +914,186 @@ const Documents = {
             // Document was deleted, clear the stored ID and silently continue
             Storage.saveLastOpenDocumentId(null);
         }
+    },
+
+    // ============================================
+    // CLAUDE DOCUMENT EDITING METHODS
+    // ============================================
+
+    /**
+     * Apply Claude's proposed edits to the document
+     * Enters review mode where user can accept/reject changes
+     */
+    applyClaudeEdits(changes) {
+        if (!this.currentDocumentId) {
+            console.warn('No document open to apply edits');
+            return;
+        }
+
+        if (!changes || changes.length === 0) {
+            console.warn('No changes to apply');
+            return;
+        }
+
+        // Mark all changes as pending
+        changes.forEach(change => {
+            if (!change.status) {
+                change.status = 'pending';
+            }
+        });
+
+        // Render the changes in the document with visual highlights
+        this.renderChangesInDocument(changes);
+
+        // Initialize Claude Changes review mode
+        ClaudeChanges.init(this.currentDocumentId, changes);
+
+        // Show the review panel
+        if (UI.elements.documentChangeReview) {
+            UI.elements.documentChangeReview.style.display = 'block';
+        }
+
+        // Focus on the first change
+        ClaudeChanges.focusCurrentChange();
+
+        console.log(`Applied ${changes.length} changes from Claude to document`);
+    },
+
+    /**
+     * Render changes in the document with visual highlighting
+     */
+    renderChangesInDocument(changes) {
+        const editor = UI.elements.documentTextarea;
+        if (!editor) return;
+
+        // Get current HTML content
+        const currentHTML = editor.innerHTML;
+
+        // Create a temporary container to work with
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = currentHTML;
+
+        // Apply each change with visual markers
+        changes.forEach((change, index) => {
+            const changeElement = document.createElement('div');
+            changeElement.setAttribute('data-change-id', change.id);
+            changeElement.setAttribute('data-change-index', index);
+
+            if (change.type === 'delete') {
+                // Wrap content to be deleted in red highlight
+                changeElement.className = 'claude-change-delete';
+                changeElement.innerHTML = change.originalContent || '';
+
+                // Try to find and replace the original content
+                const originalNode = this.findNodeByContent(tempDiv, change.originalContent);
+                if (originalNode) {
+                    originalNode.replaceWith(changeElement);
+                } else {
+                    // If can't find exact match, append to end
+                    tempDiv.appendChild(changeElement);
+                }
+            } else if (change.type === 'add') {
+                // Wrap new content in green highlight
+                changeElement.className = 'claude-change-add';
+                changeElement.innerHTML = change.newContent || '';
+
+                // Insert at appropriate position
+                if (change.lineNumber !== undefined) {
+                    const children = Array.from(tempDiv.children);
+                    if (change.lineNumber < children.length) {
+                        children[change.lineNumber].before(changeElement);
+                    } else {
+                        tempDiv.appendChild(changeElement);
+                    }
+                } else {
+                    tempDiv.appendChild(changeElement);
+                }
+            } else if (change.type === 'modify') {
+                // Show both old (strikethrough) and new (highlighted)
+                changeElement.className = 'claude-change-modify';
+                changeElement.innerHTML = change.newContent || '';
+
+                // Try to find and replace the original content
+                const originalNode = this.findNodeByContent(tempDiv, change.originalContent);
+                if (originalNode) {
+                    originalNode.replaceWith(changeElement);
+                } else {
+                    // If can't find exact match, append to end
+                    tempDiv.appendChild(changeElement);
+                }
+            }
+
+            // Add change number indicator
+            const numberIndicator = document.createElement('span');
+            numberIndicator.className = 'claude-change-number';
+            numberIndicator.textContent = (index + 1).toString();
+            changeElement.appendChild(numberIndicator);
+        });
+
+        // Update the editor with the marked-up content
+        editor.innerHTML = tempDiv.innerHTML;
+    },
+
+    /**
+     * Find a node by its content (helper for renderChangesInDocument)
+     */
+    findNodeByContent(container, content) {
+        if (!content) return null;
+
+        const children = Array.from(container.children);
+        for (const child of children) {
+            if (child.innerHTML === content || child.outerHTML === content) {
+                return child;
+            }
+        }
+        return null;
+    },
+
+    /**
+     * Parse Claude's response for document edit commands
+     * Looks for <document_edit> XML tags in Claude's response
+     */
+    parseClaudeEditResponse(responseText) {
+        if (!responseText) return null;
+
+        // Look for <document_edit> tags in Claude's response
+        const editMatch = responseText.match(/<document_edit>(.*?)<\/document_edit>/s);
+
+        if (!editMatch) {
+            // Claude didn't propose structured edits
+            return null;
+        }
+
+        const editXML = editMatch[1];
+        const changes = [];
+
+        // Parse each <change> element
+        const changeRegex = /<change\s+type="(.*?)"\s*(?:line="(.*?)")?\s*>(.*?)<\/change>/gs;
+        let match;
+
+        while ((match = changeRegex.exec(editXML)) !== null) {
+            const [, type, line, content] = match;
+
+            const originalMatch = content.match(/<original>(.*?)<\/original>/s);
+            const newMatch = content.match(/<new>(.*?)<\/new>/s);
+
+            changes.push({
+                id: Storage.generateChangeId(),
+                type: type,
+                lineNumber: line ? parseInt(line) : undefined,
+                originalContent: originalMatch ? originalMatch[1].trim() : null,
+                newContent: newMatch ? newMatch[1].trim() : null,
+                status: 'pending'
+            });
+        }
+
+        return changes.length > 0 ? changes : null;
+    },
+
+    /**
+     * Check if currently in edit review mode
+     */
+    isInEditReviewMode() {
+        return ClaudeChanges && ClaudeChanges.isInReviewMode();
     }
 };

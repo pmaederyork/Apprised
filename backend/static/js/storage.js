@@ -75,6 +75,41 @@ const Storage = {
         return 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     },
 
+    // Claude change tracking
+    getClaudeChanges(documentId) {
+        try {
+            const allChanges = JSON.parse(localStorage.getItem('claudeChanges') || '{}');
+            return allChanges[documentId] || null;
+        } catch (error) {
+            console.warn('Failed to parse Claude changes from localStorage:', error);
+            return null;
+        }
+    },
+
+    saveClaudeChanges(documentId, changes) {
+        try {
+            const allChanges = JSON.parse(localStorage.getItem('claudeChanges') || '{}');
+            allChanges[documentId] = changes;
+            localStorage.setItem('claudeChanges', JSON.stringify(allChanges));
+        } catch (error) {
+            console.error('Failed to save Claude changes:', error);
+        }
+    },
+
+    clearClaudeChanges(documentId) {
+        try {
+            const allChanges = JSON.parse(localStorage.getItem('claudeChanges') || '{}');
+            delete allChanges[documentId];
+            localStorage.setItem('claudeChanges', JSON.stringify(allChanges));
+        } catch (error) {
+            console.error('Failed to clear Claude changes:', error);
+        }
+    },
+
+    generateChangeId() {
+        return 'ch_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    },
+
     // Last open document persistence
     getLastOpenDocumentId() {
         return localStorage.getItem('lastOpenDocumentId') || null;
