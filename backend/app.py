@@ -4,20 +4,20 @@ import anthropic
 import openai
 from flask import Flask, render_template, request, jsonify, Response
 import json
-import setproctitle
 import os
 import signal
 import threading
 import time
 import base64
 import logging
+import sys
 
-# Set the process name to "Apprised" for Activity Monitor
-setproctitle.setproctitle("Apprised")
+# Note: setproctitle removed for Vercel serverless compatibility
+# setproctitle.setproctitle("Apprised")
 
-# Configure logging
+# Configure logging to stdout for serverless environment
 logging.basicConfig(
-    filename='/tmp/apprised.log',
+    stream=sys.stdout,
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
@@ -397,19 +397,17 @@ def chat():
 def health():
     return jsonify({'status': 'healthy', 'app': 'Apprised Chat'})
 
-# Shutdown endpoint
-@app.route('/shutdown', methods=['POST'])
-def shutdown():
-    def shutdown_server():
-        time.sleep(1)  # Give time for response to be sent
-        os.kill(os.getpid(), signal.SIGTERM)
-    
-    # Start shutdown in a separate thread
-    thread = threading.Thread(target=shutdown_server)
-    thread.daemon = True
-    thread.start()
-    
-    return jsonify({'status': 'shutting down', 'message': 'Apprised is closing...'})
+# Shutdown endpoint removed for Vercel serverless compatibility
+# Serverless functions cannot control their own lifecycle
+# @app.route('/shutdown', methods=['POST'])
+# def shutdown():
+#     def shutdown_server():
+#         time.sleep(1)
+#         os.kill(os.getpid(), signal.SIGTERM)
+#     thread = threading.Thread(target=shutdown_server)
+#     thread.daemon = True
+#     thread.start()
+#     return jsonify({'status': 'shutting down', 'message': 'Apprised is closing...'})
 
 # ChatGPT endpoint
 @app.route('/chatgpt', methods=['POST'])
@@ -462,5 +460,8 @@ def chatgpt():
             error_message = 'ChatGPT API usage limit reached. Please check your OpenAI account.'
         return jsonify({'error': error_message}), 500
 
+# WSGI entry point for Vercel
+application = app
+
 if __name__ == "__main__":
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    app.run(debug=False, host='127.0.0.1', port=5000)
