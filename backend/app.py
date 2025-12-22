@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import anthropic
-import openai
 from flask import Flask, render_template, request, jsonify, Response
 import json
 import os
@@ -39,7 +38,7 @@ def add_security_headers(response):
         "script-src 'self' 'unsafe-inline'; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https:; "
-        "connect-src 'self' https://api.anthropic.com https://api.openai.com; "
+        "connect-src 'self' https://api.anthropic.com; "
         "font-src 'self'; "
         "object-src 'none'; "
         "base-uri 'self'; "
@@ -138,11 +137,7 @@ def chat():
     
     if not api_key:
         return jsonify({'error': 'API key required. Please add your Anthropic API key in Settings.'}), 401
-    
-    # Get ChatGPT API key from request headers (capture outside generator)
-    chatgpt_api_key = request.headers.get('X-ChatGPT-API-Key')
-    logging.info(f"ChatGPT API key present: {bool(chatgpt_api_key)}")
-    
+
     # Create client with the provided API key
     try:
         client = anthropic.Anthropic(
@@ -234,139 +229,11 @@ def chat():
                 # Add tools if provided
                 if tools:
                     api_params["tools"] = tools
-                
-                # Check for ChatGPT tool - if present, handle non-streaming
-                has_chatgpt_tool = any(tool.get('name') == 'chatgpt' for tool in tools)
-                logging.info(f"Has ChatGPT tool: {has_chatgpt_tool}, Tools count: {len(tools)}")
-                
-                if has_chatgpt_tool:
-                    # Use non-streaming approach for tool calls
-                    response = client.messages.create(**api_params)
-                    
-                    # Handle tool calls
-                    if response.stop_reason == "tool_use":
-                        # Find ChatGPT tool calls
-                        chatgpt_tool_calls = [block for block in response.content if block.type == "tool_use" and block.name == "chatgpt"]
-                        
-                        if chatgpt_tool_calls:
-                            # Check if ChatGPT API key is available
-                            if not chatgpt_api_key:
-                                yield f"data: {json.dumps({'error': 'ChatGPT API key required for this request.'})}\n\n"
-                                return
-                            
-                            # Process each ChatGPT tool call
-                            tool_results = []
-                            for tool_call in chatgpt_tool_calls:
-                                try:
-                                    tool_input = tool_call.input
-                                    prompt = tool_input.get('prompt', '')
-                                    show_response = tool_input.get('show_response', False)
-                                    
-                                    # Call ChatGPT API
-                                    chatgpt_client = openai.OpenAI(api_key=chatgpt_api_key)
-                                    
-                                    # Always use Responses API with web search for ChatGPT
-                                    try:
-                                        api_params = {
-                                            "model": "gpt-4o",
-                                            "tools": [{"type": "web_search"}],
-                                            "input": f"You have web search capabilities. Use them when you need current information. Provide direct answers based on your search results.\n\n{prompt}"
-                                        }
-                                        chatgpt_response = chatgpt_client.responses.create(**api_params)
-                                        logging.info("ChatGPT Responses API with web search succeeded")
-                                    except Exception as e:
-                                        logging.error(f"ChatGPT Responses API with web search failed: {str(e)}")
-                                        logging.error(f"Error type: {type(e)}")
-                                        raise e
-                                    
-                                    # Handle different response formats
-                                    if hasattr(chatgpt_response, 'choices'):
-                                        # Chat Completions API response
-                                        chatgpt_result = chatgpt_response.choices[0].message.content
-                                    else:
-                                        # Responses API response - use output attribute
-                                        if hasattr(chatgpt_response, 'output'):
-                                            chatgpt_result = chatgpt_response.output
-                                            logging.info(f"ChatGPT response output type: {type(chatgpt_result)}")
-                                            logging.info(f"ChatGPT response output preview: {str(chatgpt_result)[:200]}...")
-                                        else:
-                                            # Debug unknown response format
-                                            logging.error(f"Unknown Responses API format: {type(chatgpt_response)}")
-                                            logging.error(f"Available attributes: {dir(chatgpt_response)}")
-                                            chatgpt_result = str(chatgpt_response)
-                                    
-                                    # Show the result to user if requested
-                                    if show_response:
-                                        chatgpt_display = f"\n\n**ChatGPT Response:**\n{chatgpt_result}\n\n"
-                                        yield f"data: {json.dumps({'chunk': chatgpt_display})}\n\n"
-                                    
-                                    # Add tool result for Claude - ensure it's properly formatted as text
-                                    tool_results.append({
-                                        "type": "tool_result",
-                                        "tool_use_id": tool_call.id,
-                                        "content": str(chatgpt_result)  # Ensure it's a string
-                                    })
-                                    
-                                except Exception as e:
-                                    error_msg = f"ChatGPT API error: {str(e)}"
-                                    logging.error(f"ChatGPT API Error Details: {e}")
-                                    tool_results.append({
-                                        "type": "tool_result",
-                                        "tool_use_id": tool_call.id,
-                                        "content": error_msg
-                                    })
-                            
-                            # Continue conversation with tool results
-                            if tool_results:
-                                # Convert response.content array to proper format for assistant message
-                                assistant_content = []
-                                for block in response.content:
-                                    if block.type == "text":
-                                        assistant_content.append({
-                                            "type": "text",
-                                            "text": block.text
-                                        })
-                                    elif block.type == "tool_use":
-                                        # Include tool use blocks in proper format
-                                        assistant_content.append({
-                                            "type": "tool_use",
-                                            "id": block.id,
-                                            "name": block.name,
-                                            "input": block.input
-                                        })
-                                
-                                continue_messages = messages + [
-                                    {"role": "assistant", "content": assistant_content},
-                                    {"role": "user", "content": tool_results}
-                                ]
-                                
-                                continue_params = {
-                                    "model": "claude-3-5-sonnet-20241022",
-                                    "max_tokens": 4000,
-                                    "temperature": 0.7,
-                                    "messages": continue_messages
-                                }
-                                
-                                if system_prompt:
-                                    continue_params["system"] = system_prompt
-                                
-                                try:
-                                    with client.messages.stream(**continue_params) as continue_stream:
-                                        for text in continue_stream.text_stream:
-                                            yield f"data: {json.dumps({'chunk': text})}\n\n"
-                                except Exception as e:
-                                    logging.error(f"Claude continuation error: {e}")
-                                    yield f"data: {json.dumps({'error': f'Error processing ChatGPT response: {str(e)}'})}\n\n"
-                    else:
-                        # No tool calls, stream the response
-                        for block in response.content:
-                            if block.type == "text":
-                                yield f"data: {json.dumps({'chunk': block.text})}\n\n"
-                else:
-                    # No ChatGPT tool, use normal streaming
-                    with client.messages.stream(**api_params) as stream:
-                        for text in stream.text_stream:
-                            yield f"data: {json.dumps({'chunk': text})}\n\n"
+
+                # Use streaming
+                with client.messages.stream(**api_params) as stream:
+                    for text in stream.text_stream:
+                        yield f"data: {json.dumps({'chunk': text})}\n\n"
                 
                 # Send end marker
                 yield f"data: {json.dumps({'done': True})}\n\n"
@@ -391,57 +258,6 @@ def chat():
 @app.route('/health')
 def health():
     return jsonify({'status': 'healthy', 'app': 'Apprised Chat'})
-
-# ChatGPT endpoint
-@app.route('/chatgpt', methods=['POST'])
-def chatgpt():
-    logging.info("ChatGPT endpoint called")
-    # Get ChatGPT API key from request headers
-    api_key = request.headers.get('X-ChatGPT-API-Key')
-    
-    if not api_key:
-        logging.warning("ChatGPT API key missing")
-        return jsonify({'error': 'ChatGPT API key required. Please add your OpenAI API key in Settings.'}), 401
-    
-    try:
-        data = request.get_json()
-        prompt = data.get('prompt', '')
-        show_response = data.get('show_response', False)
-        
-        if not prompt:
-            return jsonify({'error': 'Prompt is required'}), 400
-        
-        # Create OpenAI client with the provided API key
-        client = openai.OpenAI(api_key=api_key)
-        logging.info(f"Calling ChatGPT with prompt length: {len(prompt)}")
-        
-        # Call ChatGPT API
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            max_tokens=4000
-        )
-        
-        chatgpt_response = response.choices[0].message.content
-        logging.info("ChatGPT API call successful")
-        
-        return jsonify({
-            'response': chatgpt_response,
-            'show_response': show_response
-        })
-        
-    except Exception as e:
-        error_message = str(e)
-        logging.error(f"ChatGPT API error: {e}")
-        # Handle specific OpenAI API errors
-        if 'authentication' in error_message.lower() or 'api key' in error_message.lower():
-            error_message = 'Invalid ChatGPT API key. Please check your OpenAI API key in Settings.'
-        elif 'quota' in error_message.lower() or 'billing' in error_message.lower():
-            error_message = 'ChatGPT API usage limit reached. Please check your OpenAI account.'
-        return jsonify({'error': error_message}), 500
 
 # WSGI entry point for Vercel
 application = app

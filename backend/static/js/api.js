@@ -36,18 +36,10 @@ const API = {
             ];
         }
 
-        // Get ChatGPT API key if ChatGPT tool is enabled
-        const chatgptApiKey = Tools.isChatGPTEnabled() ? await Settings.getChatGPTApiKeyForRequest() : null;
-        
         const headers = {
             'Content-Type': 'application/json',
             'X-API-Key': apiKey
         };
-        
-        // Add ChatGPT API key if available
-        if (chatgptApiKey) {
-            headers['X-ChatGPT-API-Key'] = chatgptApiKey;
-        }
 
         const response = await fetch('/chat', {
             method: 'POST',
@@ -101,35 +93,5 @@ const API = {
                 }
             }
         }
-    },
-
-    async callChatGPT(prompt, showResponse = false) {
-        // Check if ChatGPT API key is available
-        const chatgptApiKey = Settings.getChatGPTApiKeyForRequest();
-        if (!chatgptApiKey) {
-            throw new Error('ChatGPT API key required. Please add your OpenAI API key in Settings.');
-        }
-
-        const response = await fetch('/chatgpt', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-ChatGPT-API-Key': chatgptApiKey
-            },
-            body: JSON.stringify({ 
-                prompt: prompt,
-                show_response: showResponse
-            })
-        });
-
-        if (!response.ok) {
-            if (response.status === 401) {
-                throw new Error('Invalid ChatGPT API key. Please check your OpenAI API key in Settings.');
-            }
-            throw new Error(`ChatGPT API error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data.response;
     }
 };
