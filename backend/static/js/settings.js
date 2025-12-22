@@ -432,7 +432,7 @@ const Settings = {
                 description.textContent = 'Enter your passphrase to unlock your encrypted API keys';
                 submitBtn.textContent = 'Unlock';
                 strengthIndicator.style.display = 'none';
-                options.style.display = 'none';
+                options.style.display = 'block'; // Show "Remember for 7 days" in unlock mode
                 forgotBtn.style.display = 'block';
             }
 

@@ -245,7 +245,15 @@ const Storage = {
     },
 
     async hasApiKey() {
-        const apiKey = await this.getApiKey();
+        // Check if encrypted key exists (don't try to decrypt)
+        // This way we return true even when locked
+        if (this.isEncryptionEnabled()) {
+            const encrypted = localStorage.getItem('anthropicApiKey_encrypted');
+            return encrypted && encrypted.length > 0;
+        }
+
+        // Fallback to plain text check
+        const apiKey = localStorage.getItem('anthropicApiKey');
         return apiKey && apiKey.length > 0;
     },
 
