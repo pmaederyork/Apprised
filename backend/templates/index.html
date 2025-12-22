@@ -19,6 +19,7 @@
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <button class="quit-btn sidebar-quit-btn" id="quitBtn" title="Quit Apprised">Quit</button>
+                <button class="lock-btn" id="lockBtn" title="Lock App" style="display: none;">🔒</button>
                 <button class="settings-btn" id="settingsBtn" title="API Settings">⚙️</button>
             </div>
             <div class="sidebar-content" id="sidebarContent">
@@ -219,9 +220,56 @@
                 <button class="open-settings-btn" id="openSettingsFromNotification">Open Settings</button>
             </div>
         </div>
+
+        <!-- Passphrase Modal -->
+        <div class="passphrase-modal" id="passphraseModal" style="display: none;">
+            <div class="passphrase-modal-content">
+                <h2 id="passphraseModalTitle">Unlock App</h2>
+                <p id="passphraseModalDescription">Enter your passphrase to unlock your encrypted API keys</p>
+
+                <div class="passphrase-input-container">
+                    <input type="password" id="passphraseInput" placeholder="Enter passphrase" />
+                    <button class="show-hide-btn" id="passphraseShowHideBtn" title="Show/Hide passphrase">👁️</button>
+                </div>
+
+                <div id="passphraseStrengthIndicator" class="passphrase-strength" style="display: none;">
+                    <div class="strength-bar">
+                        <div class="strength-bar-fill" id="strengthBarFill"></div>
+                    </div>
+                    <div class="strength-label" id="strengthLabel"></div>
+                    <div class="strength-feedback" id="strengthFeedback"></div>
+                </div>
+
+                <div class="passphrase-options" id="passphraseOptions" style="display: none;">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="rememberPassphraseCheckbox" />
+                        <span>Remember for 7 days</span>
+                    </label>
+                </div>
+
+                <div class="passphrase-actions">
+                    <button class="passphrase-btn-primary" id="passphraseSubmitBtn">Unlock</button>
+                    <button class="passphrase-btn-secondary" id="passphraseCancelBtn">Cancel</button>
+                    <button class="passphrase-btn-link" id="forgotPassphraseBtn" style="display: none;">Forgot Passphrase?</button>
+                </div>
+
+                <div class="passphrase-status" id="passphraseStatus"></div>
+            </div>
+        </div>
+
+        <!-- Locked Overlay -->
+        <div class="locked-overlay" id="lockedOverlay" style="display: none;">
+            <div class="locked-overlay-content">
+                <div class="lock-icon">🔒</div>
+                <h2>App Locked</h2>
+                <p>Your API keys are encrypted and secure</p>
+                <button class="unlock-btn" id="unlockBtn">Unlock</button>
+            </div>
+        </div>
     </div>
 
     <!-- JavaScript Modules -->
+    <script src="/static/js/crypto-utils.js"></script>
     <script src="/static/js/storage.js"></script>
     <script src="/static/js/api.js"></script>
     <script src="/static/js/components.js"></script>

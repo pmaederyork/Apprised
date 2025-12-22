@@ -109,32 +109,48 @@ const Settings = {
         });
     },
 
-    loadApiKey() {
-        const apiKey = Storage.getApiKey();
+    async loadApiKey() {
+        const apiKey = await Storage.getApiKey();
         if (apiKey) {
             this.elements.apiKeyInput.value = apiKey;
             this.showStatus('API key loaded', 'success');
         } else {
             this.elements.apiKeyInput.value = '';
-            this.showStatus('No API key found', 'warning');
+            if (Storage.isLocked()) {
+                this.showStatus('Locked - unlock to view', 'warning');
+            } else {
+                this.showStatus('No API key found', 'warning');
+            }
         }
     },
 
-    loadChatGPTApiKey() {
-        const apiKey = Storage.getChatGPTApiKey();
+    async loadChatGPTApiKey() {
+        const apiKey = await Storage.getChatGPTApiKey();
         if (apiKey) {
             this.elements.chatgptApiKeyInput.value = apiKey;
             this.showChatGPTStatus('ChatGPT API key loaded', 'success');
         } else {
             this.elements.chatgptApiKeyInput.value = '';
-            this.showChatGPTStatus('No ChatGPT API key found', 'warning');
+            if (Storage.isLocked()) {
+                this.showChatGPTStatus('Locked - unlock to view', 'warning');
+            } else {
+                this.showChatGPTStatus('No ChatGPT API key found', 'warning');
+            }
         }
     },
 
-    openSettings() {
+    async openSettings() {
+        // Check if app is locked
+        if (Storage.isLocked()) {
+            const unlocked = await this.promptForPassphrase('unlock');
+            if (!unlocked) {
+                return; // User cancelled
+            }
+        }
+
         this.elements.settingsModal.style.display = 'flex';
-        this.loadApiKey();
-        this.loadChatGPTApiKey();
+        await this.loadApiKey();
+        await this.loadChatGPTApiKey();
         this.validateApiKey();
         this.validateChatGPTApiKey();
         // Focus on input after modal opens
@@ -180,28 +196,53 @@ const Settings = {
         return isValid;
     },
 
-    saveApiKey() {
+    async saveApiKey() {
         const apiKey = this.elements.apiKeyInput.value.trim();
-        
+
         if (!this.validateApiKey()) {
             return;
         }
-        
+
         try {
-            Storage.saveApiKey(apiKey);
-            this.showStatus('API key saved successfully!', 'success');
-            
+            // Check if we need to prompt for passphrase
+            let passphrase = Storage.sessionPassphrase;
+
+            if (!passphrase) {
+                // Check if there are existing plain text keys to migrate
+                const hasPlainKeys = localStorage.getItem('anthropicApiKey') || localStorage.getItem('chatgptApiKey');
+
+                if (hasPlainKeys) {
+                    // Migration flow
+                    passphrase = await this.promptForPassphrase('create', true);
+                } else {
+                    // First time setup
+                    passphrase = await this.promptForPassphrase('create');
+                }
+
+                if (!passphrase) {
+                    return; // User cancelled
+                }
+            }
+
+            await Storage.saveApiKey(apiKey, passphrase);
+            this.showStatus('API key encrypted and saved!', 'success');
+
             // Hide notification if visible
             this.hideApiKeyNotification();
-            
+
             // Update UI
-            this.updateUI();
-            
+            await this.updateUI();
+
+            // Show lock button now that encryption is enabled
+            if (UI.elements.lockBtn) {
+                UI.elements.lockBtn.style.display = 'flex';
+            }
+
             // Close settings after a short delay
             setTimeout(() => {
                 this.closeSettings();
             }, 1000);
-            
+
         } catch (error) {
             console.error('Error saving API key:', error);
             this.showStatus('Error saving API key', 'error');
@@ -236,20 +277,6 @@ const Settings = {
         this.elements.apiKeyStatus.style.display = 'block';
     },
 
-    updateUI() {
-        const hasApiKey = Storage.hasApiKey();
-        
-        // Update delete button state
-        this.elements.deleteApiKeyBtn.style.display = hasApiKey ? 'block' : 'none';
-        
-        // Check if we need to show the notification
-        if (!hasApiKey) {
-            this.showApiKeyNotification();
-        } else {
-            this.hideApiKeyNotification();
-        }
-    },
-
     showApiKeyNotification() {
         this.elements.apiKeyNotification.style.display = 'block';
     },
@@ -259,8 +286,9 @@ const Settings = {
     },
 
     // Public method to check if API key is available before making requests
-    checkApiKeyBeforeRequest() {
-        if (!Storage.hasApiKey()) {
+    async checkApiKeyBeforeRequest() {
+        const hasKey = await Storage.hasApiKey();
+        if (!hasKey) {
             this.showApiKeyNotification();
             return false;
         }
@@ -268,8 +296,8 @@ const Settings = {
     },
 
     // Get API key for API requests
-    getApiKeyForRequest() {
-        return Storage.getApiKey();
+    async getApiKeyForRequest() {
+        return await Storage.getApiKey();
     },
 
     // ChatGPT API key methods
@@ -312,23 +340,33 @@ const Settings = {
         return isValid;
     },
 
-    saveChatGPTApiKey() {
+    async saveChatGPTApiKey() {
         const apiKey = this.elements.chatgptApiKeyInput.value.trim();
-        
+
         if (!this.validateChatGPTApiKey()) {
             return;
         }
-        
+
         try {
+            // Use existing session passphrase or same as Anthropic key flow
+            let passphrase = Storage.sessionPassphrase;
+
+            if (!passphrase) {
+                passphrase = await this.promptForPassphrase('create');
+                if (!passphrase) {
+                    return; // User cancelled
+                }
+            }
+
             // Save the API key
-            Storage.saveChatGPTApiKey(apiKey);
-            
+            await Storage.saveChatGPTApiKey(apiKey, passphrase);
+
             // Show success message
-            this.showChatGPTStatus('ChatGPT API key saved successfully!', 'success');
-            
+            this.showChatGPTStatus('ChatGPT API key encrypted and saved!', 'success');
+
             // Update UI
-            this.updateUI();
-            
+            await this.updateUI();
+
         } catch (error) {
             console.error('Error saving ChatGPT API key:', error);
             this.showChatGPTStatus('Error saving API key', 'error');
@@ -361,7 +399,203 @@ const Settings = {
     },
 
     // Get ChatGPT API key for API requests
-    getChatGPTApiKeyForRequest() {
-        return Storage.getChatGPTApiKey();
+    async getChatGPTApiKeyForRequest() {
+        return await Storage.getChatGPTApiKey();
+    },
+
+    // Passphrase modal methods
+    async promptForPassphrase(mode = 'unlock', isMigration = false) {
+        return new Promise((resolve) => {
+            const modal = UI.elements.passphraseModal;
+            const input = UI.elements.passphraseInput;
+            const title = UI.elements.passphraseModalTitle;
+            const description = UI.elements.passphraseModalDescription;
+            const submitBtn = UI.elements.passphraseSubmitBtn;
+            const cancelBtn = UI.elements.passphraseCancelBtn;
+            const forgotBtn = UI.elements.forgotPassphraseBtn;
+            const strengthIndicator = UI.elements.passphraseStrengthIndicator;
+            const options = UI.elements.passphraseOptions;
+            const statusDiv = UI.elements.passphraseStatus;
+
+            // Configure modal based on mode
+            if (mode === 'create') {
+                title.textContent = isMigration ? 'Migrate to Encrypted Storage' : 'Create Passphrase';
+                description.textContent = isMigration
+                    ? 'Create a passphrase to encrypt your existing API keys'
+                    : 'Create a passphrase to protect your API keys';
+                submitBtn.textContent = 'Create';
+                strengthIndicator.style.display = 'block';
+                options.style.display = 'block';
+                forgotBtn.style.display = 'none';
+            } else {
+                title.textContent = 'Unlock App';
+                description.textContent = 'Enter your passphrase to unlock your encrypted API keys';
+                submitBtn.textContent = 'Unlock';
+                strengthIndicator.style.display = 'none';
+                options.style.display = 'none';
+                forgotBtn.style.display = 'block';
+            }
+
+            // Clear previous state
+            input.value = '';
+            statusDiv.className = 'passphrase-status';
+            statusDiv.style.display = 'none';
+
+            // Show modal
+            modal.style.display = 'flex';
+            setTimeout(() => input.focus(), 100);
+
+            // Input validation for create mode
+            const handleInput = () => {
+                if (mode === 'create') {
+                    const strength = CryptoUtils.checkPassphraseStrength(input.value);
+                    UI.elements.strengthBarFill.setAttribute('data-score', strength.score);
+                    UI.elements.strengthLabel.textContent = strength.label;
+                    UI.elements.strengthFeedback.textContent = strength.feedback;
+                    submitBtn.disabled = !strength.isAcceptable;
+                }
+            };
+
+            input.addEventListener('input', handleInput);
+
+            // Handle submit
+            const handleSubmit = async () => {
+                const passphrase = input.value;
+
+                if (!passphrase) {
+                    this.showPassphraseStatus('Please enter a passphrase', 'error');
+                    return;
+                }
+
+                if (mode === 'create') {
+                    const strength = CryptoUtils.checkPassphraseStrength(passphrase);
+                    if (!strength.isAcceptable) {
+                        this.showPassphraseStatus('Passphrase is too weak', 'error');
+                        return;
+                    }
+
+                    // Set passphrase in storage
+                    const rememberFor7Days = UI.elements.rememberPassphraseCheckbox.checked;
+                    await Storage.setSessionPassphrase(passphrase, rememberFor7Days);
+
+                    // Migrate existing keys if needed
+                    if (isMigration) {
+                        await Storage.migratePlainTextKeys(passphrase);
+                    }
+
+                    cleanup();
+                    modal.style.display = 'none';
+                    resolve(passphrase);
+                } else {
+                    // Unlock mode - verify passphrase
+                    try {
+                        const encrypted = localStorage.getItem('anthropicApiKey_encrypted') ||
+                                        localStorage.getItem('chatgptApiKey_encrypted');
+
+                        if (encrypted) {
+                            // Try to decrypt to verify passphrase
+                            await CryptoUtils.decrypt(encrypted, passphrase);
+
+                            // Success - set session passphrase
+                            const rememberFor7Days = UI.elements.rememberPassphraseCheckbox.checked;
+                            await Storage.setSessionPassphrase(passphrase, rememberFor7Days);
+
+                            cleanup();
+                            modal.style.display = 'none';
+                            resolve(passphrase);
+                        } else {
+                            this.showPassphraseStatus('No encrypted data found', 'error');
+                        }
+                    } catch (error) {
+                        this.showPassphraseStatus('Incorrect passphrase', 'error');
+                        input.value = '';
+                        input.focus();
+                    }
+                }
+            };
+
+            // Handle cancel
+            const handleCancel = () => {
+                cleanup();
+                modal.style.display = 'none';
+                resolve(null);
+            };
+
+            // Handle forgot passphrase
+            const handleForgot = () => {
+                if (confirm('Reset passphrase? This will delete your encrypted API keys. You will need to re-enter them.')) {
+                    Storage.deleteApiKey();
+                    Storage.deleteChatGPTApiKey();
+                    Storage.clearStoredPassphrase();
+                    localStorage.removeItem('encryptionEnabled');
+                    cleanup();
+                    modal.style.display = 'none';
+                    alert('Encryption reset. Please enter your API keys again.');
+                    resolve(null);
+                }
+            };
+
+            // Show/hide passphrase
+            const handleShowHide = () => {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    UI.elements.passphraseShowHideBtn.textContent = '🙈';
+                } else {
+                    input.type = 'password';
+                    UI.elements.passphraseShowHideBtn.textContent = '👁️';
+                }
+            };
+
+            // Enter key to submit
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSubmit();
+                }
+            };
+
+            // Bind events
+            submitBtn.addEventListener('click', handleSubmit);
+            cancelBtn.addEventListener('click', handleCancel);
+            forgotBtn.addEventListener('click', handleForgot);
+            UI.elements.passphraseShowHideBtn.addEventListener('click', handleShowHide);
+            input.addEventListener('keypress', handleKeyPress);
+
+            // Cleanup function
+            const cleanup = () => {
+                submitBtn.removeEventListener('click', handleSubmit);
+                cancelBtn.removeEventListener('click', handleCancel);
+                forgotBtn.removeEventListener('click', handleForgot);
+                UI.elements.passphraseShowHideBtn.removeEventListener('click', handleShowHide);
+                input.removeEventListener('keypress', handleKeyPress);
+                input.removeEventListener('input', handleInput);
+            };
+        });
+    },
+
+    showPassphraseStatus(message, type) {
+        const statusDiv = UI.elements.passphraseStatus;
+        statusDiv.textContent = message;
+        statusDiv.className = `passphrase-status ${type}`;
+        statusDiv.style.display = 'block';
+    },
+
+    async updateUI() {
+        const hasApiKey = await Storage.hasApiKey();
+
+        // Update delete button state
+        this.elements.deleteApiKeyBtn.style.display = hasApiKey ? 'block' : 'none';
+
+        // Show/hide lock button based on encryption
+        if (Storage.isEncryptionEnabled() && UI.elements.lockBtn) {
+            UI.elements.lockBtn.style.display = 'flex';
+        }
+
+        // Check if we need to show the notification
+        if (!hasApiKey) {
+            this.showApiKeyNotification();
+        } else {
+            this.hideApiKeyNotification();
+        }
     }
 };
