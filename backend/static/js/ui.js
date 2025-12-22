@@ -64,7 +64,6 @@ const UI = {
         unlockBtn: document.getElementById('unlockBtn'),
         // Claude change review panel elements
         documentChangeReview: document.getElementById('documentChangeReview'),
-        changeReviewStats: document.getElementById('changeReviewStats'),
         prevChangeBtn: document.getElementById('prevChangeBtn'),
         nextChangeBtn: document.getElementById('nextChangeBtn'),
         changePosition: document.getElementById('changePosition'),

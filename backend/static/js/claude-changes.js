@@ -156,12 +156,6 @@ const ClaudeChanges = {
         const stats = this.getChangeStats();
         const pendingIndex = this.changes.slice(0, this.currentChangeIndex + 1).filter(c => c.status === 'pending').length;
 
-        // Update stats display
-        const statsElement = UI.elements.changeReviewStats;
-        if (statsElement) {
-            statsElement.textContent = `${stats.pending} change${stats.pending !== 1 ? 's' : ''} pending`;
-        }
-
         // Update position indicator
         const positionElement = UI.elements.changePosition;
         if (positionElement) {
