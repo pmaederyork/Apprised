@@ -37,7 +37,6 @@ const UI = {
         editorTitle: document.getElementById('editorTitle'),
         systemPromptTextarea: document.getElementById('systemPromptTextarea'),
         exitEditorBtn: document.getElementById('exitEditorBtn'),
-        quitBtn: document.getElementById('quitBtn'),
         sidebar: document.getElementById('sidebar'),
         sidebarResizeHandle: document.getElementById('sidebarResizeHandle'),
         screenshareToggle: document.getElementById('screenshareToggle'),

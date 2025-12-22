@@ -125,12 +125,6 @@ const App = {
                 Chat.createNewChat();
             }
 
-            // Ctrl/Cmd + Q for quit
-            if ((e.ctrlKey || e.metaKey) && e.key === 'q') {
-                e.preventDefault();
-                this.quit();
-            }
-
             // Ctrl/Cmd + L for lock
             if ((e.ctrlKey || e.metaKey) && e.key === 'l' && Storage.isEncryptionEnabled()) {
                 e.preventDefault();
@@ -166,11 +160,6 @@ const App = {
         window.addEventListener('unhandledrejection', (event) => {
             console.error('Unhandled promise rejection:', event.reason);
             this.showError('An unexpected error occurred. Please try again.');
-        });
-
-        // Quit button
-        UI.elements.quitBtn?.addEventListener('click', () => {
-            this.quit();
         });
 
         // Lock button
@@ -355,54 +344,6 @@ const App = {
     hideLockedOverlay() {
         if (UI.elements.lockedOverlay) {
             UI.elements.lockedOverlay.style.display = 'none';
-        }
-    },
-
-    // Quit application
-    async quit() {
-        try {
-            // Show confirmation dialog
-            if (!confirm('Are you sure you want to quit Apprised?')) {
-                return;
-            }
-
-            // Send shutdown request to backend
-            const response = await fetch('/shutdown', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-
-            if (response.ok) {
-                // Close the browser tab/window
-                window.close();
-                
-                // If window.close() doesn't work (some browsers block it),
-                // redirect to a blank page and show a message
-                setTimeout(() => {
-                    document.body.innerHTML = `
-                        <div style="
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            height: 100vh;
-                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                            background: #fef7ed;
-                            color: #1c1917;
-                            text-align: center;
-                        ">
-                            <div>
-                                <h1 style="margin-bottom: 16px;">Apprised has been closed</h1>
-                                <p>You can safely close this browser tab.</p>
-                            </div>
-                        </div>
-                    `;
-                }, 500);
-            }
-        } catch (error) {
-            console.error('Error shutting down:', error);
-            this.showError('Failed to quit Apprised. Please close the browser tab manually.');
         }
     },
 

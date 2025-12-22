@@ -29,13 +29,6 @@ Apprised/
 │       └── icons/            # Application icons
 │           ├── claude.png    # App icon (PNG format)
 │           └── claude-color.svg # App icon (SVG format)
-├── Apprised.app/                # macOS application bundle
-│   └── Contents/
-│       ├── Info.plist        # App bundle metadata
-│       ├── MacOS/
-│       │   └── Apprised         # Launcher script
-│       └── Resources/
-│           └── icon.png      # App icon for macOS
 └── README.md                 # This file
 ```
 
@@ -46,17 +39,23 @@ Apprised/
 - **System Prompts**: Create and manage reusable system prompts for Claude
 - **Real-time Streaming**: Streaming responses from Claude API
 - **Persistent Storage**: All data saved to localStorage
-- **Desktop Integration**: Native macOS app bundle with custom icon
-- **Portable**: App bundle works from any location
+- **Encryption**: Optional passphrase encryption for API keys
+- **Web Deployment**: Optimized for serverless deployment on Vercel
 
 ## Usage
 
-### Running the Application
+### Running Locally
 
-1. **Desktop App**: Double-click `Apprised.app` to launch
-2. **Manual**: Navigate to `backend/` and run `python3 app.py`
+Navigate to `backend/` and run:
+```bash
+python3 app.py
+```
 
 The application will start on `http://127.0.0.1:5000`
+
+### Deploying to Vercel
+
+This application is optimized for Vercel deployment with the included `vercel.json` configuration. Simply connect your GitHub repository to Vercel for automatic deployments.
 
 ### Features
 
@@ -93,8 +92,8 @@ The modular structure makes it easy to add new features:
 
 ### Dependencies
 
-- **Backend**: Python 3, Flask, Anthropic SDK, setproctitle
-- **Frontend**: Vanilla JavaScript (ES6+), CSS3, HTML5
+- **Backend**: Python 3, Flask, Anthropic SDK, OpenAI SDK
+- **Frontend**: Vanilla JavaScript (ES6+), CSS3, HTML5, Web Crypto API
 
 ## Differences from Original
 

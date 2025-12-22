@@ -5,15 +5,9 @@ import openai
 from flask import Flask, render_template, request, jsonify, Response
 import json
 import os
-import signal
-import threading
-import time
 import base64
 import logging
 import sys
-
-# Note: setproctitle removed for Vercel serverless compatibility
-# setproctitle.setproctitle("Apprised")
 
 # Configure logging to stdout for serverless environment
 logging.basicConfig(
@@ -68,7 +62,8 @@ def add_security_headers(response):
     return response
 
 # Initialize client without API key - will be set per request
-default_headers = {"anthropic-beta": "pdfs-2024-09-25"}
+# Enable PDF support and 1M token context window
+default_headers = {"anthropic-beta": "pdfs-2024-09-25,context-1m-2025-08-07"}
 
 def extract_message_text(message):
     """Extract text content from message (handles both string and array formats)"""
@@ -227,7 +222,7 @@ def chat():
             try:
                 # Prepare API call parameters
                 api_params = {
-                    "model": "claude-sonnet-4-20250514",
+                    "model": "claude-sonnet-4-5-20250929",
                     "max_tokens": 20000,
                     "messages": messages
                 }
@@ -396,18 +391,6 @@ def chat():
 @app.route('/health')
 def health():
     return jsonify({'status': 'healthy', 'app': 'Apprised Chat'})
-
-# Shutdown endpoint removed for Vercel serverless compatibility
-# Serverless functions cannot control their own lifecycle
-# @app.route('/shutdown', methods=['POST'])
-# def shutdown():
-#     def shutdown_server():
-#         time.sleep(1)
-#         os.kill(os.getpid(), signal.SIGTERM)
-#     thread = threading.Thread(target=shutdown_server)
-#     thread.daemon = True
-#     thread.start()
-#     return jsonify({'status': 'shutting down', 'message': 'Apprised is closing...'})
 
 # ChatGPT endpoint
 @app.route('/chatgpt', methods=['POST'])
