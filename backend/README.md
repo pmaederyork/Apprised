@@ -1,11 +1,11 @@
-# Plaud Chat
+# Apprised Chat
 
 A refactored, modular version of Claude Chat with improved architecture and extensibility.
 
 ## Project Structure
 
 ```
-Plaud/
+Apprised/
 ├── backend/                    # Flask backend application
 │   ├── app.py                 # Main Flask application
 │   ├── requirements.txt       # Python dependencies
@@ -29,11 +29,11 @@ Plaud/
 │       └── icons/            # Application icons
 │           ├── claude.png    # App icon (PNG format)
 │           └── claude-color.svg # App icon (SVG format)
-├── Plaud.app/                # macOS application bundle
+├── Apprised.app/                # macOS application bundle
 │   └── Contents/
 │       ├── Info.plist        # App bundle metadata
 │       ├── MacOS/
-│       │   └── Plaud         # Launcher script
+│       │   └── Apprised         # Launcher script
 │       └── Resources/
 │           └── icon.png      # App icon for macOS
 └── README.md                 # This file
@@ -53,7 +53,7 @@ Plaud/
 
 ### Running the Application
 
-1. **Desktop App**: Double-click `Plaud.app` to launch
+1. **Desktop App**: Double-click `Apprised.app` to launch
 2. **Manual**: Navigate to `backend/` and run `python3 app.py`
 
 The application will start on `http://127.0.0.1:5000`

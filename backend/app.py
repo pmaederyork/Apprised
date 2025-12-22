@@ -12,12 +12,12 @@ import time
 import base64
 import logging
 
-# Set the process name to "Plaud" for Activity Monitor
-setproctitle.setproctitle("Plaud")
+# Set the process name to "Apprised" for Activity Monitor
+setproctitle.setproctitle("Apprised")
 
 # Configure logging
 logging.basicConfig(
-    filename='/tmp/plaud.log',
+    filename='/tmp/apprised.log',
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
@@ -364,7 +364,7 @@ def chat():
 # Health check endpoint
 @app.route('/health')
 def health():
-    return jsonify({'status': 'healthy', 'app': 'Plaud Chat'})
+    return jsonify({'status': 'healthy', 'app': 'Apprised Chat'})
 
 # Shutdown endpoint
 @app.route('/shutdown', methods=['POST'])
@@ -378,7 +378,7 @@ def shutdown():
     thread.daemon = True
     thread.start()
     
-    return jsonify({'status': 'shutting down', 'message': 'Plaud is closing...'})
+    return jsonify({'status': 'shutting down', 'message': 'Apprised is closing...'})
 
 # ChatGPT endpoint
 @app.route('/chatgpt', methods=['POST'])

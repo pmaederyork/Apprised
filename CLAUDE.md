@@ -1,4 +1,4 @@
-# Plaud Chat - Development Guide
+# Apprised Chat - Development Guide
 
 ## Development Rules
 - **Read this claude.md file everytime before making any edits

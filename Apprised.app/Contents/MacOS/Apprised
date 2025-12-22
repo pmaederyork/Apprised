@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Plaud Chat Desktop Application
-# This launches the Plaud Chat web application
+# Apprised Chat Desktop Application
+# This launches the Apprised Chat web application
 
 # Get the absolute path to the backend directory
 # This works regardless of where the .app bundle is located
@@ -12,7 +12,7 @@ BACKEND_DIR="$PROJECT_DIR/backend"
 
 # Set working directory and check if it exists
 if [ ! -d "$BACKEND_DIR" ]; then
-    osascript -e "display dialog \"Backend directory $BACKEND_DIR not found. Please ensure the Plaud.app is in the correct location relative to the backend folder.\" buttons {\"OK\"} default button \"OK\""
+    osascript -e "display dialog \"Backend directory $BACKEND_DIR not found. Please ensure the Apprised.app is in the correct location relative to the backend folder.\" buttons {\"OK\"} default button \"OK\""
     exit 1
 fi
 
@@ -59,10 +59,10 @@ fi
 if lsof -Pi :5000 -sTCP:LISTEN -t >/dev/null 2>&1; then
     # Server is already running, try to focus existing Chrome tab
     if focus_existing_chrome_tab; then
-        osascript -e 'display notification "Focused existing Plaud tab" with title "Plaud"'
+        osascript -e 'display notification "Focused existing Apprised tab" with title "Apprised"'
     else
         open -a "Google Chrome" "http://127.0.0.1:5000"
-        osascript -e 'display notification "Opened new Plaud tab" with title "Plaud"'
+        osascript -e 'display notification "Opened new Apprised tab" with title "Apprised"'
     fi
     exit 0
 fi
@@ -73,7 +73,7 @@ if [ -f "requirements.txt" ]; then
 fi
 
 # Start the Flask application in the background with proper error handling
-arch -arm64 python3 app.py > /tmp/plaud_chat.log 2>&1 &
+arch -arm64 python3 app.py > /tmp/apprised_chat.log 2>&1 &
 SERVER_PID=$!
 
 # Wait for server to start
@@ -85,10 +85,10 @@ if lsof -Pi :5000 -sTCP:LISTEN -t >/dev/null 2>&1; then
     open -a "Google Chrome" "http://127.0.0.1:5000"
     
     # Show success notification
-    osascript -e 'display notification "Plaud Chat is now running at http://127.0.0.1:5000" with title "Plaud Started"'
+    osascript -e 'display notification "Apprised Chat is now running at http://127.0.0.1:5000" with title "Apprised Started"'
 else
     # Server failed to start, show error with log details
-    ERROR_LOG=$(tail -n 5 /tmp/plaud_chat.log 2>/dev/null || echo "No error log available")
-    osascript -e "display dialog \"Failed to start Plaud Chat server.\\n\\nError details:\\n$ERROR_LOG\" buttons {\"OK\"} default button \"OK\""
+    ERROR_LOG=$(tail -n 5 /tmp/apprised_chat.log 2>/dev/null || echo "No error log available")
+    osascript -e "display dialog \"Failed to start Apprised Chat server.\\n\\nError details:\\n$ERROR_LOG\" buttons {\"OK\"} default button \"OK\""
     exit 1
 fi

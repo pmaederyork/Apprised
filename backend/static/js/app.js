@@ -16,7 +16,7 @@ const App = {
         }
 
         try {
-            console.log('Initializing Plaud Chat...');
+            console.log('Initializing Apprised Chat...');
             
             // Initialize modules
             this.initializeModules();
@@ -49,7 +49,7 @@ const App = {
             }
             
             this.state.initialized = true;
-            console.log('Plaud Chat initialized successfully');
+            console.log('Apprised Chat initialized successfully');
             
         } catch (error) {
             console.error('Failed to initialize app:', error);
@@ -264,7 +264,7 @@ const App = {
     async quit() {
         try {
             // Show confirmation dialog
-            if (!confirm('Are you sure you want to quit Plaud?')) {
+            if (!confirm('Are you sure you want to quit Apprised?')) {
                 return;
             }
 
@@ -295,7 +295,7 @@ const App = {
                             text-align: center;
                         ">
                             <div>
-                                <h1 style="margin-bottom: 16px;">Plaud has been closed</h1>
+                                <h1 style="margin-bottom: 16px;">Apprised has been closed</h1>
                                 <p>You can safely close this browser tab.</p>
                             </div>
                         </div>
@@ -304,7 +304,7 @@ const App = {
             }
         } catch (error) {
             console.error('Error shutting down:', error);
-            this.showError('Failed to quit Plaud. Please close the browser tab manually.');
+            this.showError('Failed to quit Apprised. Please close the browser tab manually.');
         }
     },
 
