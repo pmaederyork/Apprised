@@ -1054,15 +1054,25 @@ const Documents = {
                 changeElement.className = 'claude-change-add';
                 changeElement.innerHTML = change.newContent || '';
 
-                // Insert at appropriate position
-                if (change.lineNumber !== undefined) {
-                    const children = Array.from(tempDiv.children);
-                    if (change.lineNumber < children.length) {
-                        children[change.lineNumber].before(changeElement);
+                // Insert at appropriate position using content anchoring
+                if (change.insertAfter) {
+                    const anchorNode = this.findNodeByContent(tempDiv, change.insertAfter);
+                    if (anchorNode) {
+                        anchorNode.after(changeElement);
                     } else {
+                        console.warn('Could not find insertAfter anchor:', change.insertAfter);
+                        tempDiv.appendChild(changeElement);
+                    }
+                } else if (change.insertBefore) {
+                    const anchorNode = this.findNodeByContent(tempDiv, change.insertBefore);
+                    if (anchorNode) {
+                        anchorNode.before(changeElement);
+                    } else {
+                        console.warn('Could not find insertBefore anchor:', change.insertBefore);
                         tempDiv.appendChild(changeElement);
                     }
                 } else {
+                    // No anchor specified, append to end
                     tempDiv.appendChild(changeElement);
                 }
             } else if (change.type === 'modify') {
@@ -1125,11 +1135,12 @@ const Documents = {
         const changes = [];
 
         // Parse each <change> element
-        const changeRegex = /<change\s+type="(.*?)"\s*(?:line="(.*?)")?\s*>(.*?)<\/change>/gs;
+        // Capture type, insertAfter, insertBefore attributes
+        const changeRegex = /<change\s+type="(.*?)"\s*(?:insertAfter="(.*?)")?\s*(?:insertBefore="(.*?)")?\s*>(.*?)<\/change>/gs;
         let match;
 
         while ((match = changeRegex.exec(editXML)) !== null) {
-            const [, type, line, content] = match;
+            const [, type, insertAfter, insertBefore, content] = match;
 
             const originalMatch = content.match(/<original>(.*?)<\/original>/s);
             const newMatch = content.match(/<new>(.*?)<\/new>/s);
@@ -1137,7 +1148,8 @@ const Documents = {
             changes.push({
                 id: Storage.generateChangeId(),
                 type: type,
-                lineNumber: line ? parseInt(line) : undefined,
+                insertAfter: insertAfter || undefined,
+                insertBefore: insertBefore || undefined,
                 originalContent: originalMatch ? originalMatch[1].trim() : null,
                 newContent: newMatch ? newMatch[1].trim() : null,
                 status: 'pending'

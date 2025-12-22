@@ -295,7 +295,11 @@ The user has a document open in the editor. When they ask you to edit, modify, o
 <original>[content to delete]</original>
 </change>
 
-<change type="add">
+<change type="add" insertAfter="[HTML of existing element to insert after]">
+<new>[content to add]</new>
+</change>
+
+<change type="add" insertBefore="[HTML of existing element to insert before]">
 <new>[content to add]</new>
 </change>
 
@@ -307,14 +311,25 @@ The user has a document open in the editor. When they ask you to edit, modify, o
 
 Rules:
 - Use type="delete" for content to remove
-- Use type="add" for new content to insert
+- Use type="add" for new content to insert - MUST specify insertAfter or insertBefore with the exact HTML of an existing element
 - Use type="modify" for content to change
 - Include the original content so the system can locate it precisely
 - Use HTML formatting (not markdown) since this is a rich text editor
 - Make targeted, surgical edits rather than rewriting everything
 - Always explain your changes in natural language before the XML
 
-Example:
+Examples:
+
+Example 1 - Adding content after a header:
+"I'll add an introduction paragraph right after the title:
+
+<document_edit>
+<change type="add" insertAfter="<h1>My Project</h1>">
+<new><p>This is an introduction to my project that provides context.</p></new>
+</change>
+</document_edit>"
+
+Example 2 - Modifying content:
 "I'll make this paragraph more professional:
 
 <document_edit>
@@ -322,9 +337,16 @@ Example:
 <original><p>Hey there! This is my cool project.</p></original>
 <new><p>This document presents a comprehensive overview of the project.</p></new>
 </change>
-</document_edit>
+</document_edit>"
 
-I've revised the introduction to use more formal language."
+Example 3 - Adding content at the beginning:
+"I'll add a new section at the start of the document:
+
+<document_edit>
+<change type="add" insertBefore="<h2>Introduction</h2>">
+<new><h2>Executive Summary</h2></new>
+</change>
+</document_edit>"
 
 The user will review each change with visual highlighting (deletions in red, additions in green) and can accept or reject individual changes.`;
 
