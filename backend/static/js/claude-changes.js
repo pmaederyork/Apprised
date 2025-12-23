@@ -132,6 +132,8 @@ const ClaudeChanges = {
      * This creates a clean document without wrapper divs
      */
     reconstructDocument(originalHTML, acceptedChanges) {
+        console.log(`🔧 Reconstruction: Applying ${acceptedChanges.length} accepted change(s)`);
+
         // Create temporary container with original clean HTML
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = originalHTML;

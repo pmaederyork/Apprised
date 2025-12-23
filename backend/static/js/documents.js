@@ -1043,11 +1043,11 @@ const Documents = {
             }
         });
 
-        // Render the changes in the document with visual highlights
-        this.renderChangesInDocument(changes);
-
-        // Initialize Claude Changes review mode
+        // Initialize Claude Changes review mode FIRST (captures clean HTML before wrappers)
         ClaudeChanges.init(this.currentDocumentId, changes);
+
+        // Then render the changes in the document with visual highlights
+        this.renderChangesInDocument(changes);
 
         // Show the review panel
         if (UI.elements.documentChangeReview) {
@@ -1115,6 +1115,7 @@ const Documents = {
 
                 // Insert at appropriate position using content anchoring
                 if (change.insertAfter) {
+                    console.log(`🔍 ADD preview: Searching for insertAfter anchor:`, change.insertAfter.substring(0, 100));
                     const anchorNode = this.findNodeByContent(tempDiv, change.insertAfter);
                     if (anchorNode) {
                         // Cache anchor signature for reconstruction
@@ -1133,6 +1134,7 @@ const Documents = {
                         tempDiv.appendChild(changeElement);
                     }
                 } else if (change.insertBefore) {
+                    console.log(`🔍 ADD preview: Searching for insertBefore anchor:`, change.insertBefore.substring(0, 100));
                     const anchorNode = this.findNodeByContent(tempDiv, change.insertBefore);
                     if (anchorNode) {
                         // Cache anchor signature for reconstruction
@@ -1152,6 +1154,7 @@ const Documents = {
                     }
                 } else {
                     // No anchor specified, append to end
+                    console.warn(`⚠️ ADD preview: NO ANCHOR specified (insertBefore/insertAfter both missing) - appending to END`);
                     change._cachedSignature = null;
                     tempDiv.appendChild(changeElement);
                 }
@@ -1340,25 +1343,49 @@ const Documents = {
         }
 
         const editXML = editMatch[1];
+        console.log('📄 Raw XML from Claude:', editXML);
+        console.log('🔍 Testing outer regex to extract attributes...');
         const changes = [];
 
-        // Parse each <change> element with flexible attribute order
-        // Match opening tag and content separately to handle any attribute order
-        const changeRegex = /<change\s+([^>]+)>(.*?)<\/change>/gs;
+        // Parse each <change> element - handle attributes that contain HTML with > inside quotes
+        // Pattern: match chars except > or ", OR match quoted strings (which can contain >)
+        const changeRegex = /<change\s+((?:[^>"]|"[^"]*")*?)>(.*?)<\/change>/gs;
         let match;
 
         while ((match = changeRegex.exec(editXML)) !== null) {
             const [, attributeString, content] = match;
 
+            // Debug: Log what outer regex captured
+            console.log('🔍 Full match (first 200 chars):', match[0].substring(0, 200));
+            console.log('🔍 Captured attribute section:', match[1]);
+            console.log('🔍 Captured content section:', match[2].substring(0, 100));
+            console.log('🔍 Raw attributeString:', JSON.stringify(attributeString));
+
             // Extract attributes independently (order-agnostic)
+            // Type is simple (no nested quotes)
             const type = attributeString.match(/type="([^"]+)"/)?.[1];
-            const insertAfter = attributeString.match(/insertAfter="([^"]+)"/)?.[1];
-            const insertBefore = attributeString.match(/insertBefore="([^"]+)"/)?.[1];
+
+            // For insertAfter/insertBefore, handle nested quotes in HTML content
+            // Use positive lookahead to check for space, >, or end-of-string after closing quote
+            const insertAfterMatch = attributeString.match(/insertAfter="(.*?)"(?=\s|>|$)/s);
+            const insertBeforeMatch = attributeString.match(/insertBefore="(.*?)"(?=\s|>|$)/s);
+
+            const insertAfter = insertAfterMatch ? insertAfterMatch[1] : undefined;
+            const insertBefore = insertBeforeMatch ? insertBeforeMatch[1] : undefined;
+
+            // Debug: Log extraction results
+            console.log('📋 Extraction results:', {
+                type,
+                insertBeforeMatch: insertBeforeMatch ? 'MATCHED' : 'NO MATCH',
+                insertBefore: insertBefore ? insertBefore.substring(0, 50) + '...' : 'NONE',
+                insertAfterMatch: insertAfterMatch ? 'MATCHED' : 'NO MATCH',
+                insertAfter: insertAfter ? insertAfter.substring(0, 50) + '...' : 'NONE'
+            });
 
             const originalMatch = content.match(/<original>(.*?)<\/original>/s);
             const newMatch = content.match(/<new>(.*?)<\/new>/s);
 
-            changes.push({
+            const change = {
                 id: Storage.generateChangeId(),
                 type: type,
                 insertAfter: insertAfter || undefined,
@@ -1366,7 +1393,18 @@ const Documents = {
                 originalContent: originalMatch ? originalMatch[1].trim() : null,
                 newContent: newMatch ? newMatch[1].trim() : null,
                 status: 'pending'
+            };
+
+            // Log parsed change details
+            console.log(`📋 Parsed change ${change.id}:`, {
+                type: change.type,
+                insertBefore: change.insertBefore ? `"${change.insertBefore.substring(0, 50)}..."` : 'NONE',
+                insertAfter: change.insertAfter ? `"${change.insertAfter.substring(0, 50)}..."` : 'NONE',
+                hasOriginal: !!change.originalContent,
+                hasNew: !!change.newContent
             });
+
+            changes.push(change);
         }
 
         return changes.length > 0 ? changes : null;
