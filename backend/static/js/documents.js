@@ -1091,13 +1091,22 @@ const Documents = {
                 // Try to find and replace the original content
                 const originalNode = this.findNodeByContent(tempDiv, change.originalContent);
                 if (originalNode) {
+                    // Cache content signature (not DOM reference) for reconstruction
+                    change._cachedSignature = {
+                        textContent: originalNode.textContent?.trim() || '',
+                        tagName: originalNode.tagName?.toLowerCase() || '',
+                        innerHTML: originalNode.innerHTML || '',
+                        outerHTML: originalNode.outerHTML || ''
+                    };
+                    console.log(`✅ DELETE preview: Cached signature for <${change._cachedSignature.tagName}> with text "${change._cachedSignature.textContent.substring(0, 50)}..."`);
                     originalNode.replaceWith(changeElement);
                 } else {
                     // DELETE: Don't render preview if content not found
                     // This prevents confusing duplicates when content can't be located
-                    console.warn('Could not locate content for DELETE preview:', change.originalContent);
+                    console.warn('❌ DELETE preview: Could not locate content, no signature cached');
                     console.warn('Change', change.id, 'will not be previewed in document');
                     // User can still review and accept/reject via sidebar
+                    change._cachedSignature = null;
                 }
             } else if (change.type === 'add') {
                 // Wrap new content in green highlight
@@ -1108,21 +1117,42 @@ const Documents = {
                 if (change.insertAfter) {
                     const anchorNode = this.findNodeByContent(tempDiv, change.insertAfter);
                     if (anchorNode) {
+                        // Cache anchor signature for reconstruction
+                        change._cachedSignature = {
+                            textContent: anchorNode.textContent?.trim() || '',
+                            tagName: anchorNode.tagName?.toLowerCase() || '',
+                            innerHTML: anchorNode.innerHTML || '',
+                            outerHTML: anchorNode.outerHTML || '',
+                            anchorType: 'insertAfter'
+                        };
+                        console.log(`✅ ADD preview: Cached insertAfter anchor <${change._cachedSignature.tagName}>`);
                         anchorNode.after(changeElement);
                     } else {
-                        console.warn('Could not find insertAfter anchor:', change.insertAfter);
+                        console.warn('❌ ADD preview: Could not find insertAfter anchor:', change.insertAfter);
+                        change._cachedSignature = null;
                         tempDiv.appendChild(changeElement);
                     }
                 } else if (change.insertBefore) {
                     const anchorNode = this.findNodeByContent(tempDiv, change.insertBefore);
                     if (anchorNode) {
+                        // Cache anchor signature for reconstruction
+                        change._cachedSignature = {
+                            textContent: anchorNode.textContent?.trim() || '',
+                            tagName: anchorNode.tagName?.toLowerCase() || '',
+                            innerHTML: anchorNode.innerHTML || '',
+                            outerHTML: anchorNode.outerHTML || '',
+                            anchorType: 'insertBefore'
+                        };
+                        console.log(`✅ ADD preview: Cached insertBefore anchor <${change._cachedSignature.tagName}>`);
                         anchorNode.before(changeElement);
                     } else {
-                        console.warn('Could not find insertBefore anchor:', change.insertBefore);
+                        console.warn('❌ ADD preview: Could not find insertBefore anchor:', change.insertBefore);
+                        change._cachedSignature = null;
                         tempDiv.appendChild(changeElement);
                     }
                 } else {
                     // No anchor specified, append to end
+                    change._cachedSignature = null;
                     tempDiv.appendChild(changeElement);
                 }
             } else if (change.type === 'modify') {
@@ -1133,9 +1163,19 @@ const Documents = {
                 // Try to find and replace the original content
                 const originalNode = this.findNodeByContent(tempDiv, change.originalContent);
                 if (originalNode) {
+                    // Cache content signature for reconstruction
+                    change._cachedSignature = {
+                        textContent: originalNode.textContent?.trim() || '',
+                        tagName: originalNode.tagName?.toLowerCase() || '',
+                        innerHTML: originalNode.innerHTML || '',
+                        outerHTML: originalNode.outerHTML || ''
+                    };
+                    console.log(`✅ MODIFY preview: Cached signature for <${change._cachedSignature.tagName}>`);
                     originalNode.replaceWith(changeElement);
                 } else {
                     // If can't find exact match, append to end
+                    console.warn('❌ MODIFY preview: Could not locate content, no signature cached');
+                    change._cachedSignature = null;
                     tempDiv.appendChild(changeElement);
                 }
             }
@@ -1194,29 +1234,19 @@ const Documents = {
         const searchNode = (node) => {
             if (!node || node.nodeType !== 1) return null; // Only element nodes
 
-            // Strategy 1: Exact innerHTML match (fast path)
-            if (node.innerHTML === content) {
-                return node;
-            }
-
-            // Strategy 2: Exact outerHTML match
-            if (node.outerHTML === content) {
-                return node;
-            }
-
-            // Strategy 3: Normalized innerHTML match (handles whitespace)
+            // Strategy 1: Normalized innerHTML match (handles whitespace)
             if (this.normalizeHTML(node.innerHTML) === normalizedContent) {
                 console.log('Found match using normalized innerHTML:', node.tagName);
                 return node;
             }
 
-            // Strategy 4: Normalized outerHTML match (handles whitespace + attributes)
+            // Strategy 2: Normalized outerHTML match (handles whitespace + attributes)
             if (this.normalizeHTML(node.outerHTML) === normalizedContent) {
                 console.log('Found match using normalized outerHTML:', node.tagName);
                 return node;
             }
 
-            // Strategy 4.5: Normalized match with attributes stripped (handles attribute differences)
+            // Strategy 3: Normalized match with attributes stripped (handles attribute differences)
             const normalizedContentNoAttrs = this.normalizeHTML(content, true);
             if (this.normalizeHTML(node.outerHTML, true) === normalizedContentNoAttrs) {
                 console.log('Found match ignoring attributes:', node.tagName);
@@ -1234,7 +1264,7 @@ const Documents = {
 
         const result = searchNode(container);
 
-        // Strategy 5: Text-content matching (ignores inner formatting)
+        // Strategy 4: Text-content matching (ignores inner formatting)
         // Only use if previous strategies failed, and only if match is unique
         if (!result) {
             const searchText = this.extractTextContent(content);
