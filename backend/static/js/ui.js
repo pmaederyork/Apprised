@@ -72,7 +72,11 @@ const UI = {
         acceptAllBtn: document.getElementById('acceptAllBtn'),
         rejectAllBtn: document.getElementById('rejectAllBtn'),
         changeTypeIndicator: document.getElementById('changeTypeIndicator'),
-        changeContentPreview: document.getElementById('changeContentPreview')
+        changeContentPreview: document.getElementById('changeContentPreview'),
+        // Multi-agent elements
+        agentSelector: document.getElementById('agentSelector'),
+        addAgentBtn: document.getElementById('addAgentBtn'),
+        turnsSelector: document.getElementById('turnsSelector')
     },
 
     // Helper function to strip document edit XML from chat display
@@ -91,10 +95,21 @@ const UI = {
     },
 
     // Message utilities
-    addMessage(content, isUser = false, files = []) {
+    addMessage(content, isUser = false, files = [], agent = null) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isUser ? 'user' : 'claude'}`;
-        
+
+        // Add agent badge if agent info provided
+        if (agent && !isUser) {
+            const agentBadge = document.createElement('div');
+            agentBadge.className = 'agent-badge-header';
+            agentBadge.innerHTML = `
+                <span class="agent-badge-dot" style="background-color: ${agent.color}"></span>
+                <span class="agent-badge-name">${this.escapeHtml(agent.name)}</span>
+            `;
+            messageDiv.appendChild(agentBadge);
+        }
+
         // Add file attachments if present
         if (files && files.length > 0) {
             const filesDiv = document.createElement('div');
@@ -168,19 +183,36 @@ const UI = {
         return bubbleDiv; // Return bubble for streaming updates
     },
 
-    addStreamingMessage(isUser = false) {
+    addStreamingMessage(isUser = false, agent = null) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isUser ? 'user' : 'claude'}`;
-        
+
+        // Add agent badge if agent info provided
+        if (agent && !isUser) {
+            const agentBadge = document.createElement('div');
+            agentBadge.className = 'agent-badge-header';
+            agentBadge.innerHTML = `
+                <span class="agent-badge-dot" style="background-color: ${agent.color}"></span>
+                <span class="agent-badge-name">${this.escapeHtml(agent.name)}</span>
+            `;
+            messageDiv.appendChild(agentBadge);
+        }
+
         const bubbleDiv = document.createElement('div');
         bubbleDiv.className = 'message-bubble streaming-cursor';
         bubbleDiv.textContent = '';
-        
+
         messageDiv.appendChild(bubbleDiv);
         this.elements.chatMessages.appendChild(messageDiv);
         this.autoScroll();
 
         return bubbleDiv;
+    },
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     },
 
     updateStreamingMessage(bubbleDiv, content, isComplete = false) {

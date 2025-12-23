@@ -148,20 +148,25 @@ const Documents = {
 
     // Close the document editor
     closeEditor() {
+        // Check if review mode is active and exit it (rejecting all changes)
+        if (typeof ClaudeChanges !== 'undefined' && ClaudeChanges.isInReviewMode()) {
+            ClaudeChanges.exitReviewMode(true); // true = revert all pending changes
+        }
+
         // Save current document before closing
         if (this.currentDocumentId) {
             this.saveCurrentDocument();
         }
-        
+
         // Clear last open document
         Storage.saveLastOpenDocumentId(null);
-        
+
         UI.elements.documentEditor.classList.remove('active');
         this.currentDocumentId = null;
-        
+
         // Clear active state in sidebar
         this.updateActiveDocumentInSidebar(null);
-        
+
         // Refresh copy-to-document buttons in chat
         if (typeof UI !== 'undefined' && UI.refreshCopyToDocumentButtons) {
             UI.refreshCopyToDocumentButtons();
@@ -1038,11 +1043,11 @@ const Documents = {
             }
         });
 
-        // Render the changes in the document with visual highlights
-        this.renderChangesInDocument(changes);
-
-        // Initialize Claude Changes review mode
+        // Initialize Claude Changes review mode FIRST (captures clean HTML before wrappers)
         ClaudeChanges.init(this.currentDocumentId, changes);
+
+        // Then render the changes in the document with visual highlights
+        this.renderChangesInDocument(changes);
 
         // Show the review panel
         if (UI.elements.documentChangeReview) {
@@ -1051,6 +1056,13 @@ const Documents = {
 
         // Focus on the first change
         ClaudeChanges.focusCurrentChange();
+
+        // Focus review panel for immediate keyboard navigation
+        setTimeout(() => {
+            if (UI.elements.documentChangeReview) {
+                UI.elements.documentChangeReview.focus();
+            }
+        }, 100);
 
         console.log(`Applied ${changes.length} changes from Claude to document`);
     },
@@ -1061,6 +1073,9 @@ const Documents = {
     renderChangesInDocument(changes) {
         const editor = UI.elements.documentTextarea;
         if (!editor) return;
+
+        // Clean up any existing change numbers before rendering new ones
+        document.querySelectorAll('.claude-change-number').forEach(el => el.remove());
 
         // Get current HTML content
         const currentHTML = editor.innerHTML;
@@ -1083,10 +1098,22 @@ const Documents = {
                 // Try to find and replace the original content
                 const originalNode = this.findNodeByContent(tempDiv, change.originalContent);
                 if (originalNode) {
+                    // Cache content signature (not DOM reference) for reconstruction
+                    change._cachedSignature = {
+                        textContent: originalNode.textContent?.trim() || '',
+                        tagName: originalNode.tagName?.toLowerCase() || '',
+                        innerHTML: originalNode.innerHTML || '',
+                        outerHTML: originalNode.outerHTML || ''
+                    };
+                    console.log(`✅ DELETE preview: Cached signature for <${change._cachedSignature.tagName}> with text "${change._cachedSignature.textContent.substring(0, 50)}..."`);
                     originalNode.replaceWith(changeElement);
                 } else {
-                    // If can't find exact match, append to end
-                    tempDiv.appendChild(changeElement);
+                    // DELETE: Don't render preview if content not found
+                    // This prevents confusing duplicates when content can't be located
+                    console.warn('❌ DELETE preview: Could not locate content, no signature cached');
+                    console.warn('Change', change.id, 'will not be previewed in document');
+                    // User can still review and accept/reject via sidebar
+                    change._cachedSignature = null;
                 }
             } else if (change.type === 'add') {
                 // Wrap new content in green highlight
@@ -1095,23 +1122,47 @@ const Documents = {
 
                 // Insert at appropriate position using content anchoring
                 if (change.insertAfter) {
+                    console.log(`🔍 ADD preview: Searching for insertAfter anchor:`, change.insertAfter.substring(0, 100));
                     const anchorNode = this.findNodeByContent(tempDiv, change.insertAfter);
                     if (anchorNode) {
+                        // Cache anchor signature for reconstruction
+                        change._cachedSignature = {
+                            textContent: anchorNode.textContent?.trim() || '',
+                            tagName: anchorNode.tagName?.toLowerCase() || '',
+                            innerHTML: anchorNode.innerHTML || '',
+                            outerHTML: anchorNode.outerHTML || '',
+                            anchorType: 'insertAfter'
+                        };
+                        console.log(`✅ ADD preview: Cached insertAfter anchor <${change._cachedSignature.tagName}>`);
                         anchorNode.after(changeElement);
                     } else {
-                        console.warn('Could not find insertAfter anchor:', change.insertAfter);
+                        console.warn('❌ ADD preview: Could not find insertAfter anchor:', change.insertAfter);
+                        change._cachedSignature = null;
                         tempDiv.appendChild(changeElement);
                     }
                 } else if (change.insertBefore) {
+                    console.log(`🔍 ADD preview: Searching for insertBefore anchor:`, change.insertBefore.substring(0, 100));
                     const anchorNode = this.findNodeByContent(tempDiv, change.insertBefore);
                     if (anchorNode) {
+                        // Cache anchor signature for reconstruction
+                        change._cachedSignature = {
+                            textContent: anchorNode.textContent?.trim() || '',
+                            tagName: anchorNode.tagName?.toLowerCase() || '',
+                            innerHTML: anchorNode.innerHTML || '',
+                            outerHTML: anchorNode.outerHTML || '',
+                            anchorType: 'insertBefore'
+                        };
+                        console.log(`✅ ADD preview: Cached insertBefore anchor <${change._cachedSignature.tagName}>`);
                         anchorNode.before(changeElement);
                     } else {
-                        console.warn('Could not find insertBefore anchor:', change.insertBefore);
+                        console.warn('❌ ADD preview: Could not find insertBefore anchor:', change.insertBefore);
+                        change._cachedSignature = null;
                         tempDiv.appendChild(changeElement);
                     }
                 } else {
                     // No anchor specified, append to end
+                    console.warn(`⚠️ ADD preview: NO ANCHOR specified (insertBefore/insertAfter both missing) - appending to END`);
+                    change._cachedSignature = null;
                     tempDiv.appendChild(changeElement);
                 }
             } else if (change.type === 'modify') {
@@ -1122,9 +1173,19 @@ const Documents = {
                 // Try to find and replace the original content
                 const originalNode = this.findNodeByContent(tempDiv, change.originalContent);
                 if (originalNode) {
+                    // Cache content signature for reconstruction
+                    change._cachedSignature = {
+                        textContent: originalNode.textContent?.trim() || '',
+                        tagName: originalNode.tagName?.toLowerCase() || '',
+                        innerHTML: originalNode.innerHTML || '',
+                        outerHTML: originalNode.outerHTML || ''
+                    };
+                    console.log(`✅ MODIFY preview: Cached signature for <${change._cachedSignature.tagName}>`);
                     originalNode.replaceWith(changeElement);
                 } else {
                     // If can't find exact match, append to end
+                    console.warn('❌ MODIFY preview: Could not locate content, no signature cached');
+                    change._cachedSignature = null;
                     tempDiv.appendChild(changeElement);
                 }
             }
@@ -1137,21 +1198,36 @@ const Documents = {
         });
 
         // Update the editor with the marked-up content
-        editor.innerHTML = tempDiv.innerHTML;
+        // Use DOM manipulation instead of innerHTML to preserve node references
+        while (editor.firstChild) {
+            editor.removeChild(editor.firstChild);
+        }
+        while (tempDiv.firstChild) {
+            editor.appendChild(tempDiv.firstChild);
+        }
     },
 
     /**
      * Normalize HTML string for comparison (removes whitespace variations)
+     * @param {string} html - HTML content to normalize
+     * @param {boolean} stripAttributes - If true, removes all HTML attributes
      */
-    normalizeHTML(html) {
+    normalizeHTML(html, stripAttributes = false) {
         if (!html) return '';
 
         // Trim whitespace, collapse multiple spaces, remove newlines
-        return html
+        let normalized = html
             .trim()
             .replace(/\s+/g, ' ')
-            .replace(/>\s+</g, '><')
-            .toLowerCase();
+            .replace(/>\s+</g, '><');
+
+        // Optionally strip attributes for more flexible matching
+        if (stripAttributes) {
+            // Convert <tag attr="value"> to <tag>
+            normalized = normalized.replace(/<(\w+)[^>]*>/g, '<$1>');
+        }
+
+        return normalized.toLowerCase();
     },
 
     /**
@@ -1168,25 +1244,22 @@ const Documents = {
         const searchNode = (node) => {
             if (!node || node.nodeType !== 1) return null; // Only element nodes
 
-            // Strategy 1: Exact innerHTML match (fast path)
-            if (node.innerHTML === content) {
-                return node;
-            }
-
-            // Strategy 2: Exact outerHTML match
-            if (node.outerHTML === content) {
-                return node;
-            }
-
-            // Strategy 3: Normalized innerHTML match (handles whitespace)
+            // Strategy 1: Normalized innerHTML match (handles whitespace)
             if (this.normalizeHTML(node.innerHTML) === normalizedContent) {
                 console.log('Found match using normalized innerHTML:', node.tagName);
                 return node;
             }
 
-            // Strategy 4: Normalized outerHTML match (handles whitespace + attributes)
+            // Strategy 2: Normalized outerHTML match (handles whitespace + attributes)
             if (this.normalizeHTML(node.outerHTML) === normalizedContent) {
                 console.log('Found match using normalized outerHTML:', node.tagName);
+                return node;
+            }
+
+            // Strategy 3: Normalized match with attributes stripped (handles attribute differences)
+            const normalizedContentNoAttrs = this.normalizeHTML(content, true);
+            if (this.normalizeHTML(node.outerHTML, true) === normalizedContentNoAttrs) {
+                console.log('Found match ignoring attributes:', node.tagName);
                 return node;
             }
 
@@ -1201,12 +1274,64 @@ const Documents = {
 
         const result = searchNode(container);
 
+        // Strategy 4: Text-content matching (ignores inner formatting)
+        // Only use if previous strategies failed, and only if match is unique
+        if (!result) {
+            const searchText = this.extractTextContent(content);
+            const searchTag = this.extractOuterTag(content);
+
+            if (searchText && searchTag && searchText.length > 10) { // Minimum length for safety
+                // Find all nodes with same outer tag and matching text content
+                const candidates = [];
+                const searchNodes = (node) => {
+                    if (node.nodeType === 1 && node.tagName.toLowerCase() === searchTag) {
+                        const nodeText = this.extractTextContent(node.outerHTML);
+                        if (nodeText === searchText) {
+                            candidates.push(node);
+                        }
+                    }
+                    for (let child of node.children) {
+                        searchNodes(child);
+                    }
+                };
+
+                searchNodes(container);
+
+                if (candidates.length === 1) {
+                    console.log('Found match using text-based matching (ignoring inner formatting):', candidates[0].tagName);
+                    return candidates[0];
+                } else if (candidates.length > 1) {
+                    console.warn('Multiple elements with identical text found - cannot determine which to match');
+                    // Fall through to return null (too ambiguous)
+                }
+            }
+        }
+
         if (!result) {
             console.warn('Could not find anchor content:', content);
             console.warn('Normalized search term:', normalizedContent);
         }
 
         return result;
+    },
+
+    /**
+     * Extract just the text content from HTML, removing all tags
+     */
+    extractTextContent(html) {
+        if (!html) return '';
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        return temp.textContent.trim().replace(/\s+/g, ' ').toLowerCase();
+    },
+
+    /**
+     * Extract the outer tag name from HTML string
+     */
+    extractOuterTag(html) {
+        if (!html) return null;
+        const match = html.match(/^<(\w+)/);
+        return match ? match[1].toLowerCase() : null;
     },
 
     /**
@@ -1225,20 +1350,49 @@ const Documents = {
         }
 
         const editXML = editMatch[1];
+        console.log('📄 Raw XML from Claude:', editXML);
+        console.log('🔍 Testing outer regex to extract attributes...');
         const changes = [];
 
-        // Parse each <change> element
-        // Capture type, insertAfter, insertBefore attributes
-        const changeRegex = /<change\s+type="(.*?)"\s*(?:insertAfter="(.*?)")?\s*(?:insertBefore="(.*?)")?\s*>(.*?)<\/change>/gs;
+        // Parse each <change> element - handle attributes that contain HTML with > inside quotes
+        // Pattern: match chars except > or ", OR match quoted strings (which can contain >)
+        const changeRegex = /<change\s+((?:[^>"]|"[^"]*")*?)>(.*?)<\/change>/gs;
         let match;
 
         while ((match = changeRegex.exec(editXML)) !== null) {
-            const [, type, insertAfter, insertBefore, content] = match;
+            const [, attributeString, content] = match;
+
+            // Debug: Log what outer regex captured
+            console.log('🔍 Full match (first 200 chars):', match[0].substring(0, 200));
+            console.log('🔍 Captured attribute section:', match[1]);
+            console.log('🔍 Captured content section:', match[2].substring(0, 100));
+            console.log('🔍 Raw attributeString:', JSON.stringify(attributeString));
+
+            // Extract attributes independently (order-agnostic)
+            // Type is simple (no nested quotes)
+            const type = attributeString.match(/type="([^"]+)"/)?.[1];
+
+            // For insertAfter/insertBefore, handle nested quotes in HTML content
+            // Use positive lookahead to check for space, >, or end-of-string after closing quote
+            const insertAfterMatch = attributeString.match(/insertAfter="(.*?)"(?=\s|>|$)/s);
+            const insertBeforeMatch = attributeString.match(/insertBefore="(.*?)"(?=\s|>|$)/s);
+
+            const insertAfter = insertAfterMatch ? insertAfterMatch[1] : undefined;
+            const insertBefore = insertBeforeMatch ? insertBeforeMatch[1] : undefined;
+
+            // Debug: Log extraction results
+            console.log('📋 Extraction results:', {
+                type,
+                insertBeforeMatch: insertBeforeMatch ? 'MATCHED' : 'NO MATCH',
+                insertBefore: insertBefore ? insertBefore.substring(0, 50) + '...' : 'NONE',
+                insertAfterMatch: insertAfterMatch ? 'MATCHED' : 'NO MATCH',
+                insertAfter: insertAfter ? insertAfter.substring(0, 50) + '...' : 'NONE'
+            });
 
             const originalMatch = content.match(/<original>(.*?)<\/original>/s);
             const newMatch = content.match(/<new>(.*?)<\/new>/s);
 
-            changes.push({
+            const change = {
                 id: Storage.generateChangeId(),
                 type: type,
                 insertAfter: insertAfter || undefined,
@@ -1246,7 +1400,18 @@ const Documents = {
                 originalContent: originalMatch ? originalMatch[1].trim() : null,
                 newContent: newMatch ? newMatch[1].trim() : null,
                 status: 'pending'
+            };
+
+            // Log parsed change details
+            console.log(`📋 Parsed change ${change.id}:`, {
+                type: change.type,
+                insertBefore: change.insertBefore ? `"${change.insertBefore.substring(0, 50)}..."` : 'NONE',
+                insertAfter: change.insertAfter ? `"${change.insertAfter.substring(0, 50)}..."` : 'NONE',
+                hasOriginal: !!change.originalContent,
+                hasNew: !!change.newContent
             });
+
+            changes.push(change);
         }
 
         return changes.length > 0 ? changes : null;

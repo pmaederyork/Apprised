@@ -3,7 +3,24 @@
 
 /* Form elements */
 input[type="text"], textarea {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-sans);
+    transition: all 0.15s ease;
+}
+
+input[type="text"]:focus, textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--ring-primary);
+}
+
+select {
+    font-family: var(--font-sans);
+}
+
+select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--ring-primary);
 }
 
 /* Passphrase Modal */
@@ -22,7 +39,7 @@ input[type="text"], textarea {
 }
 
 .passphrase-modal-content {
-    background: white;
+    background: var(--color-bg-white);
     padding: 32px;
     border-radius: 12px;
     max-width: 450px;
@@ -38,7 +55,7 @@ input[type="text"], textarea {
 
 .passphrase-modal-content p {
     margin: 0 0 24px 0;
-    color: #78716c;
+    color: var(--color-text-tertiary);
     font-size: 14px;
 }
 
@@ -50,7 +67,7 @@ input[type="text"], textarea {
 .passphrase-input-container input {
     width: 100%;
     padding: 12px 40px 12px 12px;
-    border: 2px solid #e7e5e4;
+    border: 2px solid var(--color-border);
     border-radius: 8px;
     font-size: 14px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -60,7 +77,8 @@ input[type="text"], textarea {
 
 .passphrase-input-container input:focus {
     outline: none;
-    border-color: #ea580c;
+    border-color: var(--color-primary);
+    box-shadow: var(--ring-primary);
 }
 
 .passphrase-input-container .show-hide-btn {
@@ -89,7 +107,7 @@ input[type="text"], textarea {
 .strength-bar {
     width: 100%;
     height: 8px;
-    background: #e7e5e4;
+    background: var(--color-border);
     border-radius: 4px;
     overflow: hidden;
     margin-bottom: 8px;
@@ -103,27 +121,27 @@ input[type="text"], textarea {
 
 .strength-bar-fill[data-score="0"] {
     width: 0%;
-    background: #dc2626;
+    background: var(--color-error);
 }
 
 .strength-bar-fill[data-score="1"] {
     width: 25%;
-    background: #dc2626;
+    background: var(--color-error);
 }
 
 .strength-bar-fill[data-score="2"] {
     width: 50%;
-    background: #f59e0b;
+    background: var(--color-warning-light);
 }
 
 .strength-bar-fill[data-score="3"] {
     width: 75%;
-    background: #10b981;
+    background: var(--color-success-hover);
 }
 
 .strength-bar-fill[data-score="4"] {
     width: 100%;
-    background: #059669;
+    background: var(--color-green-teal);
 }
 
 .strength-label {
@@ -135,7 +153,7 @@ input[type="text"], textarea {
 
 .strength-feedback {
     font-size: 11px;
-    color: #78716c;
+    color: var(--color-text-tertiary);
 }
 
 /* Passphrase Options */
@@ -182,37 +200,37 @@ input[type="text"], textarea {
 }
 
 .passphrase-btn-primary {
-    background: #ea580c;
+    background: var(--color-primary);
     color: white;
 }
 
 .passphrase-btn-primary:hover {
-    background: #dc2626;
+    background: var(--color-primary-hover);
 }
 
 .passphrase-btn-primary:disabled {
-    background: #9ca3af;
+    background: var(--color-gray-medium);
     cursor: not-allowed;
 }
 
 .passphrase-btn-secondary {
-    background: #f5f5f4;
+    background: var(--color-bg-subtle);
     color: #292524;
 }
 
 .passphrase-btn-secondary:hover {
-    background: #e7e5e4;
+    background: var(--color-border);
 }
 
 .passphrase-btn-link {
     background: none;
-    color: #ea580c;
+    color: var(--color-primary);
     text-decoration: underline;
     padding: 8px;
 }
 
 .passphrase-btn-link:hover {
-    color: #dc2626;
+    color: var(--color-primary-hover);
 }
 
 .passphrase-status {
@@ -226,13 +244,13 @@ input[type="text"], textarea {
 
 .passphrase-status.success {
     background: #d1fae5;
-    color: #065f46;
+    color: var(--color-green-dark-teal);
     display: block;
 }
 
 .passphrase-status.error {
-    background: #fee2e2;
-    color: #991b1b;
+    background: var(--color-error-bg);
+    color: var(--color-error-darker);
     display: block;
 }
 
@@ -277,7 +295,7 @@ input[type="text"], textarea {
 
 .unlock-btn {
     padding: 14px 32px;
-    background: #ea580c;
+    background: var(--color-primary);
     color: white;
     border: none;
     border-radius: 8px;
@@ -288,7 +306,7 @@ input[type="text"], textarea {
 }
 
 .unlock-btn:hover {
-    background: #dc2626;
+    background: var(--color-primary-hover);
 }
 
 

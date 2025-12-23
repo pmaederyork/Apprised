@@ -1,0 +1,148 @@
+/*
+ * Apprised Design System
+ * Professional CSS Variables for consistent theming
+ */
+
+:root {
+  /* ===== Primary Brand Colors (Blue) ===== */
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-200: #bfdbfe;
+  --primary-300: #93c5fd;
+  --primary-400: #60a5fa;
+  --primary-500: #3b82f6;             /* Main brand blue */
+  --primary-600: #2563eb;             /* Hover/action state */
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a8a;
+
+  /* Semantic Primary Aliases */
+  --color-primary: var(--primary-500);
+  --color-primary-hover: var(--primary-600);
+  --color-primary-light: var(--primary-50);
+
+  /* ===== Neutral/Gray Scale ===== */
+  --gray-50: #fafaf9;
+  --gray-100: #f5f5f4;
+  --gray-200: #e7e5e4;
+  --gray-300: #d6d3d1;
+  --gray-400: #a8a29e;
+  --gray-500: #78716c;
+  --gray-600: #57534e;
+  --gray-700: #44403c;
+  --gray-800: #292524;
+  --gray-900: #1c1917;
+
+  /* Semantic Gray Aliases */
+  --color-text-primary: var(--gray-900);
+  --color-text-secondary: var(--gray-700);
+  --color-text-tertiary: var(--gray-500);
+  --color-border: var(--gray-200);
+  --color-bg-subtle: var(--gray-100);
+  --color-bg-input: var(--gray-50);
+  --color-bg-disabled: var(--gray-300);
+  --color-bg-white: #ffffff;
+  --color-bg-off-white: var(--gray-50);
+
+  /* ===== Sidebar Theme ===== */
+  --color-sidebar-bg: var(--primary-50);
+  --color-sidebar-hover: var(--primary-100);
+  --color-sidebar-border: var(--primary-200);
+  --color-sidebar-active: var(--primary-500);
+
+  /* ===== Success/Green States ===== */
+  --color-success: #16a34a;           /* Success green - primary */
+  --color-success-dark: #15803d;      /* Success green - dark variant */
+  --color-success-darker: #166534;    /* Success green - darker variant */
+  --color-success-bg: #dcfce7;        /* Success background - light green */
+  --color-success-bg-light: #f0fdf4;  /* Success background - very light */
+  --color-success-border: #bbf7d0;    /* Success border */
+  --color-success-hover: #10b981;     /* Success hover state */
+
+  /* ===== Error/Red States ===== */
+  --color-error: #dc2626;             /* Error red - primary */
+  --color-error-dark: #b91c1c;        /* Error red - dark variant */
+  --color-error-darker: #991b1b;      /* Error red - darker variant */
+  --color-error-bg: #fee2e2;          /* Error background - light red */
+  --color-error-bg-light: #fef2f2;    /* Error background - very light */
+  --color-error-border: #fecaca;      /* Error border */
+
+  /* ===== Warning/Yellow States ===== */
+  --color-warning: #ca8a04;           /* Warning amber - primary */
+  --color-warning-dark: #a16207;      /* Warning amber - dark variant */
+  --color-warning-light: #f59e0b;     /* Warning amber - light variant */
+  --color-warning-bg: #fef3c7;        /* Warning background - light yellow */
+  --color-warning-bg-light: #fefce8;  /* Warning background - very light */
+
+  /* ===== Change Tracking (Document Review) ===== */
+  --color-change-add-bg: #e8f5e9;     /* Added changes background - light green */
+  --color-change-add-border: #66bb6a; /* Added changes border - green */
+  --color-change-delete-bg: #ffebee;  /* Deleted changes background - light red */
+  --color-change-delete-border: #ef5350; /* Deleted changes border - red */
+  --color-change-modify-bg: #fff9c4;  /* Modified changes background - light yellow */
+  --color-change-modify-border: #ffa726; /* Modified changes border - orange */
+  --color-change-active: #2196f3;     /* Active change highlight - bright blue */
+
+  /* ===== Additional Utility Colors ===== */
+  --color-blue-bright: #2196f3;       /* Bright blue for highlights */
+  --color-green-teal: #059669;        /* Teal green variant */
+  --color-green-dark-teal: #065f46;   /* Dark teal green variant */
+  --color-gray-medium: #9ca3af;       /* Medium gray for disabled text */
+
+  /* ===== Typography System ===== */
+  /* Font Family */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+  --font-mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+
+  /* Font Sizes - 8pt grid */
+  --text-xs: 0.75rem;      /* 12px */
+  --text-sm: 0.875rem;     /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-lg: 1.125rem;     /* 18px */
+  --text-xl: 1.25rem;      /* 20px */
+  --text-2xl: 1.5rem;      /* 24px */
+
+  /* Font Weights */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  /* Line Heights */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+
+  /* ===== Spacing System (8px base) ===== */
+  --space-0: 0;
+  --space-1: 0.25rem;      /* 4px */
+  --space-2: 0.5rem;       /* 8px */
+  --space-3: 0.75rem;      /* 12px */
+  --space-4: 1rem;         /* 16px */
+  --space-5: 1.25rem;      /* 20px */
+  --space-6: 1.5rem;       /* 24px */
+  --space-8: 2rem;         /* 32px */
+  --space-10: 2.5rem;      /* 40px */
+  --space-12: 3rem;        /* 48px */
+  --space-16: 4rem;        /* 64px */
+
+  /* ===== Border Radius System ===== */
+  --radius-sm: 0.25rem;    /* 4px */
+  --radius-md: 0.375rem;   /* 6px */
+  --radius-lg: 0.5rem;     /* 8px */
+  --radius-xl: 0.75rem;    /* 12px */
+  --radius-2xl: 1rem;      /* 16px */
+  --radius-full: 9999px;
+
+  /* ===== Shadow System (Elevation) ===== */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+  /* Focus Rings */
+  --ring-primary: 0 0 0 3px var(--primary-100);
+  --ring-offset: 0 0 0 2px var(--color-bg-white);
+}

@@ -110,14 +110,21 @@ const Chat = {
             id: this.currentChatId,
             title: 'New Chat',
             messages: [],
+            agents: [],
+            turns: 1,
             createdAt: Date.now()
         };
-        
+
         UI.elements.chatTitle.value = 'New Chat';
         this.clearMessages();
         this.addWelcomeMessage();
         Storage.saveChats(this.chats);
         this.renderChatList();
+
+        // Update agent UI for new chat
+        if (typeof Agents !== 'undefined') {
+            Agents.updateAgentSelectorUI();
+        }
     },
 
     // Load an existing chat
@@ -128,14 +135,41 @@ const Chat = {
             UI.elements.chatTitle.value = chat.title;
             this.currentMessages = [...chat.messages];
             this.clearMessages();
-            
+
+            // Ensure agents and turns exist (backward compatibility)
+            let needsSave = false;
+            if (!chat.agents) {
+                chat.agents = [];
+                needsSave = true;
+            }
+            if (!chat.turns) {
+                chat.turns = 1;
+                needsSave = true;
+            }
+
+            // Persist backward compatibility initialization
+            if (needsSave) {
+                Storage.saveChats(this.chats);
+            }
+
             // Load all messages
             chat.messages.forEach(msg => {
-                UI.addMessage(msg.content, msg.isUser, msg.files || []); // Include files when loading
+                // Extract agent info if present in message
+                const agent = (msg.agentId && msg.agentName && msg.agentColor) ? {
+                    id: msg.agentId,
+                    name: msg.agentName,
+                    color: msg.agentColor
+                } : null;
+                UI.addMessage(msg.content, msg.isUser, msg.files || [], agent);
             });
-            
+
             // Update active chat in sidebar
             this.updateActiveChatInSidebar(chatId);
+
+            // Update agent UI for loaded chat
+            if (typeof Agents !== 'undefined') {
+                Agents.updateAgentSelectorUI();
+            }
         }
     },
 
@@ -272,85 +306,375 @@ const Chat = {
         UI.setSendButtonState(false);
         UI.hideLoading();
 
-        // Create streaming message bubble
-        const streamingBubble = UI.addStreamingMessage(false);
+        // Get system prompt if active
+        const systemPrompts = Storage.getSystemPrompts();
+        const activeSystemPromptId = Storage.getActiveSystemPromptId();
+        let systemPrompt = activeSystemPromptId && systemPrompts[activeSystemPromptId] ?
+            systemPrompts[activeSystemPromptId].content : null;
+
+        // Check if we're in multi-agent mode (has added agents)
+        const chats = Storage.getChats();
+        const currentChat = chats[this.currentChatId];
+        const hasAddedAgents = currentChat && currentChat.agents && currentChat.agents.length > 0;
+
+        // In multi-agent mode, show agent badge for initial response (Agent 1)
+        let agent1 = null;
+        if (hasAddedAgents && activeSystemPromptId && systemPrompts[activeSystemPromptId]) {
+            agent1 = {
+                id: 'agent_active_prompt',
+                name: systemPrompts[activeSystemPromptId].name || 'Assistant',
+                systemPromptId: activeSystemPromptId,
+                color: '#ea580c'  // Orange - Agent 1 color
+            };
+        }
+
+        // Create streaming message bubble with agent badge if in multi-agent mode
+        const streamingBubble = UI.addStreamingMessage(false, agent1);
         let fullResponse = '';
 
         try {
-            // Get system prompt if active
-            const systemPrompts = Storage.getSystemPrompts();
-            const activeSystemPromptId = Storage.getActiveSystemPromptId();
-            let systemPrompt = activeSystemPromptId && systemPrompts[activeSystemPromptId] ?
-                systemPrompts[activeSystemPromptId].content : null;
 
             // Append document editing instructions if document is open
             if (Documents && Documents.currentDocumentId) {
                 const documentEditingInstructions = `
 
 DOCUMENT EDITING CAPABILITY:
-The user has a document open in the editor. When they ask you to edit, modify, or make changes to their document, you can propose structured edits using this XML format:
+The user has a document open in the editor and its HTML content is provided to you as a file attachment. You can interpret natural language editing requests and propose structured edits.
+
+═══════════════════════════════════════════════════════════════════════════
+MODULAR COMMAND SYSTEM
+═══════════════════════════════════════════════════════════════════════════
+
+Every user request has THREE components that you must identify and combine:
+
+1️⃣ COMMAND: What action to perform (Add, Move, Delete, Modify)
+2️⃣ TARGET: What content to act upon (specific element, range, all matching)
+3️⃣ LOCATION: Where to perform the action (at top, at end, before X, after X, between X and Y)
+
+═══════════════════════════════════════════════════════════════════════════
+LAYER 1: COMMANDS (What action)
+═══════════════════════════════════════════════════════════════════════════
+
+🔵 ADD - Insert new content
+   XML: <change type="add" insertBefore="..." OR insertAfter="...">
+        <new>[new HTML]</new>
+        </change>
+
+🔵 MOVE - Relocate existing content
+   XML: TWO changes required:
+        1. <change type="delete"><original>[exact HTML]</original></change>
+        2. <change type="add" insertBefore="..." OR insertAfter="..."><new>[same HTML]</new></change>
+
+🔵 DELETE - Remove content
+   XML: <change type="delete">
+        <original>[exact HTML to remove]</original>
+        </change>
+
+🔵 MODIFY - Change existing content
+   XML: <change type="modify">
+        <original>[exact original HTML]</original>
+        <new>[replacement HTML]</new>
+        </change>
+
+═══════════════════════════════════════════════════════════════════════════
+LAYER 2: TARGET SELECTORS (What content)
+═══════════════════════════════════════════════════════════════════════════
+
+📍 SPECIFIC ELEMENT
+   "the header", "the title", "the introduction section"
+   → Find the element by content or description
+   → Use its complete HTML: <h1>Title</h1>
+
+📍 RANGE (between X and Y)
+   "everything between X and Y", "content between intro and conclusion"
+   → Find first element (X) and last element (Y)
+   → Include ALL elements from X to Y (inclusive)
+   → Generate one DELETE change per element in the range
+
+📍 RELATIVE RANGE (after/before X)
+   "everything after X", "all content before Y", "everything below the header"
+   → Find anchor element (X or Y)
+   → Include all sibling elements in specified direction
+   → Generate one DELETE change per element
+
+📍 PATTERN MATCHING
+   "all headers", "all paragraphs", "every section with [criteria]"
+   → Find all elements matching the pattern
+   → Generate one change per matching element
+
+═══════════════════════════════════════════════════════════════════════════
+LAYER 3: LOCATION ANCHORS (Where)
+═══════════════════════════════════════════════════════════════════════════
+
+📌 "at the top" / "at the beginning"
+   → Find the FIRST element in the document
+   → Use: insertBefore="<first element HTML>"
+   Example: insertBefore="<h1>Document Title</h1>"
+
+📌 "at the end" / "at the bottom"
+   → Find the LAST element in the document
+   → Use: insertAfter="<last element HTML>"
+   Example: insertAfter="<p>Final paragraph.</p>"
+
+📌 "before [X]"
+   → Find element X by content or description
+   → Use: insertBefore="<X's complete HTML>"
+   Example: insertBefore="<h2>Conclusion</h2>"
+
+📌 "after [X]"
+   → Find element X by content or description
+   → Use: insertAfter="<X's complete HTML>"
+   Example: insertAfter="<p>Introduction paragraph.</p>"
+
+📌 "between [X] and [Y]"
+   → Find element X
+   → Use: insertAfter="<X's complete HTML>"
+   (Content inserted after X is automatically "between" X and Y)
+
+═══════════════════════════════════════════════════════════════════════════
+STEP-BY-STEP INTERPRETATION PROCESS
+═══════════════════════════════════════════════════════════════════════════
+
+For EVERY user request, follow these steps:
+
+STEP 1: DECOMPOSE the user's request
+   - Identify the COMMAND (add/move/delete/modify)
+   - Identify the TARGET (what content)
+   - Identify the LOCATION (where, if applicable)
+
+STEP 2: EXAMINE THE DOCUMENT
+   The document HTML is provided as a file attachment. Find:
+   - The EXACT HTML of target elements
+   - The EXACT HTML of anchor elements for location
+   - Copy HTML character-for-character (attributes, whitespace, capitalization)
+   - Use distinctive elements as anchors (headings work best)
+
+STEP 3: GENERATE PRECISE XML FORMAT
+   Use this structure:
+
+   <document_edit>
+   <change type="[add|move|delete|modify]" [insertBefore="..." OR insertAfter="..."]>
+   <original>[for delete/modify]</original>
+   <new>[for add/modify]</new>
+   </change>
+   </document_edit>
+
+═══════════════════════════════════════════════════════════════════════════
+CRITICAL RULES
+═══════════════════════════════════════════════════════════════════════════
+
+✅ ALWAYS copy COMPLETE HTML elements (opening tag + content + closing tag)
+✅ NEVER use text fragments - use FULL elements like "<p>This is a sentence.</p>"
+✅ Quote HTML EXACTLY as it appears (attributes, whitespace, capitalization)
+✅ Use HTML formatting (not markdown) - this is a rich text editor
+✅ For MOVE operations: Generate TWO changes (delete + add)
+✅ For RANGE operations: Generate ONE change per element in the range
+✅ Keep response BRIEF: One sentence in FUTURE tense ("I'll...") + XML
+✅ DO NOT repeat/describe content - user sees it in review panel
+✅ DO NOT use emojis
+
+═══════════════════════════════════════════════════════════════════════════
+EXAMPLES: SIMPLE OPERATIONS (Command + Single Target)
+═══════════════════════════════════════════════════════════════════════════
+
+Example 1: MODIFY Command
+User: "Change the title to 'New Project Name'"
+Decompose: MODIFY + TARGET("the title")
+Document has: <h1>My Project</h1>
+
+Response: "I'll update the title:
+
+<document_edit>
+<change type="modify">
+<original><h1>My Project</h1></original>
+<new><h1>New Project Name</h1></new>
+</change>
+</document_edit>"
+
+Example 2: DELETE Command (simple)
+User: "Delete the header"
+Decompose: DELETE + TARGET("the header")
+Document has: <h1>Emma</h1>
+
+Response: "I'll remove the header:
 
 <document_edit>
 <change type="delete">
-<original>[content to delete]</original>
-</change>
-
-<change type="add" insertAfter="[HTML of existing element to insert after]">
-<new>[content to add]</new>
-</change>
-
-<change type="add" insertBefore="[HTML of existing element to insert before]">
-<new>[content to add]</new>
-</change>
-
-<change type="modify">
-<original>[original content]</original>
-<new>[modified content]</new>
-</change>
-</document_edit>
-
-Rules:
-- Use type="delete" for content to remove
-- Use type="add" for new content to insert - MUST specify insertAfter or insertBefore with the exact HTML of an existing element
-- Use type="modify" for content to change
-- Include the original content so the system can locate it precisely
-- Use HTML formatting (not markdown) since this is a rich text editor
-- Make targeted, surgical edits rather than rewriting everything
-- Keep your message BRIEF - just say what you're doing in one short sentence, then provide the XML
-- DO NOT repeat or describe the content being changed - the user can see it in the review panel
-- DO NOT use emojis
-
-Examples:
-
-Example 1 - Adding content after a header:
-"I've added an introduction paragraph:
-
-<document_edit>
-<change type="add" insertAfter="<h1>My Project</h1>">
-<new><p>This is an introduction to my project that provides context.</p></new>
+<original><h1>Emma</h1></original>
 </change>
 </document_edit>"
 
-Example 2 - Modifying content:
-"I've updated the paragraph:
+═══════════════════════════════════════════════════════════════════════════
+EXAMPLES: LOCATION-BASED OPERATIONS (Command + Location)
+═══════════════════════════════════════════════════════════════════════════
+
+Example 3: ADD at the TOP
+User: "Add 'Project Overview' as a header at the top"
+Decompose: ADD + LOCATION("at the top")
+Document first element: <h1>My Project</h1>
+
+Response: "I'll add a header at the top:
 
 <document_edit>
-<change type="modify">
-<original><p>Hey there! This is my cool project.</p></original>
-<new><p>This document presents a comprehensive overview of the project.</p></new>
+<change type="add" insertBefore="<h1>My Project</h1>">
+<new><h1>Project Overview</h1></new>
 </change>
 </document_edit>"
 
-Example 3 - Adding content at the beginning:
-"I've added a new section:
+Example 4: ADD at the END
+User: "Add a footer at the bottom"
+Decompose: ADD + LOCATION("at the bottom")
+Document last element: <p>Final paragraph.</p>
+
+Response: "I'll add a footer at the end:
 
 <document_edit>
-<change type="add" insertBefore="<h2>Introduction</h2>">
-<new><h2>Executive Summary</h2></new>
+<change type="add" insertAfter="<p>Final paragraph.</p>">
+<new><p><em>Document footer</em></p></new>
 </change>
 </document_edit>"
 
-The user will review each change with visual highlighting (deletions in red, additions in green) and can accept or reject individual changes.`;
+Example 5: ADD BEFORE specific element
+User: "Add a paragraph before the conclusion"
+Decompose: ADD + LOCATION("before [conclusion]")
+Document has: <h2>Conclusion</h2>
+
+Response: "I'll add a paragraph:
+
+<document_edit>
+<change type="add" insertBefore="<h2>Conclusion</h2>">
+<new><p>Summary before conclusion.</p></new>
+</change>
+</document_edit>"
+
+Example 6: ADD AFTER specific element
+User: "Add a section after the introduction"
+Decompose: ADD + LOCATION("after [introduction]")
+Document has: <h2>Introduction</h2>
+
+Response: "I'll add a section:
+
+<document_edit>
+<change type="add" insertAfter="<h2>Introduction</h2>">
+<new><h2>Background</h2><p>Additional context here.</p></new>
+</change>
+</document_edit>"
+
+═══════════════════════════════════════════════════════════════════════════
+EXAMPLES: MOVE OPERATIONS (Command + Target + Location)
+═══════════════════════════════════════════════════════════════════════════
+
+Example 7: MOVE to TOP
+User: "Move the conclusion to the top"
+Decompose: MOVE + TARGET("conclusion") + LOCATION("to the top")
+Document has: <h2>Conclusion</h2><p>Final thoughts.</p> and first element: <h1>Title</h1>
+
+Response: "I'll move the conclusion to the top:
+
+<document_edit>
+<change type="delete">
+<original><h2>Conclusion</h2></original>
+</change>
+
+<change type="delete">
+<original><p>Final thoughts.</p></original>
+</change>
+
+<change type="add" insertBefore="<h1>Title</h1>">
+<new><h2>Conclusion</h2><p>Final thoughts.</p></new>
+</change>
+</document_edit>"
+
+Example 8: MOVE to END
+User: "Move section X to the bottom"
+Decompose: MOVE + TARGET("section X") + LOCATION("to the bottom")
+Document has: <h2>Section X</h2> and last element: <p>Last paragraph.</p>
+
+Response: "I'll move section X to the end:
+
+<document_edit>
+<change type="delete">
+<original><h2>Section X</h2></original>
+</change>
+
+<change type="add" insertAfter="<p>Last paragraph.</p>">
+<new><h2>Section X</h2></new>
+</change>
+</document_edit>"
+
+Example 9: MOVE AFTER another element
+User: "Move paragraph X after the introduction"
+Decompose: MOVE + TARGET("paragraph X") + LOCATION("after [introduction]")
+Document has: <p>Paragraph X content.</p> and <h2>Introduction</h2>
+
+Response: "I'll move the paragraph:
+
+<document_edit>
+<change type="delete">
+<original><p>Paragraph X content.</p></original>
+</change>
+
+<change type="add" insertAfter="<h2>Introduction</h2>">
+<new><p>Paragraph X content.</p></new>
+</change>
+</document_edit>"
+
+═══════════════════════════════════════════════════════════════════════════
+EXAMPLES: RANGE OPERATIONS (Command + Range Target)
+═══════════════════════════════════════════════════════════════════════════
+
+Example 10: DELETE BETWEEN X and Y
+User: "Delete everything between the intro and conclusion"
+Decompose: DELETE + TARGET(RANGE "between intro and conclusion")
+Document has: <h2>Introduction</h2><p>Para 1</p><p>Para 2</p><h2>Conclusion</h2>
+
+Response: "I'll remove content between intro and conclusion:
+
+<document_edit>
+<change type="delete">
+<original><p>Para 1</p></original>
+</change>
+
+<change type="delete">
+<original><p>Para 2</p></original>
+</change>
+</document_edit>"
+
+Example 11: DELETE EVERYTHING AFTER X
+User: "Delete everything after the summary"
+Decompose: DELETE + TARGET(RELATIVE RANGE "after summary")
+Document has: <h2>Summary</h2><p>Para 1</p><p>Para 2</p>
+
+Response: "I'll remove all content after the summary:
+
+<document_edit>
+<change type="delete">
+<original><p>Para 1</p></original>
+</change>
+
+<change type="delete">
+<original><p>Para 2</p></original>
+</change>
+</document_edit>"
+
+Example 12: DELETE EVERYTHING BEFORE X
+User: "Delete everything before the main content"
+Decompose: DELETE + TARGET(RELATIVE RANGE "before main content")
+Document has: <p>Intro text</p><p>More intro</p><h2>Main Content</h2>
+
+Response: "I'll remove content before main content:
+
+<document_edit>
+<change type="delete">
+<original><p>Intro text</p></original>
+</change>
+
+<change type="delete">
+<original><p>More intro</p></original>
+</change>
+</document_edit>"
+
+The user will review each change with visual highlighting (deletions in red, additions in green, modifications in yellow) and can accept or reject individual changes using keyboard shortcuts or buttons.`;
 
                 systemPrompt = systemPrompt ? systemPrompt + documentEditingInstructions : documentEditingInstructions;
             }
@@ -376,7 +700,7 @@ The user will review each change with visual highlighting (deletions in red, add
                     UI.updateStreamingMessage(streamingBubble, fullResponse, true);
                     // Save only the original text message, not the screenshot data
                     this.saveMessageToHistory(message, true, filesData);
-                    this.saveMessageToHistory(fullResponse, false);
+                    this.saveMessageToHistory(fullResponse, false, [], agent1);
 
                     // Check if response contains document edits (only if document is open)
                     if (Documents && Documents.currentDocumentId) {
@@ -389,6 +713,11 @@ The user will review each change with visual highlighting (deletions in red, add
                             // Show notification in chat
                             this.addSystemMessage(`Claude proposed ${changes.length} change${changes.length !== 1 ? 's' : ''} to your document. Review them in the editor.`);
                         }
+                    }
+
+                    // After initial response, check if multi-agent conversation should start
+                    if (typeof Agents !== 'undefined') {
+                        await Agents.orchestrateAgentTurns(message);
                     }
                 }
             }
@@ -408,15 +737,32 @@ The user will review each change with visual highlighting (deletions in red, add
     },
 
     // Save message to chat history
-    saveMessageToHistory(content, isUser, files = []) {
+    saveMessageToHistory(content, isUser, files = [], agent = null, turnNumber = null) {
         if (this.currentChatId) {
-            const messageObj = { 
-                content, 
-                isUser, 
+            const messageObj = {
+                content,
+                isUser,
                 timestamp: Date.now(),
                 files: files.length > 0 ? files : undefined
             };
+
+            // Add agent info if provided
+            if (agent && !isUser) {
+                messageObj.agentId = agent.id;
+                messageObj.agentName = agent.name;
+                messageObj.agentColor = agent.color;
+            }
+
+            // Add turn number if provided
+            if (turnNumber !== null) {
+                messageObj.turnNumber = turnNumber;
+            }
+
             this.currentMessages.push(messageObj);
+
+            // ✅ FIX: Refresh from Storage to get latest agents/turns before saving
+            // This prevents overwriting agents added by the Agents module
+            this.chats = Storage.getChats();
             this.chats[this.currentChatId].messages = [...this.currentMessages];
             Storage.saveChats(this.chats);
         }

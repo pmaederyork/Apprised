@@ -11,10 +11,10 @@
 }
 
 .editor-header {
-    background: white;
-    color: #1c1917;
+    background: var(--color-bg-white);
+    color: var(--color-text-primary);
     padding: 8px 24px;
-    border-bottom: 1px solid #e7e5e4;
+    border-bottom: 1px solid var(--color-border);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -30,15 +30,15 @@
 }
 
 .editor-title:hover {
-    background: #f9f9f9;
+    background: var(--color-bg-off-white);
     border-radius: 4px;
     padding: 4px 8px;
     margin: -4px -8px;
 }
 
 .editor-title:focus {
-    background: white;
-    border: 1px solid #ea580c;
+    background: var(--color-bg-white);
+    border: 1px solid var(--color-primary);
     border-radius: 4px;
     padding: 4px 8px;
     margin: -4px -8px;
@@ -53,7 +53,7 @@
 .editor-content {
     flex: 1;
     padding: 24px;
-    background: white;
+    background: var(--color-bg-white);
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -62,7 +62,7 @@
 .system-prompt-textarea {
     width: 100%;
     height: 100%;
-    border: 1px solid #e7e5e4;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 16px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -70,13 +70,13 @@
     line-height: 1.5;
     resize: none;
     outline: none;
-    background: #fafaf9;
+    background: var(--color-bg-input);
     transition: border-color 0.2s ease;
 }
 
 .system-prompt-textarea:focus {
-    border-color: #ea580c;
-    background: white;
+    border-color: var(--color-primary);
+    background: var(--color-bg-white);
 }
 
 /* Document editor styles */
@@ -85,7 +85,7 @@
     height: 100vh;
     flex: 1;
     min-width: 400px;
-    border-left: 1px solid #d1e7ff;
+    border-left: 1px solid var(--color-sidebar-border);
     display: none;
     position: relative;
 }
@@ -99,7 +99,7 @@
 .document-textarea {
     width: 100%;
     flex: 1;
-    border: 1px solid #e7e5e4;
+    border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 16px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -107,7 +107,7 @@
     line-height: 1.5;
     resize: none;
     outline: none;
-    background: #fafaf9;
+    background: var(--color-bg-input);
     transition: border-color 0.2s ease;
     overflow-y: auto;
     box-sizing: border-box;
@@ -115,13 +115,13 @@
 }
 
 .document-textarea:focus {
-    border-color: #ea580c;
-    background: white;
+    border-color: var(--color-primary);
+    background: var(--color-bg-white);
 }
 
 .document-textarea:empty:before {
     content: attr(data-placeholder);
-    color: #9ca3af;
+    color: var(--color-gray-medium);
     font-style: italic;
     pointer-events: none;
 }
@@ -152,8 +152,8 @@
 
 /* Markdown Toolbar */
 .markdown-toolbar {
-    background: #fafaf9;
-    border-bottom: 1px solid #e7e5e4;
+    background: var(--color-bg-input);
+    border-bottom: 1px solid var(--color-border);
     padding: 8px 16px;
     display: flex;
     gap: 4px;

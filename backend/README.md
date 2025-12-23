@@ -92,7 +92,7 @@ The modular structure makes it easy to add new features:
 
 ### Dependencies
 
-- **Backend**: Python 3, Flask, Anthropic SDK, OpenAI SDK
+- **Backend**: Python 3, Flask, Anthropic SDK
 - **Frontend**: Vanilla JavaScript (ES6+), CSS3, HTML5, Web Crypto API
 
 ## Differences from Original

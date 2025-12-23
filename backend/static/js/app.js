@@ -91,7 +91,15 @@ const App = {
         } catch (error) {
             console.error('Failed to initialize Chat:', error);
         }
-        
+
+        // Initialize agents module
+        try {
+            Agents.init();
+            console.log('Agents module initialized');
+        } catch (error) {
+            console.error('Failed to initialize Agents:', error);
+        }
+
         // Initialize tools module
         try {
             Tools.init();
