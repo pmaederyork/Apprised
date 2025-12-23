@@ -77,9 +77,17 @@ const UI = {
 
     // Helper function to strip document edit XML from chat display
     stripDocumentEditXML(content) {
-        // Remove <document_edit>...</document_edit> blocks from display
-        // but preserve the full response for parsing
-        return content.replace(/<document_edit>[\s\S]*?<\/document_edit>/g, '');
+        // Remove complete <document_edit>...</document_edit> blocks
+        let filtered = content.replace(/<document_edit>[\s\S]*?<\/document_edit>/g, '');
+
+        // Also remove incomplete blocks during streaming (opening tag without closing tag)
+        // This prevents flickering of partial XML as it streams in
+        if (filtered.includes('<document_edit>')) {
+            // Found opening tag but no closing tag - remove everything from opening tag onwards
+            filtered = filtered.substring(0, filtered.indexOf('<document_edit>'));
+        }
+
+        return filtered;
     },
 
     // Message utilities

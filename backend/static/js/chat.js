@@ -361,12 +361,14 @@ The user will review each change with visual highlighting (deletions in red, add
                 if (data.error) {
                     throw new Error(data.error);
                 }
-                
+
                 if (data.chunk) {
                     fullResponse += data.chunk;
+                    // Filter out XML blocks during streaming for cleaner display
+                    // The fullResponse still contains everything for parsing
                     UI.updateStreamingMessage(streamingBubble, fullResponse);
                 }
-                
+
                 if (data.done) {
                     // Complete the streaming message and save both messages to history
                     UI.updateStreamingMessage(streamingBubble, fullResponse, true);
