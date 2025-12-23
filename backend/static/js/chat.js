@@ -154,7 +154,13 @@ const Chat = {
 
             // Load all messages
             chat.messages.forEach(msg => {
-                UI.addMessage(msg.content, msg.isUser, msg.files || []); // Include files when loading
+                // Extract agent info if present in message
+                const agent = (msg.agentId && msg.agentName && msg.agentColor) ? {
+                    id: msg.agentId,
+                    name: msg.agentName,
+                    color: msg.agentColor
+                } : null;
+                UI.addMessage(msg.content, msg.isUser, msg.files || [], agent);
             });
 
             // Update active chat in sidebar
@@ -509,7 +515,7 @@ The user will review each change with visual highlighting (deletions in red, add
                     UI.updateStreamingMessage(streamingBubble, fullResponse, true);
                     // Save only the original text message, not the screenshot data
                     this.saveMessageToHistory(message, true, filesData);
-                    this.saveMessageToHistory(fullResponse, false);
+                    this.saveMessageToHistory(fullResponse, false, [], agent1);
 
                     // Check if response contains document edits (only if document is open)
                     if (Documents && Documents.currentDocumentId) {

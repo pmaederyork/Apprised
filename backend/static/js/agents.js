@@ -163,15 +163,15 @@ const Agents = {
             <div class="modal-content" onclick="event.stopPropagation()">
                 <h2>Add Agent</h2>
                 <div class="form-group">
-                    <label for="agentName">Agent Name:</label>
-                    <input type="text" id="agentName" placeholder="e.g., Code Assistant" />
-                </div>
-                <div class="form-group">
                     <label for="agentPrompt">System Prompt:</label>
                     <select id="agentPrompt">
                         <option value="">Select a prompt...</option>
                         ${promptArray.map(p => `<option value="${p.id}">${this.escapeHtml(p.name)}</option>`).join('')}
                     </select>
+                </div>
+                <div class="form-group">
+                    <label for="agentName">Agent Name:</label>
+                    <input type="text" id="agentName" placeholder="e.g., Code Assistant" />
                 </div>
                 <div class="modal-actions">
                     <button class="cancel-btn" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
@@ -211,8 +211,8 @@ const Agents = {
             modal.remove();
         });
 
-        // Focus name input
-        setTimeout(() => document.getElementById('agentName')?.focus(), 100);
+        // Focus prompt input (now first field)
+        setTimeout(() => document.getElementById('agentPrompt')?.focus(), 100);
     },
 
     /**

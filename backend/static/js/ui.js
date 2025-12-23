@@ -95,10 +95,21 @@ const UI = {
     },
 
     // Message utilities
-    addMessage(content, isUser = false, files = []) {
+    addMessage(content, isUser = false, files = [], agent = null) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isUser ? 'user' : 'claude'}`;
-        
+
+        // Add agent badge if agent info provided
+        if (agent && !isUser) {
+            const agentBadge = document.createElement('div');
+            agentBadge.className = 'agent-badge-header';
+            agentBadge.innerHTML = `
+                <span class="agent-badge-dot" style="background-color: ${agent.color}"></span>
+                <span class="agent-badge-name">${this.escapeHtml(agent.name)}</span>
+            `;
+            messageDiv.appendChild(agentBadge);
+        }
+
         // Add file attachments if present
         if (files && files.length > 0) {
             const filesDiv = document.createElement('div');
