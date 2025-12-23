@@ -38,20 +38,28 @@
     background: var(--color-primary);
     color: white;
     border: none;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 14px;
+    border-radius: var(--radius-full);
+    width: 28px;
+    height: 28px;
+    font-size: var(--text-sm);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     line-height: 1;
-    transition: background 0.2s ease;
+    transition: all 0.15s ease;
+    box-shadow: var(--shadow-sm);
 }
 
 .new-chat-btn:hover {
     background: var(--color-primary-hover);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.new-chat-btn:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-xs);
 }
 
 /* Add Prompt Button */
@@ -59,20 +67,28 @@
     background: var(--color-primary);
     color: white;
     border: none;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 14px;
+    border-radius: var(--radius-full);
+    width: 28px;
+    height: 28px;
+    font-size: var(--text-sm);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     line-height: 1;
-    transition: background 0.2s ease;
+    transition: all 0.15s ease;
+    box-shadow: var(--shadow-sm);
 }
 
 .add-prompt-btn:hover {
     background: var(--color-primary-hover);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.add-prompt-btn:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-xs);
 }
 
 /* Add Document Button */
@@ -80,20 +96,28 @@
     background: var(--color-primary);
     color: white;
     border: none;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 14px;
+    border-radius: var(--radius-full);
+    width: 28px;
+    height: 28px;
+    font-size: var(--text-sm);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     line-height: 1;
-    transition: background 0.2s ease;
+    transition: all 0.15s ease;
+    box-shadow: var(--shadow-sm);
 }
 
 .add-document-btn:hover {
     background: var(--color-primary-hover);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.add-document-btn:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-xs);
 }
 
 /* Add Agent Button */
@@ -101,20 +125,28 @@
     background: var(--color-primary);
     color: white;
     border: none;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    font-size: 14px;
+    border-radius: var(--radius-full);
+    width: 28px;
+    height: 28px;
+    font-size: var(--text-sm);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     line-height: 1;
-    transition: background 0.2s ease;
+    transition: all 0.15s ease;
+    box-shadow: var(--shadow-sm);
 }
 
 .add-agent-btn:hover {
     background: var(--color-primary-hover);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.add-agent-btn:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-xs);
 }
 
 /* Sidebar Action Buttons (X buttons for delete) - No bounding boxes */
@@ -141,13 +173,13 @@
 .prompt-item.active .prompt-item-action-btn,
 .chat-item.active .chat-item-action-btn,
 .document-item.active .document-item-action-btn {
-    color: white;
+    color: var(--primary-700);
 }
 
 .prompt-item.active .prompt-item-action-btn:hover,
 .chat-item.active .chat-item-action-btn:hover,
 .document-item.active .document-item-action-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    color: var(--primary-900);
 }
 
 /* USE Button - Clean styling without !important overrides */
@@ -308,24 +340,34 @@
 
 /* Send Button */
 #sendBtn {
-    padding: 12px 20px;
+    padding: var(--space-3) var(--space-5);
     background: var(--color-primary);
     color: white;
     border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: all 0.15s ease;
+    box-shadow: var(--shadow-sm);
 }
 
 #sendBtn:hover:not(:disabled) {
     background: var(--color-primary-hover);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+#sendBtn:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: var(--shadow-xs);
 }
 
 #sendBtn:disabled {
     background: var(--color-bg-disabled);
     cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
 }
 
 /* Inline Edit Input for Sidebar Items */

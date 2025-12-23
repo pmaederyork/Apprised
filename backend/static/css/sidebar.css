@@ -71,12 +71,12 @@
 }
 
 .section-title {
-    font-size: 12px;
-    font-weight: 500;
-    color: #4a5568;
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+    color: var(--gray-600);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--space-2);
 }
 
 .system-prompt-list {
@@ -105,25 +105,30 @@
 
 /* Prompt items */
 .prompt-item {
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 14px;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
     color: var(--color-text-secondary);
     cursor: pointer;
-    margin-bottom: 2px;
+    margin-bottom: var(--space-1);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    transition: all 0.15s ease;
+    border-left: 3px solid transparent;
 }
 
 .prompt-item:hover {
     background: var(--color-sidebar-hover);
+    box-shadow: var(--shadow-xs);
 }
 
 .prompt-item.active {
-    background: var(--color-sidebar-active);
-    color: white;
-    font-weight: 500;
+    background: var(--primary-50);
+    color: var(--primary-700);
+    font-weight: var(--font-medium);
+    border-left-color: var(--color-primary);
+    padding-left: calc(var(--space-3) - 3px);
 }
 
 .prompt-item-content {
@@ -150,25 +155,30 @@
 
 /* Chat items */
 .chat-item {
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 14px;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
     color: var(--color-text-secondary);
     cursor: pointer;
-    margin-bottom: 2px;
+    margin-bottom: var(--space-1);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    transition: all 0.15s ease;
+    border-left: 3px solid transparent;
 }
 
 .chat-item:hover {
     background: var(--color-sidebar-hover);
+    box-shadow: var(--shadow-xs);
 }
 
 .chat-item.active {
-    background: var(--color-sidebar-active);
-    color: white;
-    font-weight: 500;
+    background: var(--primary-50);
+    color: var(--primary-700);
+    font-weight: var(--font-medium);
+    border-left-color: var(--color-primary);
+    padding-left: calc(var(--space-3) - 3px);
 }
 
 .chat-item-content {
@@ -193,25 +203,30 @@
 
 /* Document items */
 .document-item {
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 14px;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
     color: var(--color-text-secondary);
     cursor: pointer;
-    margin-bottom: 2px;
+    margin-bottom: var(--space-1);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    transition: all 0.15s ease;
+    border-left: 3px solid transparent;
 }
 
 .document-item:hover {
     background: var(--color-sidebar-hover);
+    box-shadow: var(--shadow-xs);
 }
 
 .document-item.active {
-    background: var(--color-sidebar-active);
-    color: white;
-    font-weight: 500;
+    background: var(--primary-50);
+    color: var(--primary-700);
+    font-weight: var(--font-medium);
+    border-left-color: var(--color-primary);
+    padding-left: calc(var(--space-3) - 3px);
 }
 
 .document-item-content {

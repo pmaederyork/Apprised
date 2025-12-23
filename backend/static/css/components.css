@@ -3,7 +3,24 @@
 
 /* Form elements */
 input[type="text"], textarea {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-sans);
+    transition: all 0.15s ease;
+}
+
+input[type="text"]:focus, textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--ring-primary);
+}
+
+select {
+    font-family: var(--font-sans);
+}
+
+select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--ring-primary);
 }
 
 /* Passphrase Modal */
@@ -61,6 +78,7 @@ input[type="text"], textarea {
 .passphrase-input-container input:focus {
     outline: none;
     border-color: var(--color-primary);
+    box-shadow: var(--ring-primary);
 }
 
 .passphrase-input-container .show-hide-btn {
