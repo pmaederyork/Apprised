@@ -1137,7 +1137,13 @@ const Documents = {
         });
 
         // Update the editor with the marked-up content
-        editor.innerHTML = tempDiv.innerHTML;
+        // Use DOM manipulation instead of innerHTML to preserve node references
+        while (editor.firstChild) {
+            editor.removeChild(editor.firstChild);
+        }
+        while (tempDiv.firstChild) {
+            editor.appendChild(tempDiv.firstChild);
+        }
     },
 
     /**
@@ -1206,14 +1212,8 @@ const Documents = {
                 return node;
             }
 
-            // Strategy 5: Plain text content match (most forgiving fallback)
-            // Strip all HTML tags and compare text content only
-            const nodeText = node.textContent?.trim().replace(/\s+/g, ' ').toLowerCase();
-            const searchText = content.replace(/<[^>]+>/g, '').trim().replace(/\s+/g, ' ').toLowerCase();
-            if (nodeText && searchText && nodeText === searchText && searchText.length > 0) {
-                console.log('Found match using plain text content:', node.tagName);
-                return node;
-            }
+            // NOTE: Removed Strategy 5 (plain text matching) - too error-prone
+            // It could match wrong elements with identical text content
 
             // Recurse into children
             for (let child of node.children) {

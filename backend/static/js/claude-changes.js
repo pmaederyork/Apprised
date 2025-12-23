@@ -7,6 +7,7 @@ const ClaudeChanges = {
     changes: [],
     documentId: null,
     initialized: false,
+    originalDocumentHTML: null, // Cache of clean document HTML before wrappers
 
     /**
      * Initialize the change review system with a set of changes
@@ -16,6 +17,12 @@ const ClaudeChanges = {
         this.changes = changes;
         this.currentChangeIndex = 0;
         this.initialized = true;
+
+        // Cache original document HTML before any wrappers are added
+        const editor = UI.elements.documentTextarea;
+        if (editor) {
+            this.originalDocumentHTML = editor.innerHTML;
+        }
 
         // Add body class for layout adjustment
         document.body.classList.add('review-mode-active');
@@ -59,6 +66,77 @@ const ClaudeChanges = {
         if (Documents && Documents.captureCurrentState) {
             Documents.captureCurrentState();
         }
+    },
+
+    /**
+     * Reconstruct document from original HTML by applying accepted changes
+     * This creates a clean document without wrapper divs
+     */
+    reconstructDocument(originalHTML, acceptedChanges) {
+        // Create temporary container with original clean HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = originalHTML;
+
+        // Apply each accepted change in order
+        acceptedChanges.forEach(change => {
+            if (change.type === 'delete') {
+                // Find and remove the content
+                const nodeToDelete = Documents.findNodeByContent(tempDiv, change.originalContent);
+                if (nodeToDelete) {
+                    nodeToDelete.remove();
+                } else {
+                    console.warn('Could not find content to delete:', change.originalContent);
+                }
+            } else if (change.type === 'add') {
+                // Find anchor and insert new content
+                if (change.insertAfter) {
+                    const anchorNode = Documents.findNodeByContent(tempDiv, change.insertAfter);
+                    if (anchorNode) {
+                        const newElement = document.createElement('div');
+                        newElement.innerHTML = change.newContent;
+                        // Insert all new content after anchor
+                        while (newElement.firstChild) {
+                            anchorNode.after(newElement.firstChild);
+                        }
+                    } else {
+                        console.warn('Could not find insertAfter anchor:', change.insertAfter);
+                        // Append to end if anchor not found
+                        tempDiv.innerHTML += change.newContent;
+                    }
+                } else if (change.insertBefore) {
+                    const anchorNode = Documents.findNodeByContent(tempDiv, change.insertBefore);
+                    if (anchorNode) {
+                        const newElement = document.createElement('div');
+                        newElement.innerHTML = change.newContent;
+                        // Insert all new content before anchor
+                        while (newElement.firstChild) {
+                            anchorNode.before(newElement.firstChild);
+                        }
+                    } else {
+                        console.warn('Could not find insertBefore anchor:', change.insertBefore);
+                        // Prepend to beginning if anchor not found
+                        tempDiv.innerHTML = change.newContent + tempDiv.innerHTML;
+                    }
+                }
+            } else if (change.type === 'modify') {
+                // Find original content and replace with new
+                const nodeToModify = Documents.findNodeByContent(tempDiv, change.originalContent);
+                if (nodeToModify) {
+                    const newElement = document.createElement('div');
+                    newElement.innerHTML = change.newContent;
+                    // Replace with all new content
+                    const fragment = document.createDocumentFragment();
+                    while (newElement.firstChild) {
+                        fragment.appendChild(newElement.firstChild);
+                    }
+                    nodeToModify.replaceWith(fragment);
+                } else {
+                    console.warn('Could not find content to modify:', change.originalContent);
+                }
+            }
+        });
+
+        return tempDiv.innerHTML;
     },
 
     /**
@@ -265,35 +343,31 @@ const ClaudeChanges = {
      */
     acceptChange(changeId) {
         const change = this.changes.find(c => c.id === changeId);
-        if (!change) return;
-
-        const changeElement = document.querySelector(`[data-change-id="${changeId}"]`);
-        if (!changeElement) return;
+        if (!change || !this.originalDocumentHTML) return;
 
         // Capture state BEFORE applying change (for undo)
         this.captureHistoryState();
 
-        if (change.type === 'delete') {
-            // Remove the deleted content
-            changeElement.remove();
-        } else if (change.type === 'add') {
-            // Keep added content, remove highlighting
-            changeElement.classList.remove('claude-change-add', 'claude-change-active');
-            changeElement.removeAttribute('data-change-id');
-        } else if (change.type === 'modify') {
-            // Replace with new content, remove highlighting
-            if (change.newContent) {
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = change.newContent;
-                const newNode = tempDiv.firstChild;
-                if (newNode) {
-                    changeElement.replaceWith(newNode);
-                }
-            }
-        }
-
         // Mark as accepted
         change.status = 'accepted';
+
+        // Get all accepted changes
+        const acceptedChanges = this.changes.filter(c => c.status === 'accepted');
+
+        // Reconstruct document from original HTML + accepted changes
+        const reconstructedHTML = this.reconstructDocument(this.originalDocumentHTML, acceptedChanges);
+
+        // Update editor with clean reconstructed HTML
+        const editor = UI.elements.documentTextarea;
+        if (editor) {
+            editor.innerHTML = reconstructedHTML;
+        }
+
+        // Get remaining pending changes and re-render them with wrappers
+        const pendingChanges = this.changes.filter(c => c.status === 'pending');
+        if (pendingChanges.length > 0 && Documents && Documents.renderChangesInDocument) {
+            Documents.renderChangesInDocument(pendingChanges);
+        }
 
         // Save changes to storage
         Storage.saveClaudeChanges(this.documentId, {
@@ -336,36 +410,31 @@ const ClaudeChanges = {
      */
     rejectChange(changeId) {
         const change = this.changes.find(c => c.id === changeId);
-        if (!change) return;
-
-        const changeElement = document.querySelector(`[data-change-id="${changeId}"]`);
-        if (!changeElement) return;
+        if (!change || !this.originalDocumentHTML) return;
 
         // Capture state BEFORE rejecting change (for undo)
         this.captureHistoryState();
 
-        if (change.type === 'delete') {
-            // Keep original content, remove highlighting
-            changeElement.classList.remove('claude-change-delete', 'claude-change-active');
-            changeElement.style.textDecoration = 'none';
-            changeElement.removeAttribute('data-change-id');
-        } else if (change.type === 'add') {
-            // Remove added content completely
-            changeElement.remove();
-        } else if (change.type === 'modify') {
-            // Revert to original content
-            if (change.originalContent) {
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = change.originalContent;
-                const originalNode = tempDiv.firstChild;
-                if (originalNode) {
-                    changeElement.replaceWith(originalNode);
-                }
-            }
-        }
-
         // Mark as rejected
         change.status = 'rejected';
+
+        // Get all accepted changes (excluding this rejected one)
+        const acceptedChanges = this.changes.filter(c => c.status === 'accepted');
+
+        // Reconstruct document from original HTML + accepted changes (rejected changes are skipped)
+        const reconstructedHTML = this.reconstructDocument(this.originalDocumentHTML, acceptedChanges);
+
+        // Update editor with clean reconstructed HTML
+        const editor = UI.elements.documentTextarea;
+        if (editor) {
+            editor.innerHTML = reconstructedHTML;
+        }
+
+        // Get remaining pending changes and re-render them with wrappers
+        const pendingChanges = this.changes.filter(c => c.status === 'pending');
+        if (pendingChanges.length > 0 && Documents && Documents.renderChangesInDocument) {
+            Documents.renderChangesInDocument(pendingChanges);
+        }
 
         // Save changes to storage
         Storage.saveClaudeChanges(this.documentId, {
@@ -490,6 +559,7 @@ const ClaudeChanges = {
         this.currentChangeIndex = 0;
         this.documentId = null;
         this.initialized = false;
+        this.originalDocumentHTML = null; // Clear cached HTML
 
         console.log('ClaudeChanges: Exited review mode');
     },

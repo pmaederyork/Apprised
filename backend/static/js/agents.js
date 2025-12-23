@@ -167,12 +167,23 @@ const Agents = {
      * Add a new agent to the current chat
      */
     addAgent(name, systemPromptId) {
-        if (!Chat.currentChatId) return;
+        console.log('➕ addAgent called');
+        console.log('➕ Current chat ID:', Chat.currentChatId);
+        console.log('➕ Agent name:', name);
+        console.log('➕ System prompt ID:', systemPromptId);
+
+        if (!Chat.currentChatId) {
+            console.error('➕ ERROR: No current chat ID!');
+            return;
+        }
 
         const chats = Storage.getChats();
         const chat = chats[Chat.currentChatId];
 
+        console.log('➕ Chat object before adding agent:', JSON.parse(JSON.stringify(chat)));
+
         if (!chat.agents) {
+            console.log('➕ Initializing agents array');
             chat.agents = [];
         }
 
@@ -192,7 +203,12 @@ const Agents = {
             color: this.AGENT_COLORS[colorIndex]
         };
 
+        console.log('➕ New agent created:', newAgent);
+
         chat.agents.push(newAgent);
+
+        console.log('➕ Chat object after adding agent:', JSON.parse(JSON.stringify(chat)));
+        console.log('➕ Agents array now has', chat.agents.length, 'agents');
 
         // Initialize turns if first agent
         if (!chat.turns) {
@@ -200,9 +216,16 @@ const Agents = {
         }
 
         Storage.saveChats(chats);
+        console.log('➕ Chat saved to Storage');
+
+        // Verify it was saved
+        const verifyChats = Storage.getChats();
+        const verifyChat = verifyChats[Chat.currentChatId];
+        console.log('➕ VERIFICATION - Chat agents after save:', verifyChat.agents);
+
         this.updateAgentSelectorUI();
 
-        console.log('Agent added:', newAgent);
+        console.log('✅ Agent added successfully:', newAgent);
     },
 
     /**
@@ -400,11 +423,45 @@ const Agents = {
      * Called by Chat.sendMessage after user message is sent
      */
     async orchestrateAgentTurns(userMessage) {
-        const agents = this.getCurrentAgents();
+        console.log('🤖 orchestrateAgentTurns called');
+        console.log('🤖 User message:', userMessage);
+        console.log('🤖 Chat.currentChatId:', Chat.currentChatId);
+
+        // Build full agents list: Active system prompt (Agent 1) + Added agents (Agent 2+)
+        const agents = [];
+
+        // Agent 1: Active system prompt (if exists)
+        const activePromptId = Storage.getActiveSystemPromptId();
+        const systemPrompts = Storage.getSystemPrompts();
+
+        if (activePromptId && systemPrompts[activePromptId]) {
+            agents.push({
+                id: 'agent_active_prompt',
+                name: systemPrompts[activePromptId].name || 'Assistant',
+                systemPromptId: activePromptId,
+                color: '#ea580c'  // Orange for primary agent
+            });
+            console.log('🤖 Agent 1 (Active Prompt):', systemPrompts[activePromptId].name);
+        }
+
+        // Agent 2+: Added agents from chat
+        const addedAgents = this.getCurrentAgents();
+        agents.push(...addedAgents);
+
         const turns = this.getCurrentTurns();
 
+        console.log('🤖 Total agents in conversation:', agents.length);
+        console.log('🤖 Agents:', agents.map(a => a.name));
+        console.log('🤖 Turns configured:', turns);
+
         if (agents.length === 0) {
+            console.warn('🤖 No agents configured - orchestration exiting');
             return; // No agents configured
+        }
+
+        if (agents.length === 1) {
+            console.log('🤖 Only 1 agent - initial response already covered this, skipping orchestration');
+            return; // Initial Claude response already handled single agent
         }
 
         // Disable input during agent conversation
@@ -412,11 +469,29 @@ const Agents = {
 
         try {
             for (let turn = 1; turn <= turns; turn++) {
+                console.log(`🤖 === Turn ${turn} of ${turns} ===`);
+
                 for (let i = 0; i < agents.length; i++) {
+                    // Skip Agent 1 on Turn 1 - initial Claude response already handled it
+                    if (i === 0 && turn === 1) {
+                        console.log(`🤖 Agent 1 (${agents[i].name}) - already responded as initial Claude`);
+                        continue;
+                    }
+
                     const agent = agents[i];
+                    console.log(`🤖 Agent ${i + 1}/${agents.length}: ${agent.name}`);
+
+                    // Update placeholder with progress
+                    this.setInputEnabled(false, {
+                        turn: turn,
+                        totalTurns: turns,
+                        agentName: agent.name
+                    });
 
                     // Get context for this agent
-                    const context = this.buildAgentContext(agent, i === 0 && turn === 1 ? userMessage : null);
+                    // First agent after initial response uses user message, others use previous agent response
+                    const isFirstInSequence = (i === 1 && turn === 1);
+                    const context = this.buildAgentContext(agent, isFirstInSequence ? userMessage : null);
 
                     // Create streaming message bubble with agent badge
                     const streamingBubble = UI.addStreamingMessage(false, agent);
@@ -425,6 +500,9 @@ const Agents = {
                         // Get agent's system prompt
                         const systemPrompts = Storage.getSystemPrompts();
                         const systemPrompt = systemPrompts[agent.systemPromptId]?.content || '';
+
+                        console.log(`🤖 System prompt for ${agent.name}:`, systemPrompt ? `Found (${systemPrompt.length} chars)` : 'MISSING!');
+                        console.log(`🤖 Context for ${agent.name}:`, context);
 
                         // Call API with agent's context
                         const response = await API.sendMessage(
@@ -476,9 +554,9 @@ const Agents = {
             return { lastMessage: '', history: [] };
         }
 
-        const chats = Storage.getChats();
-        const chat = chats[Chat.currentChatId];
-        const messages = chat.messages || [];
+        // Read from Chat.currentMessages (in-memory) instead of Storage
+        // This ensures we see messages that were just added during orchestration
+        const messages = Chat.getCurrentMessages();
 
         // If this is first agent responding to user, use user message
         if (userMessage) {
@@ -514,12 +592,17 @@ const Agents = {
     /**
      * Enable/disable message input during agent conversations
      */
-    setInputEnabled(enabled) {
+    setInputEnabled(enabled, turnInfo = null) {
         if (UI.elements.messageInput) {
             UI.elements.messageInput.disabled = !enabled;
-            UI.elements.messageInput.placeholder = enabled ?
-                'Type a message...' :
-                'Agents are conversing...';
+
+            if (enabled) {
+                UI.elements.messageInput.placeholder = 'Type a message...';
+            } else if (turnInfo) {
+                UI.elements.messageInput.placeholder = `Turn ${turnInfo.turn}/${turnInfo.totalTurns} - ${turnInfo.agentName} responding...`;
+            } else {
+                UI.elements.messageInput.placeholder = 'Agents are conversing...';
+            }
         }
 
         if (UI.elements.sendBtn) {

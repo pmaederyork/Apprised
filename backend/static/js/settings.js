@@ -347,8 +347,7 @@ const Settings = {
                 } else {
                     // Unlock mode - verify passphrase
                     try {
-                        const encrypted = localStorage.getItem('anthropicApiKey_encrypted') ||
-                                        localStorage.getItem('chatgptApiKey_encrypted');
+                        const encrypted = localStorage.getItem('anthropicApiKey_encrypted');
 
                         if (encrypted) {
                             // Try to decrypt to verify passphrase

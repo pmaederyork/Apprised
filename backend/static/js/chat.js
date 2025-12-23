@@ -137,8 +137,20 @@ const Chat = {
             this.clearMessages();
 
             // Ensure agents and turns exist (backward compatibility)
-            if (!chat.agents) chat.agents = [];
-            if (!chat.turns) chat.turns = 1;
+            let needsSave = false;
+            if (!chat.agents) {
+                chat.agents = [];
+                needsSave = true;
+            }
+            if (!chat.turns) {
+                chat.turns = 1;
+                needsSave = true;
+            }
+
+            // Persist backward compatibility initialization
+            if (needsSave) {
+                Storage.saveChats(this.chats);
+            }
 
             // Load all messages
             chat.messages.forEach(msg => {
@@ -304,69 +316,137 @@ const Chat = {
                 const documentEditingInstructions = `
 
 DOCUMENT EDITING CAPABILITY:
-The user has a document open in the editor. When they ask you to edit, modify, or make changes to their document, you can propose structured edits using this XML format:
+The user has a document open in the editor and its HTML content is provided to you as a file attachment. You can interpret natural language editing requests and propose structured edits.
+
+STEP 1: INTERPRET NATURAL LANGUAGE REFERENCES
+When the user says:
+- "the title" or "the heading" → Look for the first <h1> element
+- "the introduction" → Find the first paragraph or section with "introduction" in heading/content
+- "section about X" → Find heading containing "X" and the content that follows
+- "paragraph 3" or "the third paragraph" → Count <p> elements to find the specified one
+- "move X to the top" → Delete X from current location, add it before the first element
+- "move X to the end" or "move X to the bottom" → Delete X, add it after the last element
+- "move X after Y" → Delete X, add it with insertAfter="<Y's exact HTML>"
+- "delete this section" (referring to recent context) → Find the section they mentioned
+- "change X to Y" → Modify the element containing X
+
+STEP 2: EXAMINE THE DOCUMENT
+The document HTML is provided as a file attachment. Carefully examine it to:
+1. Find the EXACT HTML of elements you need to reference
+2. Copy the HTML character-for-character (including all attributes, whitespace, capitalization)
+3. For insertAfter/insertBefore, copy the complete opening and closing tags
+4. Use distinctive, easily-found elements as anchors (headings work best)
+
+STEP 3: GENERATE PRECISE XML
+Use this format for all edits:
 
 <document_edit>
 <change type="delete">
-<original>[content to delete]</original>
+<original>[exact HTML to delete]</original>
 </change>
 
-<change type="add" insertAfter="[HTML of existing element to insert after]">
-<new>[content to add]</new>
+<change type="add" insertAfter="[exact HTML of existing element]">
+<new>[HTML content to add]</new>
 </change>
 
-<change type="add" insertBefore="[HTML of existing element to insert before]">
-<new>[content to add]</new>
+<change type="add" insertBefore="[exact HTML of existing element]">
+<new>[HTML content to add]</new>
 </change>
 
 <change type="modify">
-<original>[original content]</original>
-<new>[modified content]</new>
+<original>[exact original HTML]</original>
+<new>[replacement HTML]</new>
 </change>
 </document_edit>
 
-Rules:
-- Use type="delete" for content to remove
-- Use type="add" for new content to insert - MUST specify insertAfter or insertBefore with the exact HTML of an existing element
-- Use type="modify" for content to change
-- Include the original content so the system can locate it precisely
+CRITICAL RULES:
+- Quote HTML EXACTLY as it appears in the document (copy-paste from what you see)
+- Include all attributes, even if they seem redundant: <h1 class="title">Title</h1>
 - Use HTML formatting (not markdown) since this is a rich text editor
-- Make targeted, surgical edits rather than rewriting everything
+- For move operations, use TWO changes: one delete, one add
+- BATCH OPERATIONS: For bulk actions like "delete all text", use ONE change containing all content, not multiple separate changes
+- CONSOLIDATE CHANGES: Combine related edits when possible (e.g., deleting adjacent paragraphs = one delete with all paragraphs)
 - Keep your message BRIEF - just say what you're doing in one short sentence, then provide the XML
 - DO NOT repeat or describe the content being changed - the user can see it in the review panel
 - DO NOT use emojis
 
-Examples:
+EXAMPLES:
 
-Example 1 - Adding content after a header:
-"I've added an introduction paragraph:
+Example 1 - Natural language: "Change the title to 'New Project Name'"
+Step 1: "the title" = first <h1>
+Step 2: Look at document, find: <h1>My Project</h1>
+Step 3: Generate modify change
 
-<document_edit>
-<change type="add" insertAfter="<h1>My Project</h1>">
-<new><p>This is an introduction to my project that provides context.</p></new>
-</change>
-</document_edit>"
-
-Example 2 - Modifying content:
-"I've updated the paragraph:
+"I've updated the title:
 
 <document_edit>
 <change type="modify">
-<original><p>Hey there! This is my cool project.</p></original>
-<new><p>This document presents a comprehensive overview of the project.</p></new>
+<original><h1>My Project</h1></original>
+<new><h1>New Project Name</h1></new>
 </change>
 </document_edit>"
 
-Example 3 - Adding content at the beginning:
-"I've added a new section:
+Example 2 - Natural language: "Move the introduction paragraph to the top"
+Step 1: Find paragraph with "introduction" content
+Step 2: Look at document, find: <p>This is an introduction to my project.</p> and first element: <h1>My Project</h1>
+Step 3: Generate delete + add before first element
+
+"I've moved the introduction to the top:
 
 <document_edit>
-<change type="add" insertBefore="<h2>Introduction</h2>">
-<new><h2>Executive Summary</h2></new>
+<change type="delete">
+<original><p>This is an introduction to my project.</p></original>
+</change>
+
+<change type="add" insertBefore="<h1>My Project</h1>">
+<new><p>This is an introduction to my project.</p></new>
 </change>
 </document_edit>"
 
-The user will review each change with visual highlighting (deletions in red, additions in green) and can accept or reject individual changes.`;
+Example 3 - Natural language: "Delete the section about API keys"
+Step 1: Find heading containing "API keys"
+Step 2: Look at document, find heading and its content
+Step 3: Generate delete changes for heading and related paragraphs
+
+"I've removed the API keys section:
+
+<document_edit>
+<change type="delete">
+<original><h2>API Keys</h2></original>
+</change>
+
+<change type="delete">
+<original><p>Your API key is stored securely in the browser.</p></original>
+</change>
+</document_edit>"
+
+Example 4 - Natural language: "Add a new section about usage after the introduction"
+Step 1: Find introduction heading
+Step 2: Look at document, find: <h2>Introduction</h2>
+Step 3: Generate add change
+
+"I've added a usage section:
+
+<document_edit>
+<change type="add" insertAfter="<h2>Introduction</h2>">
+<new><h2>Usage</h2><p>To use this application, follow these steps:</p></new>
+</change>
+</document_edit>"
+
+Example 5 - Natural language: "Delete all the text" (BATCH OPERATION)
+Step 1: User wants to delete ALL content
+Step 2: Look at document, get ALL HTML content from first to last element
+Step 3: Generate ONE delete change with all content
+
+"I've removed all content:
+
+<document_edit>
+<change type="delete">
+<original><h1>My Project</h1><p>This is an introduction.</p><h2>Section 1</h2><p>More content here.</p></original>
+</change>
+</document_edit>"
+
+The user will review each change with visual highlighting (deletions in red, additions in green, modifications in yellow) and can accept or reject individual changes using keyboard shortcuts or buttons.`;
 
                 systemPrompt = systemPrompt ? systemPrompt + documentEditingInstructions : documentEditingInstructions;
             }
@@ -451,6 +531,10 @@ The user will review each change with visual highlighting (deletions in red, add
             }
 
             this.currentMessages.push(messageObj);
+
+            // ✅ FIX: Refresh from Storage to get latest agents/turns before saving
+            // This prevents overwriting agents added by the Agents module
+            this.chats = Storage.getChats();
             this.chats[this.currentChatId].messages = [...this.currentMessages];
             Storage.saveChats(this.chats);
         }
