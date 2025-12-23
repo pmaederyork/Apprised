@@ -1102,18 +1102,72 @@ const Documents = {
     },
 
     /**
+     * Normalize HTML string for comparison (removes whitespace variations)
+     */
+    normalizeHTML(html) {
+        if (!html) return '';
+
+        // Trim whitespace, collapse multiple spaces, remove newlines
+        return html
+            .trim()
+            .replace(/\s+/g, ' ')
+            .replace(/>\s+</g, '><')
+            .toLowerCase();
+    },
+
+    /**
      * Find a node by its content (helper for renderChangesInDocument)
+     * Uses recursive search with multiple matching strategies
      */
     findNodeByContent(container, content) {
         if (!content) return null;
 
-        const children = Array.from(container.children);
-        for (const child of children) {
-            if (child.innerHTML === content || child.outerHTML === content) {
-                return child;
+        // Normalize the search content for flexible matching
+        const normalizedContent = this.normalizeHTML(content);
+
+        // Helper: Recursive depth-first search
+        const searchNode = (node) => {
+            if (!node || node.nodeType !== 1) return null; // Only element nodes
+
+            // Strategy 1: Exact innerHTML match (fast path)
+            if (node.innerHTML === content) {
+                return node;
             }
+
+            // Strategy 2: Exact outerHTML match
+            if (node.outerHTML === content) {
+                return node;
+            }
+
+            // Strategy 3: Normalized innerHTML match (handles whitespace)
+            if (this.normalizeHTML(node.innerHTML) === normalizedContent) {
+                console.log('Found match using normalized innerHTML:', node.tagName);
+                return node;
+            }
+
+            // Strategy 4: Normalized outerHTML match (handles whitespace + attributes)
+            if (this.normalizeHTML(node.outerHTML) === normalizedContent) {
+                console.log('Found match using normalized outerHTML:', node.tagName);
+                return node;
+            }
+
+            // Recurse into children
+            for (let child of node.children) {
+                const found = searchNode(child);
+                if (found) return found;
+            }
+
+            return null;
+        };
+
+        const result = searchNode(container);
+
+        if (!result) {
+            console.warn('Could not find anchor content:', content);
+            console.warn('Normalized search term:', normalizedContent);
         }
-        return null;
+
+        return result;
     },
 
     /**

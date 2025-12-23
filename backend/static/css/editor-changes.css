@@ -204,6 +204,24 @@
     padding: 8px;
     border-radius: 4px;
     background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid #e7e5e4;
+    max-height: 80px;
+    overflow: hidden;
+    position: relative;
+}
+
+.preview-original:hover,
+.preview-new:hover {
+    border-color: #ea580c;
+    box-shadow: 0 2px 4px rgba(234, 88, 12, 0.1);
+}
+
+.preview-original.expanded,
+.preview-new.expanded {
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 .preview-original strong,
@@ -213,6 +231,12 @@
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    color: #78716c;
+}
+
+.preview-content {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* Inline Change Highlighting */

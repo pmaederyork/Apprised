@@ -176,12 +176,15 @@ const ClaudeChanges = {
             if (contentPreview) {
                 let previewHTML = '';
                 if (change.originalContent) {
-                    previewHTML += `<div class="preview-original"><strong>Original:</strong><br>${this.truncateHTML(change.originalContent)}</div>`;
+                    previewHTML += `<div class="preview-original" data-full-content="${this.escapeHTML(change.originalContent)}"><strong>Original: (click to expand)</strong><br><div class="preview-content">${this.truncateHTML(change.originalContent)}</div></div>`;
                 }
                 if (change.newContent) {
-                    previewHTML += `<div class="preview-new"><strong>New:</strong><br>${this.truncateHTML(change.newContent)}</div>`;
+                    previewHTML += `<div class="preview-new" data-full-content="${this.escapeHTML(change.newContent)}"><strong>New: (click to expand)</strong><br><div class="preview-content">${this.truncateHTML(change.newContent)}</div></div>`;
                 }
                 contentPreview.innerHTML = previewHTML;
+
+                // Add click handlers for expansion
+                this.bindPreviewExpansion(contentPreview);
             }
         }
 
@@ -202,6 +205,44 @@ const ClaudeChanges = {
         temp.innerHTML = html;
         const text = temp.textContent || temp.innerText || '';
         return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    },
+
+    /**
+     * Escape HTML for use in attributes
+     */
+    escapeHTML(html) {
+        const temp = document.createElement('div');
+        temp.textContent = html;
+        return temp.innerHTML.replace(/"/g, '&quot;');
+    },
+
+    /**
+     * Bind click handlers to preview boxes for expansion/collapse
+     */
+    bindPreviewExpansion(container) {
+        const previewBoxes = container.querySelectorAll('.preview-original, .preview-new');
+
+        previewBoxes.forEach(box => {
+            box.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const contentDiv = box.querySelector('.preview-content');
+                const label = box.querySelector('strong');
+
+                if (box.classList.contains('expanded')) {
+                    // Collapse
+                    box.classList.remove('expanded');
+                    const fullContent = box.getAttribute('data-full-content');
+                    contentDiv.textContent = this.truncateHTML(fullContent);
+                    label.textContent = label.textContent.replace('(click to collapse)', '(click to expand)');
+                } else {
+                    // Expand
+                    box.classList.add('expanded');
+                    const fullContent = box.getAttribute('data-full-content');
+                    contentDiv.innerHTML = fullContent;
+                    label.textContent = label.textContent.replace('(click to expand)', '(click to collapse)');
+                }
+            });
+        });
     },
 
     /**

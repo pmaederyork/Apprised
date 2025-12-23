@@ -75,6 +75,13 @@ const UI = {
         changeContentPreview: document.getElementById('changeContentPreview')
     },
 
+    // Helper function to strip document edit XML from chat display
+    stripDocumentEditXML(content) {
+        // Remove <document_edit>...</document_edit> blocks from display
+        // but preserve the full response for parsing
+        return content.replace(/<document_edit>[\s\S]*?<\/document_edit>/g, '');
+    },
+
     // Message utilities
     addMessage(content, isUser = false, files = []) {
         const messageDiv = document.createElement('div');
@@ -116,19 +123,26 @@ const UI = {
         
         const bubbleDiv = document.createElement('div');
         bubbleDiv.className = 'message-bubble';
-        
-        // For Claude messages, support basic HTML formatting
-        if (!isUser && (content.includes('<') || content.includes('\n'))) {
-            // Convert markdown-like formatting to HTML
-            let formattedContent = content
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/`(.*?)`/g, '<code>$1</code>')
-                .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-                .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-                .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-                .replace(/\n/g, '<br>');
-            bubbleDiv.innerHTML = formattedContent;
+
+        // For Claude messages, strip document edit XML and support basic HTML formatting
+        if (!isUser) {
+            // Strip document edit XML blocks from display
+            const displayContent = this.stripDocumentEditXML(content);
+
+            if (displayContent.includes('<') || displayContent.includes('\n')) {
+                // Convert markdown-like formatting to HTML
+                let formattedContent = displayContent
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/`(.*?)`/g, '<code>$1</code>')
+                    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+                    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                    .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+                    .replace(/\n/g, '<br>');
+                bubbleDiv.innerHTML = formattedContent;
+            } else {
+                bubbleDiv.textContent = displayContent;
+            }
         } else {
             bubbleDiv.textContent = content;
         }
@@ -162,10 +176,13 @@ const UI = {
     },
 
     updateStreamingMessage(bubbleDiv, content, isComplete = false) {
+        // Strip document edit XML blocks from display (but keep in fullResponse for parsing)
+        const displayContent = this.stripDocumentEditXML(content);
+
         // For Claude messages, support basic HTML formatting
-        if (content.includes('<') || content.includes('\n')) {
+        if (displayContent.includes('<') || displayContent.includes('\n')) {
             // Convert markdown-like formatting to HTML
-            let formattedContent = content
+            let formattedContent = displayContent
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
                 .replace(/`(.*?)`/g, '<code>$1</code>')
@@ -175,7 +192,7 @@ const UI = {
                 .replace(/\n/g, '<br>');
             bubbleDiv.innerHTML = formattedContent;
         } else {
-            bubbleDiv.textContent = content;
+            bubbleDiv.textContent = displayContent;
         }
 
         // Remove cursor when complete
