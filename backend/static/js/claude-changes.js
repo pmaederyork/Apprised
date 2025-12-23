@@ -182,10 +182,12 @@ const ClaudeChanges = {
                         console.log(`✅ ADD: Found insertAfter anchor <${anchorNode.tagName}>, inserting content`);
                         const newElement = document.createElement('div');
                         newElement.innerHTML = change.newContent;
-                        // Insert all new content after anchor
+                        // Insert all new content after anchor (using DocumentFragment to preserve order)
+                        const fragment = document.createDocumentFragment();
                         while (newElement.firstChild) {
-                            anchorNode.after(newElement.firstChild);
+                            fragment.appendChild(newElement.firstChild);
                         }
+                        anchorNode.after(fragment);
                     } else {
                         console.error('❌ ANCHOR NOT FOUND for insertAfter:', change.insertAfter);
                         console.error('⚠️  Content will be appended to END (this is likely incorrect)');
@@ -209,10 +211,12 @@ const ClaudeChanges = {
                         console.log(`✅ ADD: Found insertBefore anchor <${anchorNode.tagName}>, inserting content`);
                         const newElement = document.createElement('div');
                         newElement.innerHTML = change.newContent;
-                        // Insert all new content before anchor
+                        // Insert all new content before anchor (using DocumentFragment to preserve order)
+                        const fragment = document.createDocumentFragment();
                         while (newElement.firstChild) {
-                            anchorNode.before(newElement.firstChild);
+                            fragment.appendChild(newElement.firstChild);
                         }
+                        anchorNode.before(fragment);
                     } else {
                         console.error('❌ ANCHOR NOT FOUND for insertBefore:', change.insertBefore);
                         console.error('⚠️  Content will be prepended to BEGINNING (this is likely incorrect)');
