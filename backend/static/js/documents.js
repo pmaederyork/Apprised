@@ -1142,16 +1142,25 @@ const Documents = {
 
     /**
      * Normalize HTML string for comparison (removes whitespace variations)
+     * @param {string} html - HTML content to normalize
+     * @param {boolean} stripAttributes - If true, removes all HTML attributes
      */
-    normalizeHTML(html) {
+    normalizeHTML(html, stripAttributes = false) {
         if (!html) return '';
 
         // Trim whitespace, collapse multiple spaces, remove newlines
-        return html
+        let normalized = html
             .trim()
             .replace(/\s+/g, ' ')
-            .replace(/>\s+</g, '><')
-            .toLowerCase();
+            .replace(/>\s+</g, '><');
+
+        // Optionally strip attributes for more flexible matching
+        if (stripAttributes) {
+            // Convert <tag attr="value"> to <tag>
+            normalized = normalized.replace(/<(\w+)[^>]*>/g, '<$1>');
+        }
+
+        return normalized.toLowerCase();
     },
 
     /**
@@ -1187,6 +1196,22 @@ const Documents = {
             // Strategy 4: Normalized outerHTML match (handles whitespace + attributes)
             if (this.normalizeHTML(node.outerHTML) === normalizedContent) {
                 console.log('Found match using normalized outerHTML:', node.tagName);
+                return node;
+            }
+
+            // Strategy 4.5: Normalized match with attributes stripped (handles attribute differences)
+            const normalizedContentNoAttrs = this.normalizeHTML(content, true);
+            if (this.normalizeHTML(node.outerHTML, true) === normalizedContentNoAttrs) {
+                console.log('Found match ignoring attributes:', node.tagName);
+                return node;
+            }
+
+            // Strategy 5: Plain text content match (most forgiving fallback)
+            // Strip all HTML tags and compare text content only
+            const nodeText = node.textContent?.trim().replace(/\s+/g, ' ').toLowerCase();
+            const searchText = content.replace(/<[^>]+>/g, '').trim().replace(/\s+/g, ' ').toLowerCase();
+            if (nodeText && searchText && nodeText === searchText && searchText.length > 0) {
+                console.log('Found match using plain text content:', node.tagName);
                 return node;
             }
 
@@ -1227,13 +1252,18 @@ const Documents = {
         const editXML = editMatch[1];
         const changes = [];
 
-        // Parse each <change> element
-        // Capture type, insertAfter, insertBefore attributes
-        const changeRegex = /<change\s+type="(.*?)"\s*(?:insertAfter="(.*?)")?\s*(?:insertBefore="(.*?)")?\s*>(.*?)<\/change>/gs;
+        // Parse each <change> element with flexible attribute order
+        // Match opening tag and content separately to handle any attribute order
+        const changeRegex = /<change\s+([^>]+)>(.*?)<\/change>/gs;
         let match;
 
         while ((match = changeRegex.exec(editXML)) !== null) {
-            const [, type, insertAfter, insertBefore, content] = match;
+            const [, attributeString, content] = match;
+
+            // Extract attributes independently (order-agnostic)
+            const type = attributeString.match(/type="([^"]+)"/)?.[1];
+            const insertAfter = attributeString.match(/insertAfter="([^"]+)"/)?.[1];
+            const insertBefore = attributeString.match(/insertBefore="([^"]+)"/)?.[1];
 
             const originalMatch = content.match(/<original>(.*?)<\/original>/s);
             const newMatch = content.match(/<new>(.*?)<\/new>/s);

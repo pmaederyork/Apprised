@@ -96,6 +96,27 @@
     background: #dc2626;
 }
 
+/* Add Agent Button */
+.add-agent-btn {
+    background: #ea580c;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: background 0.2s ease;
+}
+
+.add-agent-btn:hover {
+    background: #dc2626;
+}
+
 /* Sidebar Action Buttons (X buttons for delete) - No bounding boxes */
 .prompt-item-action-btn, .chat-item-action-btn, .document-item-action-btn {
     background: none;

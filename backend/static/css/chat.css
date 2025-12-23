@@ -11,6 +11,9 @@
     color: #1c1917;
     padding: 16px 24px;
     border-bottom: 1px solid #e7e5e4;
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
 .chat-title {
@@ -19,8 +22,9 @@
     border: none;
     background: none;
     outline: none;
-    width: 100%;
+    flex: 1;
     cursor: text;
+    min-width: 0;
 }
 
 .chat-title:hover {
@@ -393,5 +397,264 @@
 .message-bubble em {
     font-style: italic;
     color: #57534e;
+}
+
+/* Multi-agent controls */
+.chat-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.agent-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.agent-selector {
+    position: relative;
+    background: #f5f5f4;
+    border: 1px solid #e7e5e4;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    min-width: 120px;
+}
+
+.agent-selector:hover {
+    background: #fafaf9;
+    border-color: #d6d3d1;
+}
+
+.agent-selector-text {
+    color: #44403c;
+    font-weight: 500;
+}
+
+.agent-badge {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* Agent dropdown */
+.agent-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    background: white;
+    border: 1px solid #e7e5e4;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    min-width: 250px;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.agent-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #f5f5f4;
+    transition: background 0.2s ease;
+}
+
+.agent-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.agent-dropdown-item:hover {
+    background: #fafaf9;
+}
+
+.agent-badge-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.agent-name {
+    flex: 1;
+    font-size: 14px;
+    color: #1c1917;
+    font-weight: 500;
+}
+
+.agent-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.agent-edit-btn,
+.agent-delete-btn {
+    background: transparent;
+    border: none;
+    color: #78716c;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.agent-edit-btn:hover {
+    background: #f5f5f4;
+    color: #ea580c;
+}
+
+.agent-delete-btn:hover {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+/* Turns control */
+.turns-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.turns-label {
+    font-size: 13px;
+    color: #78716c;
+    font-weight: 500;
+}
+
+.turns-selector {
+    background: white;
+    border: 1px solid #e7e5e4;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 13px;
+    color: #1c1917;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.turns-selector:hover {
+    border-color: #d6d3d1;
+}
+
+.turns-selector:focus {
+    border-color: #ea580c;
+}
+
+/* Agent badge in messages */
+.agent-badge-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+
+.agent-badge-name {
+    color: #78716c;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Modal styles for agent management */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h2 {
+    margin: 0 0 20px 0;
+    font-size: 20px;
+    color: #1c1917;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #44403c;
+}
+
+.form-group input[type="text"],
+.form-group select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e7e5e4;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.form-group input[type="text"]:focus,
+.form-group select:focus {
+    border-color: #ea580c;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.cancel-btn,
+.save-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.cancel-btn {
+    background: #f5f5f4;
+    color: #44403c;
+}
+
+.cancel-btn:hover {
+    background: #e7e5e4;
+}
+
+.save-btn {
+    background: #ea580c;
+    color: white;
+}
+
+.save-btn:hover {
+    background: #dc2626;
 }
 

@@ -98,6 +98,29 @@
         <div class="chat-container" id="chatContainer">
             <div class="chat-header">
                 <input type="text" class="chat-title" id="chatTitle" value="New Chat" />
+                <div class="chat-header-actions">
+                    <div class="agent-controls">
+                        <div class="agent-selector" id="agentSelector">
+                            <span class="agent-selector-text">No Agents</span>
+                        </div>
+                        <button class="add-agent-btn" id="addAgentBtn" title="Add Agent">+</button>
+                    </div>
+                    <div class="turns-control">
+                        <label for="turnsSelector" class="turns-label">Turns:</label>
+                        <select id="turnsSelector" class="turns-selector">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                            <option value="10">10</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             <div class="chat-messages" id="chatMessages">
                 <div class="message claude">
@@ -298,6 +321,7 @@
     <script src="/static/js/ui.js"></script>
     <script src="/static/js/chat.js"></script>
     <script src="/static/js/systemPrompts.js"></script>
+    <script src="/static/js/agents.js"></script>
     <script src="/static/js/documents.js"></script>
     <script src="/static/js/claude-changes.js"></script>
     <script src="/static/js/tools.js"></script>

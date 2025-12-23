@@ -110,14 +110,21 @@ const Chat = {
             id: this.currentChatId,
             title: 'New Chat',
             messages: [],
+            agents: [],
+            turns: 1,
             createdAt: Date.now()
         };
-        
+
         UI.elements.chatTitle.value = 'New Chat';
         this.clearMessages();
         this.addWelcomeMessage();
         Storage.saveChats(this.chats);
         this.renderChatList();
+
+        // Update agent UI for new chat
+        if (typeof Agents !== 'undefined') {
+            Agents.updateAgentSelectorUI();
+        }
     },
 
     // Load an existing chat
@@ -128,14 +135,23 @@ const Chat = {
             UI.elements.chatTitle.value = chat.title;
             this.currentMessages = [...chat.messages];
             this.clearMessages();
-            
+
+            // Ensure agents and turns exist (backward compatibility)
+            if (!chat.agents) chat.agents = [];
+            if (!chat.turns) chat.turns = 1;
+
             // Load all messages
             chat.messages.forEach(msg => {
                 UI.addMessage(msg.content, msg.isUser, msg.files || []); // Include files when loading
             });
-            
+
             // Update active chat in sidebar
             this.updateActiveChatInSidebar(chatId);
+
+            // Update agent UI for loaded chat
+            if (typeof Agents !== 'undefined') {
+                Agents.updateAgentSelectorUI();
+            }
         }
     },
 
@@ -390,6 +406,11 @@ The user will review each change with visual highlighting (deletions in red, add
                             this.addSystemMessage(`Claude proposed ${changes.length} change${changes.length !== 1 ? 's' : ''} to your document. Review them in the editor.`);
                         }
                     }
+
+                    // After initial response, check if multi-agent conversation should start
+                    if (typeof Agents !== 'undefined') {
+                        await Agents.orchestrateAgentTurns(message);
+                    }
                 }
             }
         } catch (error) {
@@ -408,14 +429,27 @@ The user will review each change with visual highlighting (deletions in red, add
     },
 
     // Save message to chat history
-    saveMessageToHistory(content, isUser, files = []) {
+    saveMessageToHistory(content, isUser, files = [], agent = null, turnNumber = null) {
         if (this.currentChatId) {
-            const messageObj = { 
-                content, 
-                isUser, 
+            const messageObj = {
+                content,
+                isUser,
                 timestamp: Date.now(),
                 files: files.length > 0 ? files : undefined
             };
+
+            // Add agent info if provided
+            if (agent && !isUser) {
+                messageObj.agentId = agent.id;
+                messageObj.agentName = agent.name;
+                messageObj.agentColor = agent.color;
+            }
+
+            // Add turn number if provided
+            if (turnNumber !== null) {
+                messageObj.turnNumber = turnNumber;
+            }
+
             this.currentMessages.push(messageObj);
             this.chats[this.currentChatId].messages = [...this.currentMessages];
             Storage.saveChats(this.chats);
