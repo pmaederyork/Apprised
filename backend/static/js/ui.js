@@ -40,7 +40,6 @@ const UI = {
         sidebar: document.getElementById('sidebar'),
         sidebarResizeHandle: document.getElementById('sidebarResizeHandle'),
         screenshareToggle: document.getElementById('screenshareToggle'),
-        screenshareIndicator: document.getElementById('screenshareIndicator'),
         screensharePreviewContainer: document.getElementById('screensharePreviewContainer'),
         screensharePreviewImage: document.getElementById('screensharePreviewImage'),
         // Passphrase modal elements

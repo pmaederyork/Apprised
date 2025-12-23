@@ -294,29 +294,5 @@ const Storage = {
         // Fallback to plain text check
         const apiKey = localStorage.getItem('anthropicApiKey');
         return apiKey && apiKey.length > 0;
-    },
-
-    // Conversation history storage with image data protection
-    saveConversationHistory(history) {
-        try {
-            // Sanitize to ensure no image data gets stored
-            const sanitizedHistory = history.map(msg => ({
-                role: msg.role,
-                content: typeof msg.content === 'string' ? msg.content : (msg.content.text || '')
-            }));
-            
-            localStorage.setItem('conversationHistory', JSON.stringify(sanitizedHistory));
-        } catch (error) {
-            console.warn('Failed to save conversation history:', error);
-        }
-    },
-
-    getConversationHistory() {
-        try {
-            return JSON.parse(localStorage.getItem('conversationHistory') || '[]');
-        } catch (error) {
-            console.warn('Failed to parse conversation history from localStorage:', error);
-            return [];
-        }
     }
 };
