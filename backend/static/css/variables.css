@@ -5,7 +5,7 @@
 
 :root {
   /* ===== Base Font Size ===== */
-  font-size: 12px;  /* Explicit base font size for consistent scaling */
+  font-size: 16px;  /* Explicit base font size for consistent scaling */
 
   /* ===== Primary Brand Colors (Blue) ===== */
   --primary-50: #eff6ff;
