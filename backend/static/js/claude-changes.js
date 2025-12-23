@@ -106,7 +106,9 @@ const ClaudeChanges = {
                             anchorNode.after(newElement.firstChild);
                         }
                     } else {
-                        console.warn('Could not find insertAfter anchor:', change.insertAfter);
+                        console.error('❌ ANCHOR NOT FOUND for insertAfter:', change.insertAfter);
+                        console.error('⚠️  Content will be appended to END (this is likely incorrect)');
+                        console.error('💡 Tip: Anchor must be complete HTML element, not text fragment');
                         // Append to end if anchor not found
                         tempDiv.innerHTML += change.newContent;
                     }
@@ -120,7 +122,9 @@ const ClaudeChanges = {
                             anchorNode.before(newElement.firstChild);
                         }
                     } else {
-                        console.warn('Could not find insertBefore anchor:', change.insertBefore);
+                        console.error('❌ ANCHOR NOT FOUND for insertBefore:', change.insertBefore);
+                        console.error('⚠️  Content will be prepended to BEGINNING (this is likely incorrect)');
+                        console.error('💡 Tip: Anchor must be complete HTML element, not text fragment');
                         // Prepend to beginning if anchor not found
                         tempDiv.innerHTML = change.newContent + tempDiv.innerHTML;
                     }
