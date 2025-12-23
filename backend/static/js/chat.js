@@ -316,12 +316,14 @@ Rules:
 - Include the original content so the system can locate it precisely
 - Use HTML formatting (not markdown) since this is a rich text editor
 - Make targeted, surgical edits rather than rewriting everything
-- Always explain your changes in natural language before the XML
+- Keep your message BRIEF - just say what you're doing in one short sentence, then provide the XML
+- DO NOT repeat or describe the content being changed - the user can see it in the review panel
+- DO NOT use emojis
 
 Examples:
 
 Example 1 - Adding content after a header:
-"I'll add an introduction paragraph right after the title:
+"I've added an introduction paragraph:
 
 <document_edit>
 <change type="add" insertAfter="<h1>My Project</h1>">
@@ -330,7 +332,7 @@ Example 1 - Adding content after a header:
 </document_edit>"
 
 Example 2 - Modifying content:
-"I'll make this paragraph more professional:
+"I've updated the paragraph:
 
 <document_edit>
 <change type="modify">
@@ -340,7 +342,7 @@ Example 2 - Modifying content:
 </document_edit>"
 
 Example 3 - Adding content at the beginning:
-"I'll add a new section at the start of the document:
+"I've added a new section:
 
 <document_edit>
 <change type="add" insertBefore="<h2>Introduction</h2>">

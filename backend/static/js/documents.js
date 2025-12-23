@@ -444,17 +444,56 @@ const Documents = {
 
 
     formatHeader(level) {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+
         const currentLevel = this.getCurrentHeaderLevel();
-        
-        if (currentLevel === level) {
-            // Same header level clicked - remove header formatting (convert to paragraph)
-            document.execCommand('formatBlock', false, 'p');
+        let node = selection.focusNode;
+
+        // If focus is on a text node, get the parent element
+        if (node.nodeType === Node.TEXT_NODE) {
+            node = node.parentNode;
+        }
+
+        // Check if we're inside a header element
+        let headerElement = null;
+        if (node && node.nodeType === Node.ELEMENT_NODE && node.tagName.match(/^H[1-6]$/i)) {
+            headerElement = node;
+        }
+
+        if (headerElement) {
+            // We're inside a header - manually replace it
+            if (currentLevel === level) {
+                // Same level - convert to paragraph
+                const p = document.createElement('p');
+                p.innerHTML = headerElement.innerHTML;
+                headerElement.replaceWith(p);
+
+                // Restore cursor position
+                const range = document.createRange();
+                range.selectNodeContents(p);
+                range.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } else {
+                // Different level - change header tag
+                const newHeader = document.createElement(`h${level}`);
+                newHeader.innerHTML = headerElement.innerHTML;
+                headerElement.replaceWith(newHeader);
+
+                // Restore cursor position
+                const range = document.createRange();
+                range.selectNodeContents(newHeader);
+                range.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            }
         } else {
-            // Different level or no header - apply the header format
+            // No header - use formatBlock to create one
             const headerTag = `h${level}`;
             document.execCommand('formatBlock', false, headerTag);
         }
-        
+
         this.scheduleAutoSave();
         this.updateHeaderButtonStates();
     },
