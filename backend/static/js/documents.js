@@ -1057,6 +1057,13 @@ const Documents = {
         // Focus on the first change
         ClaudeChanges.focusCurrentChange();
 
+        // Focus review panel for immediate keyboard navigation
+        setTimeout(() => {
+            if (UI.elements.documentChangeReview) {
+                UI.elements.documentChangeReview.focus();
+            }
+        }, 100);
+
         console.log(`Applied ${changes.length} changes from Claude to document`);
     },
 

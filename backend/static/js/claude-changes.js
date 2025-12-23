@@ -685,6 +685,13 @@ const ClaudeChanges = {
             UI.elements.documentChangeReview.style.display = 'none';
         }
 
+        // Return focus to chat input for seamless workflow
+        setTimeout(() => {
+            if (UI && UI.focusMessageInput) {
+                UI.focusMessageInput();
+            }
+        }, 100);
+
         // Remove body class for layout adjustment
         document.body.classList.remove('review-mode-active');
 
