@@ -182,6 +182,16 @@ const Agents = {
 
         document.body.appendChild(modal);
 
+        // Auto-fill agent name when system prompt is selected
+        document.getElementById('agentPrompt').addEventListener('change', (e) => {
+            const promptId = e.target.value;
+            const nameInput = document.getElementById('agentName');
+
+            if (promptId && systemPrompts[promptId]) {
+                nameInput.value = systemPrompts[promptId].name;
+            }
+        });
+
         // Handle add agent confirmation
         document.getElementById('confirmAddAgent').addEventListener('click', () => {
             const name = document.getElementById('agentName').value.trim();
