@@ -22,7 +22,7 @@ button:focus {
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #fef7ed;
+    background: var(--color-primary-light);
     min-height: 100vh;
     margin: 0;
 }
@@ -30,7 +30,7 @@ body {
 .app-container {
     display: flex;
     height: 100vh;
-    background: #fef7ed;
+    background: var(--color-primary-light);
     width: 100vw;
     overflow: hidden;
 }
@@ -92,6 +92,6 @@ body {
 /* Streaming cursor animation */
 .streaming-cursor::after {
     content: '▌';
-    color: #ea580c;
+    color: var(--color-primary);
     animation: blink 1s infinite;
 }

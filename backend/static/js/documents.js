@@ -148,20 +148,25 @@ const Documents = {
 
     // Close the document editor
     closeEditor() {
+        // Check if review mode is active and exit it (rejecting all changes)
+        if (typeof ClaudeChanges !== 'undefined' && ClaudeChanges.isInReviewMode()) {
+            ClaudeChanges.exitReviewMode(true); // true = revert all pending changes
+        }
+
         // Save current document before closing
         if (this.currentDocumentId) {
             this.saveCurrentDocument();
         }
-        
+
         // Clear last open document
         Storage.saveLastOpenDocumentId(null);
-        
+
         UI.elements.documentEditor.classList.remove('active');
         this.currentDocumentId = null;
-        
+
         // Clear active state in sidebar
         this.updateActiveDocumentInSidebar(null);
-        
+
         // Refresh copy-to-document buttons in chat
         if (typeof UI !== 'undefined' && UI.refreshCopyToDocumentButtons) {
             UI.refreshCopyToDocumentButtons();
@@ -1062,6 +1067,9 @@ const Documents = {
         const editor = UI.elements.documentTextarea;
         if (!editor) return;
 
+        // Clean up any existing change numbers before rendering new ones
+        document.querySelectorAll('.claude-change-number').forEach(el => el.remove());
+
         // Get current HTML content
         const currentHTML = editor.innerHTML;
 
@@ -1085,8 +1093,11 @@ const Documents = {
                 if (originalNode) {
                     originalNode.replaceWith(changeElement);
                 } else {
-                    // If can't find exact match, append to end
-                    tempDiv.appendChild(changeElement);
+                    // DELETE: Don't render preview if content not found
+                    // This prevents confusing duplicates when content can't be located
+                    console.warn('Could not locate content for DELETE preview:', change.originalContent);
+                    console.warn('Change', change.id, 'will not be previewed in document');
+                    // User can still review and accept/reject via sidebar
                 }
             } else if (change.type === 'add') {
                 // Wrap new content in green highlight
@@ -1212,9 +1223,6 @@ const Documents = {
                 return node;
             }
 
-            // NOTE: Removed Strategy 5 (plain text matching) - too error-prone
-            // It could match wrong elements with identical text content
-
             // Recurse into children
             for (let child of node.children) {
                 const found = searchNode(child);
@@ -1226,12 +1234,64 @@ const Documents = {
 
         const result = searchNode(container);
 
+        // Strategy 5: Text-content matching (ignores inner formatting)
+        // Only use if previous strategies failed, and only if match is unique
+        if (!result) {
+            const searchText = this.extractTextContent(content);
+            const searchTag = this.extractOuterTag(content);
+
+            if (searchText && searchTag && searchText.length > 10) { // Minimum length for safety
+                // Find all nodes with same outer tag and matching text content
+                const candidates = [];
+                const searchNodes = (node) => {
+                    if (node.nodeType === 1 && node.tagName.toLowerCase() === searchTag) {
+                        const nodeText = this.extractTextContent(node.outerHTML);
+                        if (nodeText === searchText) {
+                            candidates.push(node);
+                        }
+                    }
+                    for (let child of node.children) {
+                        searchNodes(child);
+                    }
+                };
+
+                searchNodes(container);
+
+                if (candidates.length === 1) {
+                    console.log('Found match using text-based matching (ignoring inner formatting):', candidates[0].tagName);
+                    return candidates[0];
+                } else if (candidates.length > 1) {
+                    console.warn('Multiple elements with identical text found - cannot determine which to match');
+                    // Fall through to return null (too ambiguous)
+                }
+            }
+        }
+
         if (!result) {
             console.warn('Could not find anchor content:', content);
             console.warn('Normalized search term:', normalizedContent);
         }
 
         return result;
+    },
+
+    /**
+     * Extract just the text content from HTML, removing all tags
+     */
+    extractTextContent(html) {
+        if (!html) return '';
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        return temp.textContent.trim().replace(/\s+/g, ' ').toLowerCase();
+    },
+
+    /**
+     * Extract the outer tag name from HTML string
+     */
+    extractOuterTag(html) {
+        if (!html) return null;
+        const match = html.match(/^<(\w+)/);
+        return match ? match[1].toLowerCase() : null;
     },
 
     /**

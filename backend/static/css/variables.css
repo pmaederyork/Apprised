@@ -1,0 +1,67 @@
+/*
+ * Apprised Color System
+ * Centralized CSS Variables for easy theming
+ */
+
+:root {
+  /* ===== Primary Brand Colors ===== */
+  --color-primary: #ea580c;           /* Main brand orange - buttons, active states, accents */
+  --color-primary-hover: #dc2626;     /* Hover/action state - red */
+  --color-primary-light: #fef7ed;     /* Light cream background */
+
+  /* ===== Sidebar Theme ===== */
+  --color-sidebar-bg: #f0f8ff;        /* Light blue sidebar background */
+  --color-sidebar-hover: #e6f3ff;     /* Hover state background */
+  --color-sidebar-border: #d1e7ff;    /* Border color */
+  --color-sidebar-active: #3b82f6;    /* Active item indicator */
+
+  /* ===== Neutral/Gray Scale ===== */
+  --color-text-primary: #1c1917;      /* Primary text - dark gray/black */
+  --color-text-secondary: #44403c;    /* Secondary text - medium dark gray */
+  --color-text-tertiary: #78716c;     /* Tertiary text - medium gray */
+  --color-border: #e7e5e4;            /* Default borders and dividers */
+  --color-bg-subtle: #f5f5f4;         /* Subtle backgrounds */
+  --color-bg-input: #fafaf9;          /* Input field backgrounds */
+  --color-bg-disabled: #d6d3d1;       /* Disabled state backgrounds */
+  --color-bg-white: #ffffff;          /* Pure white */
+  --color-bg-off-white: #f9f9f9;      /* Off-white hover backgrounds */
+
+  /* ===== Success/Green States ===== */
+  --color-success: #16a34a;           /* Success green - primary */
+  --color-success-dark: #15803d;      /* Success green - dark variant */
+  --color-success-darker: #166534;    /* Success green - darker variant */
+  --color-success-bg: #dcfce7;        /* Success background - light green */
+  --color-success-bg-light: #f0fdf4;  /* Success background - very light */
+  --color-success-border: #bbf7d0;    /* Success border */
+  --color-success-hover: #10b981;     /* Success hover state */
+
+  /* ===== Error/Red States ===== */
+  --color-error: #dc2626;             /* Error red - primary */
+  --color-error-dark: #b91c1c;        /* Error red - dark variant */
+  --color-error-darker: #991b1b;      /* Error red - darker variant */
+  --color-error-bg: #fee2e2;          /* Error background - light red */
+  --color-error-bg-light: #fef2f2;    /* Error background - very light */
+  --color-error-border: #fecaca;      /* Error border */
+
+  /* ===== Warning/Yellow States ===== */
+  --color-warning: #ca8a04;           /* Warning amber - primary */
+  --color-warning-dark: #a16207;      /* Warning amber - dark variant */
+  --color-warning-light: #f59e0b;     /* Warning amber - light variant */
+  --color-warning-bg: #fef3c7;        /* Warning background - light yellow */
+  --color-warning-bg-light: #fefce8;  /* Warning background - very light */
+
+  /* ===== Change Tracking (Document Review) ===== */
+  --color-change-add-bg: #e8f5e9;     /* Added changes background - light green */
+  --color-change-add-border: #66bb6a; /* Added changes border - green */
+  --color-change-delete-bg: #ffebee;  /* Deleted changes background - light red */
+  --color-change-delete-border: #ef5350; /* Deleted changes border - red */
+  --color-change-modify-bg: #fff9c4;  /* Modified changes background - light yellow */
+  --color-change-modify-border: #ffa726; /* Modified changes border - orange */
+  --color-change-active: #2196f3;     /* Active change highlight - bright blue */
+
+  /* ===== Additional Utility Colors ===== */
+  --color-blue-bright: #2196f3;       /* Bright blue for highlights */
+  --color-green-teal: #059669;        /* Teal green variant */
+  --color-green-dark-teal: #065f46;   /* Dark teal green variant */
+  --color-gray-medium: #9ca3af;       /* Medium gray for disabled text */
+}

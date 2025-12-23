@@ -300,16 +300,33 @@ const Chat = {
         UI.setSendButtonState(false);
         UI.hideLoading();
 
-        // Create streaming message bubble
-        const streamingBubble = UI.addStreamingMessage(false);
+        // Get system prompt if active
+        const systemPrompts = Storage.getSystemPrompts();
+        const activeSystemPromptId = Storage.getActiveSystemPromptId();
+        let systemPrompt = activeSystemPromptId && systemPrompts[activeSystemPromptId] ?
+            systemPrompts[activeSystemPromptId].content : null;
+
+        // Check if we're in multi-agent mode (has added agents)
+        const chats = Storage.getChats();
+        const currentChat = chats[this.currentChatId];
+        const hasAddedAgents = currentChat && currentChat.agents && currentChat.agents.length > 0;
+
+        // In multi-agent mode, show agent badge for initial response (Agent 1)
+        let agent1 = null;
+        if (hasAddedAgents && activeSystemPromptId && systemPrompts[activeSystemPromptId]) {
+            agent1 = {
+                id: 'agent_active_prompt',
+                name: systemPrompts[activeSystemPromptId].name || 'Assistant',
+                systemPromptId: activeSystemPromptId,
+                color: '#ea580c'  // Orange - Agent 1 color
+            };
+        }
+
+        // Create streaming message bubble with agent badge if in multi-agent mode
+        const streamingBubble = UI.addStreamingMessage(false, agent1);
         let fullResponse = '';
 
         try {
-            // Get system prompt if active
-            const systemPrompts = Storage.getSystemPrompts();
-            const activeSystemPromptId = Storage.getActiveSystemPromptId();
-            let systemPrompt = activeSystemPromptId && systemPrompts[activeSystemPromptId] ?
-                systemPrompts[activeSystemPromptId].content : null;
 
             // Append document editing instructions if document is open
             if (Documents && Documents.currentDocumentId) {
@@ -377,7 +394,7 @@ Step 1: "the title" = first <h1>
 Step 2: Look at document, find: <h1>My Project</h1>
 Step 3: Generate modify change
 
-"I've updated the title:
+"I'll update the title:
 
 <document_edit>
 <change type="modify">
@@ -391,7 +408,7 @@ Step 1: Find paragraph with "introduction" content
 Step 2: Look at document, find: <p>This is an introduction to my project.</p> and first element: <h1>My Project</h1>
 Step 3: Generate delete + add before first element
 
-"I've moved the introduction to the top:
+"I'll move the introduction to the top:
 
 <document_edit>
 <change type="delete">
@@ -408,7 +425,7 @@ Step 1: Find heading containing "API keys"
 Step 2: Look at document, find heading and its content
 Step 3: Generate delete changes for heading and related paragraphs
 
-"I've removed the API keys section:
+"I'll remove the API keys section:
 
 <document_edit>
 <change type="delete">
@@ -425,7 +442,7 @@ Step 1: Find introduction heading
 Step 2: Look at document, find: <h2>Introduction</h2>
 Step 3: Generate add change
 
-"I've added a usage section:
+"I'll add a usage section:
 
 <document_edit>
 <change type="add" insertAfter="<h2>Introduction</h2>">
@@ -438,7 +455,7 @@ Step 1: User wants to delete ALL content
 Step 2: Look at document, get ALL HTML content from first to last element
 Step 3: Generate ONE delete change with all content
 
-"I've removed all content:
+"I'll remove all content:
 
 <document_edit>
 <change type="delete">

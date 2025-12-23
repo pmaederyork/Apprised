@@ -62,10 +62,45 @@ const Agents = {
     },
 
     /**
+     * Build full agents list with correct colors matching orchestration logic
+     * Returns: [Agent 1 (active prompt), Agent 2 (first added), Agent 3 (second added)]
+     */
+    getFullAgentsList() {
+        const agents = [];
+
+        // Agent 1: Active system prompt (if exists)
+        const activePromptId = Storage.getActiveSystemPromptId();
+        const systemPrompts = Storage.getSystemPrompts();
+
+        if (activePromptId && systemPrompts[activePromptId]) {
+            agents.push({
+                id: 'agent_active_prompt',
+                name: systemPrompts[activePromptId].name || 'Assistant',
+                systemPromptId: activePromptId,
+                color: this.AGENT_COLORS[0],  // Orange
+                isActivePrompt: true
+            });
+        }
+
+        // Agent 2+: Added agents from chat with unique colors
+        const addedAgents = this.getCurrentAgents();
+        const agentsWithUniqueColors = addedAgents.map((agent, index) => ({
+            ...agent,
+            color: this.AGENT_COLORS[(agents.length + index) % this.AGENT_COLORS.length],
+            isActivePrompt: false
+        }));
+
+        agents.push(...agentsWithUniqueColors);
+
+        return agents;
+    },
+
+    /**
      * Update the agent selector UI to show current agents
      */
     updateAgentSelectorUI() {
-        const agents = this.getCurrentAgents();
+        const addedAgents = this.getCurrentAgents(); // For count display only
+        const fullAgents = this.getFullAgentsList(); // For color display
         const turns = this.getCurrentTurns();
 
         // Update turns selector
@@ -75,24 +110,31 @@ const Agents = {
 
         // Update agent selector display
         if (UI.elements.agentSelector) {
-            if (agents.length === 0) {
+            // Show "No Agents" only if no active prompt AND no added agents
+            if (fullAgents.length === 0) {
                 UI.elements.agentSelector.innerHTML = '<span class="agent-selector-text">No Agents</span>';
-            } else if (agents.length === 1) {
-                const agent = agents[0];
+            } else if (fullAgents.length === 1) {
+                // Single agent - show name and color
+                const agent = fullAgents[0];
                 UI.elements.agentSelector.innerHTML = `
                     <span class="agent-badge" style="background-color: ${agent.color}"></span>
                     <span class="agent-selector-text">${this.escapeHtml(agent.name)}</span>
                 `;
             } else {
+                // Multiple agents - show all with colored dots
+                const agentBadges = fullAgents.map(agent => `
+                    <span class="agent-badge" style="background-color: ${agent.color}"></span>
+                `).join('');
                 UI.elements.agentSelector.innerHTML = `
-                    <span class="agent-selector-text">${agents.length} Agents</span>
+                    ${agentBadges}
+                    <span class="agent-selector-text">${fullAgents.length} Agents</span>
                 `;
             }
         }
 
-        // Show/hide add agent button based on count
+        // Show/hide add agent button based on added agents count (not including active prompt)
         if (UI.elements.addAgentBtn) {
-            UI.elements.addAgentBtn.style.display = agents.length >= this.MAX_AGENTS ? 'none' : 'flex';
+            UI.elements.addAgentBtn.style.display = addedAgents.length >= this.MAX_AGENTS ? 'none' : 'flex';
         }
     },
 
@@ -262,8 +304,8 @@ const Agents = {
     showAgentDropdown() {
         this.closeAgentDropdown(); // Close if already open
 
-        const agents = this.getCurrentAgents();
-        if (agents.length === 0) {
+        const fullAgents = this.getFullAgentsList();
+        if (fullAgents.length === 0) {
             return;
         }
 
@@ -272,25 +314,30 @@ const Agents = {
         dropdown.className = 'agent-dropdown';
         dropdown.onclick = (e) => e.stopPropagation();
 
-        dropdown.innerHTML = agents.map((agent, index) => `
+        dropdown.innerHTML = fullAgents.map((agent, index) => `
             <div class="agent-dropdown-item">
                 <span class="agent-badge" style="background-color: ${agent.color}"></span>
                 <span class="agent-name">${this.escapeHtml(agent.name)}</span>
                 <div class="agent-actions">
-                    <button class="agent-edit-btn" data-agent-index="${index}" title="Edit agent">✎</button>
-                    <button class="agent-delete-btn" data-agent-index="${index}" title="Delete agent">×</button>
+                    ${agent.isActivePrompt ?
+                        '<span class="agent-active-label">(Active Prompt)</span>' :
+                        `<button class="agent-edit-btn" data-agent-index="${index}" title="Edit agent">✎</button>
+                         <button class="agent-delete-btn" data-agent-index="${index}" title="Delete agent">×</button>`
+                    }
                 </div>
             </div>
         `).join('');
 
         UI.elements.agentSelector.appendChild(dropdown);
 
-        // Bind edit/delete buttons
+        // Bind edit/delete buttons (only for non-active-prompt agents)
         dropdown.querySelectorAll('.agent-edit-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const index = parseInt(btn.dataset.agentIndex);
-                this.editAgent(index);
+                // Adjust index for added agents (skip active prompt which is index 0)
+                const adjustedIndex = index - 1;
+                this.editAgent(adjustedIndex);
             });
         });
 
@@ -298,7 +345,9 @@ const Agents = {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const index = parseInt(btn.dataset.agentIndex);
-                this.deleteAgent(index);
+                // Adjust index for added agents (skip active prompt which is index 0)
+                const adjustedIndex = index - 1;
+                this.deleteAgent(adjustedIndex);
             });
         });
     },
@@ -439,14 +488,21 @@ const Agents = {
                 id: 'agent_active_prompt',
                 name: systemPrompts[activePromptId].name || 'Assistant',
                 systemPromptId: activePromptId,
-                color: '#ea580c'  // Orange for primary agent
+                color: this.AGENT_COLORS[0]  // First color from palette
             });
             console.log('🤖 Agent 1 (Active Prompt):', systemPrompts[activePromptId].name);
         }
 
         // Agent 2+: Added agents from chat
         const addedAgents = this.getCurrentAgents();
-        agents.push(...addedAgents);
+
+        // Re-assign colors to added agents to ensure unique colors across all agents
+        const agentsWithUniqueColors = addedAgents.map((agent, index) => ({
+            ...agent,
+            color: this.AGENT_COLORS[(agents.length + index) % this.AGENT_COLORS.length]
+        }));
+
+        agents.push(...agentsWithUniqueColors);
 
         const turns = this.getCurrentTurns();
 

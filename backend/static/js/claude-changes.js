@@ -69,6 +69,13 @@ const ClaudeChanges = {
     },
 
     /**
+     * Clean up all change number indicators from the document
+     */
+    cleanupChangeNumbers() {
+        document.querySelectorAll('.claude-change-number').forEach(el => el.remove());
+    },
+
+    /**
      * Reconstruct document from original HTML by applying accepted changes
      * This creates a clean document without wrapper divs
      */
@@ -363,6 +370,9 @@ const ClaudeChanges = {
             editor.innerHTML = reconstructedHTML;
         }
 
+        // Clear any lingering change number indicators before re-rendering
+        this.cleanupChangeNumbers();
+
         // Get remaining pending changes and re-render them with wrappers
         const pendingChanges = this.changes.filter(c => c.status === 'pending');
         if (pendingChanges.length > 0 && Documents && Documents.renderChangesInDocument) {
@@ -429,6 +439,9 @@ const ClaudeChanges = {
         if (editor) {
             editor.innerHTML = reconstructedHTML;
         }
+
+        // Clear any lingering change number indicators before re-rendering
+        this.cleanupChangeNumbers();
 
         // Get remaining pending changes and re-render them with wrappers
         const pendingChanges = this.changes.filter(c => c.status === 'pending');
@@ -523,10 +536,31 @@ const ClaudeChanges = {
 
         // If reverting all, reject all pending changes first
         if (revertAll) {
+            // Batch mark all pending changes as rejected (don't call rejectChange() which re-renders)
             const pendingChanges = this.changes.filter(c => c.status === 'pending');
             pendingChanges.forEach(change => {
-                this.rejectChange(change.id);
+                change.status = 'rejected';  // Just mark, don't reconstruct yet
             });
+
+            // Single reconstruction with only accepted changes (none if all were rejected)
+            const acceptedChanges = this.changes.filter(c => c.status === 'accepted');
+            const cleanHTML = this.reconstructDocument(this.originalDocumentHTML, acceptedChanges);
+
+            const editor = UI.elements.documentTextarea;
+            if (editor && cleanHTML) {
+                editor.innerHTML = cleanHTML;
+            }
+
+            // Save the rejection to storage
+            Storage.saveClaudeChanges(this.documentId, {
+                changeId: 'changes_' + Date.now(),
+                documentId: this.documentId,
+                timestamp: Date.now(),
+                changes: this.changes
+            });
+
+            // Capture undo state after rejecting all changes
+            this.captureHistoryState();
         }
 
         // Clean up change tracking
@@ -548,6 +582,9 @@ const ClaudeChanges = {
                 el.style.textDecoration = 'none';
             }
         });
+
+        // Remove all change number indicators
+        this.cleanupChangeNumbers();
 
         // Save final document state
         if (Documents && Documents.saveCurrentDocument) {
