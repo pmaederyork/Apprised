@@ -139,10 +139,15 @@ const Documents = {
         
         // Update header button states
         this.updateHeaderButtonStates();
-        
+
         // Refresh copy-to-document buttons in chat
         if (typeof UI !== 'undefined' && UI.refreshCopyToDocumentButtons) {
             UI.refreshCopyToDocumentButtons();
+        }
+
+        // Auto-enable Doc Context when document opens
+        if (typeof Tools !== 'undefined' && Tools.setDocContext) {
+            Tools.setDocContext(true);
         }
     },
 
@@ -166,6 +171,11 @@ const Documents = {
 
         // Clear active state in sidebar
         this.updateActiveDocumentInSidebar(null);
+
+        // Auto-disable Doc Context when document closes
+        if (typeof Tools !== 'undefined' && Tools.setDocContext) {
+            Tools.setDocContext(false);
+        }
 
         // Refresh copy-to-document buttons in chat
         if (typeof UI !== 'undefined' && UI.refreshCopyToDocumentButtons) {

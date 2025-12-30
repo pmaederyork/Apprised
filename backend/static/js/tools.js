@@ -3,7 +3,7 @@
  */
 const Tools = {
     // State
-    webSearchEnabled: false,
+    webSearchEnabled: true,
     docContextEnabled: false,
     screenshareEnabled: false,
 
@@ -19,12 +19,12 @@ const Tools = {
         if (saved) {
             try {
                 const state = JSON.parse(saved);
-                this.webSearchEnabled = state.webSearchEnabled || false;
+                this.webSearchEnabled = state.hasOwnProperty('webSearchEnabled') ? state.webSearchEnabled : true;
                 this.docContextEnabled = state.docContextEnabled || false;
                 this.screenshareEnabled = state.screenshareEnabled || false;
             } catch (error) {
                 console.warn('Failed to load tools state:', error);
-                this.webSearchEnabled = false;
+                this.webSearchEnabled = true;
                 this.docContextEnabled = false;
                 this.screenshareEnabled = false;
             }

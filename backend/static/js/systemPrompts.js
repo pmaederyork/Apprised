@@ -104,6 +104,11 @@ const SystemPrompts = {
         
         Storage.saveActiveSystemPromptId(this.state.activeSystemPromptId);
         this.render();
+
+        // Update agent name tag in chat header
+        if (typeof Agents !== 'undefined') {
+            Agents.updateAgentSelectorUI();
+        }
     },
 
     // Edit a system prompt
