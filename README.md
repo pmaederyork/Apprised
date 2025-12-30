@@ -160,7 +160,6 @@ Apprised is a feature-rich web application for conversing with Claude AI. It ext
 | `Ctrl+C` | Interrupt streaming response |
 | `Cmd/Ctrl+N` | New chat |
 | `Tab` | Copy Claude's last response to open document |
-| `Escape` | Close document editor or settings modal |
 
 ### Document Editor
 | Shortcut | Action |
@@ -185,7 +184,6 @@ Apprised is a feature-rich web application for conversing with Claude AI. It ext
 | `Delete` | Reject current change |
 | `Ctrl+A` | Accept all changes |
 | `Ctrl+R` | Reject all changes |
-| `Escape` | Cancel review (revert all pending changes) |
 
 ## Architecture
 

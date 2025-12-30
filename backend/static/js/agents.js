@@ -118,7 +118,7 @@ const Agents = {
                 const agent = fullAgents[0];
                 UI.elements.agentSelector.innerHTML = `
                     <span class="agent-badge" style="background-color: ${agent.color}"></span>
-                    <span class="agent-selector-text">${this.escapeHtml(agent.name)}</span>
+                    <span class="agent-selector-text">${UI.escapeHtml(agent.name)}</span>
                 `;
             } else {
                 // Multiple agents - show all with colored dots
@@ -166,7 +166,7 @@ const Agents = {
                     <label for="agentPrompt">System Prompt:</label>
                     <select id="agentPrompt">
                         <option value="">Select a prompt...</option>
-                        ${promptArray.map(p => `<option value="${p.id}">${this.escapeHtml(p.name)}</option>`).join('')}
+                        ${promptArray.map(p => `<option value="${p.id}">${UI.escapeHtml(p.name)}</option>`).join('')}
                     </select>
                 </div>
                 <div class="form-group">
@@ -327,7 +327,7 @@ const Agents = {
         dropdown.innerHTML = fullAgents.map((agent, index) => `
             <div class="agent-dropdown-item">
                 <span class="agent-badge" style="background-color: ${agent.color}"></span>
-                <span class="agent-name">${this.escapeHtml(agent.name)}</span>
+                <span class="agent-name">${UI.escapeHtml(agent.name)}</span>
                 <div class="agent-actions">
                     ${agent.isActivePrompt ?
                         '<span class="agent-active-label">(Active Prompt)</span>' :
@@ -392,14 +392,14 @@ const Agents = {
                 <h2>Edit Agent</h2>
                 <div class="form-group">
                     <label for="editAgentName">Agent Name:</label>
-                    <input type="text" id="editAgentName" value="${this.escapeHtml(agent.name)}" />
+                    <input type="text" id="editAgentName" value="${UI.escapeHtml(agent.name)}" />
                 </div>
                 <div class="form-group">
                     <label for="editAgentPrompt">System Prompt:</label>
                     <select id="editAgentPrompt">
                         ${promptArray.map(p =>
                             `<option value="${p.id}" ${p.id === agent.systemPromptId ? 'selected' : ''}>
-                                ${this.escapeHtml(p.name)}
+                                ${UI.escapeHtml(p.name)}
                             </option>`
                         ).join('')}
                     </select>
@@ -482,10 +482,6 @@ const Agents = {
      * Called by Chat.sendMessage after user message is sent
      */
     async orchestrateAgentTurns(userMessage) {
-        console.log('🤖 orchestrateAgentTurns called');
-        console.log('🤖 User message:', userMessage);
-        console.log('🤖 Chat.currentChatId:', Chat.currentChatId);
-
         // Build full agents list: Active system prompt (Agent 1) + Added agents (Agent 2+)
         const agents = [];
 
@@ -500,7 +496,6 @@ const Agents = {
                 systemPromptId: activePromptId,
                 color: this.AGENT_COLORS[0]  // First color from palette
             });
-            console.log('🤖 Agent 1 (Active Prompt):', systemPrompts[activePromptId].name);
         }
 
         // Agent 2+: Added agents from chat
@@ -516,17 +511,11 @@ const Agents = {
 
         const turns = this.getCurrentTurns();
 
-        console.log('🤖 Total agents in conversation:', agents.length);
-        console.log('🤖 Agents:', agents.map(a => a.name));
-        console.log('🤖 Turns configured:', turns);
-
         if (agents.length === 0) {
-            console.warn('🤖 No agents configured - orchestration exiting');
             return; // No agents configured
         }
 
         if (agents.length === 1) {
-            console.log('🤖 Only 1 agent - initial response already covered this, skipping orchestration');
             return; // Initial Claude response already handled single agent
         }
 
@@ -674,14 +663,5 @@ const Agents = {
         if (UI.elements.sendBtn) {
             UI.elements.sendBtn.disabled = !enabled;
         }
-    },
-
-    /**
-     * Escape HTML to prevent XSS
-     */
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 };

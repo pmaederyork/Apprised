@@ -892,122 +892,6 @@ const Documents = {
     },
 
     // Convert markdown to HTML for Google Docs compatibility
-    markdownToHTML(markdown) {
-        if (!markdown) return '';
-
-        let html = markdown
-            // Headers
-            .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-            .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-            .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-            
-            // Bold and italic
-            .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            
-            // Strikethrough
-            .replace(/~~(.*?)~~/g, '<del>$1</del>')
-            
-            // Code (inline)
-            .replace(/`([^`]+)`/g, '<code>$1</code>')
-            
-            // Links
-            .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
-            
-            // Horizontal rule
-            .replace(/^---$/gm, '<hr>')
-            
-            // Blockquotes
-            .replace(/^> (.*$)/gm, '<blockquote>$1</blockquote>')
-            
-            // Unordered lists
-            .replace(/^\* (.*$)/gm, '<li>$1</li>')
-            .replace(/^- (.*$)/gm, '<li>$1</li>')
-            
-            // Ordered lists
-            .replace(/^\d+\. (.*$)/gm, '<li>$1</li>')
-            
-            // Line breaks
-            .replace(/\n/g, '<br>');
-
-        // Wrap consecutive list items in proper list tags
-        html = html
-            .replace(/(<li>.*?<\/li>)(<br>)*(?=<li>)/g, '$1')
-            .replace(/(<li>.*?<\/li>)(<br>)*(?!<li>)/g, '</ul>$1')
-            .replace(/(?<!<\/ul>)(<li>.*?<\/li>)/g, '<ul>$1');
-
-        // Fix nested blockquotes
-        html = html.replace(/(<blockquote>.*?<\/blockquote>)(<br>)*(?=<blockquote>)/g, '$1');
-
-        return html;
-    },
-
-    // Convert HTML to clean markdown
-    htmlToMarkdown(html) {
-        if (!html) return '';
-
-        // Step 1: Parse HTML and identify Google Docs bold formatting
-        // Google Docs uses <span style="font-weight:700;"> for bold
-        let markdown = html;
-
-        // Step 2: Convert Google Docs bold spans to markdown FIRST (before removing spans)
-        markdown = markdown.replace(/<span[^>]*font-weight:700[^>]*>(.*?)<\/span>/gi, '**$1**');
-        
-        // Step 3: Convert headers
-        markdown = markdown
-            .replace(/<h1[^>]*>(.*?)<\/h1>/gi, '\n\n# $1\n\n')
-            .replace(/<h2[^>]*>(.*?)<\/h2>/gi, '\n\n## $1\n\n')
-            .replace(/<h3[^>]*>(.*?)<\/h3>/gi, '\n\n### $1\n\n');
-
-        // Step 4: Convert paragraphs to line breaks
-        markdown = markdown.replace(/<\/p>/gi, '\n');
-        markdown = markdown.replace(/<p[^>]*>/gi, '');
-
-        // Step 5: Convert line breaks
-        markdown = markdown.replace(/<br[^>]*\/?>/gi, '\n');
-
-        // Step 6: Clean up Google Docs meta tags and spans
-        markdown = markdown
-            .replace(/<meta[^>]*>/gi, '')
-            .replace(/<b[^>]*id="[^"]*"[^>]*>/gi, '')
-            .replace(/<\/b>/gi, '')
-            .replace(/<span[^>]*>/gi, '')
-            .replace(/<\/span>/gi, '');
-
-        // Step 7: Handle any remaining standard HTML formatting
-        markdown = markdown
-            .replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**')
-            .replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**')
-            .replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*')
-            .replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*');
-
-        // Step 8: Remove any remaining HTML tags
-        markdown = markdown.replace(/<[^>]*>/g, '');
-
-        // Step 9: Clean up HTML entities
-        markdown = markdown
-            .replace(/&nbsp;/g, ' ')
-            .replace(/&amp;/g, '&')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"')
-            .replace(/&#39;/g, "'")
-            .replace(/&apos;/g, "'");
-
-        // Step 10: Clean up whitespace while preserving structure
-        markdown = markdown
-            .replace(/[ \t]+/g, ' ') // Multiple spaces to single space
-            .replace(/\n[ \t]+/g, '\n') // Remove leading whitespace
-            .replace(/[ \t]+\n/g, '\n') // Remove trailing whitespace  
-            .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
-            .replace(/^\n+/, '') // Remove leading newlines
-            .replace(/\n+$/, '') // Remove trailing newlines
-            .trim();
-
-        return markdown;
-    },
-
     // Restore the last open document if it exists
     restoreLastOpenDocument() {
         const lastOpenDocumentId = Storage.getLastOpenDocumentId();
@@ -1132,7 +1016,6 @@ const Documents = {
 
                 // Insert at appropriate position using content anchoring
                 if (change.insertAfter) {
-                    console.log(`🔍 ADD preview: Searching for insertAfter anchor:`, change.insertAfter.substring(0, 100));
                     const anchorNode = this.findNodeByContent(tempDiv, change.insertAfter);
                     if (anchorNode) {
                         // Cache anchor signature for reconstruction
@@ -1143,15 +1026,12 @@ const Documents = {
                             outerHTML: anchorNode.outerHTML || '',
                             anchorType: 'insertAfter'
                         };
-                        console.log(`✅ ADD preview: Cached insertAfter anchor <${change._cachedSignature.tagName}>`);
                         anchorNode.after(changeElement);
                     } else {
-                        console.warn('❌ ADD preview: Could not find insertAfter anchor:', change.insertAfter);
                         change._cachedSignature = null;
                         tempDiv.appendChild(changeElement);
                     }
                 } else if (change.insertBefore) {
-                    console.log(`🔍 ADD preview: Searching for insertBefore anchor:`, change.insertBefore.substring(0, 100));
                     const anchorNode = this.findNodeByContent(tempDiv, change.insertBefore);
                     if (anchorNode) {
                         // Cache anchor signature for reconstruction
@@ -1256,20 +1136,17 @@ const Documents = {
 
             // Strategy 1: Normalized innerHTML match (handles whitespace)
             if (this.normalizeHTML(node.innerHTML) === normalizedContent) {
-                console.log('Found match using normalized innerHTML:', node.tagName);
                 return node;
             }
 
             // Strategy 2: Normalized outerHTML match (handles whitespace + attributes)
             if (this.normalizeHTML(node.outerHTML) === normalizedContent) {
-                console.log('Found match using normalized outerHTML:', node.tagName);
                 return node;
             }
 
             // Strategy 3: Normalized match with attributes stripped (handles attribute differences)
             const normalizedContentNoAttrs = this.normalizeHTML(content, true);
             if (this.normalizeHTML(node.outerHTML, true) === normalizedContentNoAttrs) {
-                console.log('Found match ignoring attributes:', node.tagName);
                 return node;
             }
 
@@ -1308,12 +1185,9 @@ const Documents = {
                 searchNodes(container);
 
                 if (candidates.length === 1) {
-                    console.log('Found match using text-based matching (ignoring inner formatting):', candidates[0].tagName);
                     return candidates[0];
-                } else if (candidates.length > 1) {
-                    console.warn('Multiple elements with identical text found - cannot determine which to match');
-                    // Fall through to return null (too ambiguous)
                 }
+                // If multiple candidates, too ambiguous - fall through to return null
             }
         }
 
