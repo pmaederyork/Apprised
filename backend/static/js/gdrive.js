@@ -161,23 +161,44 @@ const GDrive = {
             UI.hideLoading();
 
             if (data.success) {
-                // Create new document
-                const documentId = Storage.generateDocumentId();
-                const newDoc = {
-                    id: documentId,
-                    title: data.name.endsWith('.html') ? data.name : data.name + '.html',
-                    content: data.content,
-                    createdAt: Date.now(),
-                    lastModified: Date.now(),
-                    driveFileId: file.id,
-                    driveSyncStatus: 'synced',
-                    lastSyncedAt: Date.now()
-                };
+                // Check if document with this driveFileId already exists
+                const existingDoc = Object.values(Documents.documents)
+                    .find(doc => doc.driveFileId === file.id);
 
-                Documents.documents[documentId] = newDoc;
-                Storage.saveDocuments(Documents.documents);
-                Documents.renderDocumentList();
-                Documents.openDocument(documentId);
+                if (existingDoc) {
+                    // Update existing document
+                    existingDoc.title = data.name.endsWith('.html') ? data.name : data.name + '.html';
+                    existingDoc.content = data.content;
+                    existingDoc.lastModified = Date.now();
+                    existingDoc.driveSyncStatus = 'synced';
+                    existingDoc.lastSyncedAt = Date.now();
+
+                    Storage.saveDocuments(Documents.documents);
+                    Documents.renderDocumentList();
+                    Documents.openDocument(existingDoc.id);
+
+                    console.log('Updated existing document linked to Drive file:', file.id);
+                } else {
+                    // Create new document
+                    const documentId = Storage.generateDocumentId();
+                    const newDoc = {
+                        id: documentId,
+                        title: data.name.endsWith('.html') ? data.name : data.name + '.html',
+                        content: data.content,
+                        createdAt: Date.now(),
+                        lastModified: Date.now(),
+                        driveFileId: file.id,
+                        driveSyncStatus: 'synced',
+                        lastSyncedAt: Date.now()
+                    };
+
+                    Documents.documents[documentId] = newDoc;
+                    Storage.saveDocuments(Documents.documents);
+                    Documents.renderDocumentList();
+                    Documents.openDocument(documentId);
+
+                    console.log('Created new document from Drive file:', file.id);
+                }
 
             } else {
                 alert(`Failed to import: ${data.error}`);
