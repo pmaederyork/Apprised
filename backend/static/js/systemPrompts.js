@@ -34,6 +34,7 @@ const SystemPrompts = {
         }
 
         this.bindEventListeners();
+        this.bindSmartPaste();
         this.render();
     },
 
@@ -69,10 +70,176 @@ const SystemPrompts = {
         });
     },
 
+    // Smart paste handler - converts HTML formatting to markdown
+    bindSmartPaste() {
+        const textarea = UI.elements.systemPromptTextarea;
+        if (!textarea) return;
+
+        textarea.addEventListener('paste', (e) => {
+            // Only process if we're editing a system prompt
+            if (!this.state.isEditingSystemPrompt) return;
+
+            // Get clipboard data
+            const clipboardData = e.clipboardData || window.clipboardData;
+            if (!clipboardData) return;
+
+            // Try to get HTML content first (from rich text editors like documents)
+            const htmlContent = clipboardData.getData('text/html');
+
+            if (htmlContent && htmlContent.trim()) {
+                // Prevent default paste behavior
+                e.preventDefault();
+
+                // Convert HTML to markdown
+                let markdown = this.convertHtmlToMarkdown(htmlContent);
+
+                // Insert at cursor position
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const currentValue = textarea.value;
+
+                textarea.value = currentValue.substring(0, start) + markdown + currentValue.substring(end);
+
+                // Set cursor position after inserted text
+                const newCursorPos = start + markdown.length;
+                textarea.selectionStart = newCursorPos;
+                textarea.selectionEnd = newCursorPos;
+
+                // Trigger save
+                this.debouncedSaveContent();
+            }
+            // Otherwise let default plain text paste happen
+        });
+    },
+
+    // Convert HTML to markdown format
+    convertHtmlToMarkdown(html) {
+        // Create a temporary div to parse HTML
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+
+        // Process lists specially to preserve structure
+        const processNode = (node) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                return node.textContent;
+            }
+
+            if (node.nodeType !== Node.ELEMENT_NODE) {
+                return '';
+            }
+
+            let result = '';
+            const tagName = node.tagName.toLowerCase();
+
+            switch (tagName) {
+                case 'ul':
+                    // Unordered list
+                    Array.from(node.children).forEach(li => {
+                        if (li.tagName.toLowerCase() === 'li') {
+                            result += '- ' + processNode(li).trim() + '\n';
+                        }
+                    });
+                    return result;
+
+                case 'ol':
+                    // Ordered list
+                    Array.from(node.children).forEach((li, index) => {
+                        if (li.tagName.toLowerCase() === 'li') {
+                            result += `${index + 1}. ` + processNode(li).trim() + '\n';
+                        }
+                    });
+                    return result;
+
+                case 'li':
+                    // List item content (used when called recursively)
+                    result = '';
+                    Array.from(node.childNodes).forEach(child => {
+                        result += processNode(child);
+                    });
+                    return result;
+
+                case 'strong':
+                case 'b':
+                    result = '**';
+                    Array.from(node.childNodes).forEach(child => {
+                        result += processNode(child);
+                    });
+                    result += '**';
+                    return result;
+
+                case 'em':
+                case 'i':
+                    result = '*';
+                    Array.from(node.childNodes).forEach(child => {
+                        result += processNode(child);
+                    });
+                    result += '*';
+                    return result;
+
+                case 'code':
+                    result = '`';
+                    Array.from(node.childNodes).forEach(child => {
+                        result += processNode(child);
+                    });
+                    result += '`';
+                    return result;
+
+                case 'pre':
+                    result = '```\n';
+                    Array.from(node.childNodes).forEach(child => {
+                        result += processNode(child);
+                    });
+                    result += '\n```\n';
+                    return result;
+
+                case 'h1':
+                case 'h2':
+                case 'h3':
+                case 'h4':
+                case 'h5':
+                case 'h6':
+                    const level = parseInt(tagName[1]);
+                    result = '#'.repeat(level) + ' ';
+                    Array.from(node.childNodes).forEach(child => {
+                        result += processNode(child);
+                    });
+                    result += '\n\n';
+                    return result;
+
+                case 'br':
+                    return '\n';
+
+                case 'p':
+                case 'div':
+                    result = '';
+                    Array.from(node.childNodes).forEach(child => {
+                        result += processNode(child);
+                    });
+                    result += '\n\n';
+                    return result;
+
+                default:
+                    // For other elements, just process children
+                    result = '';
+                    Array.from(node.childNodes).forEach(child => {
+                        result += processNode(child);
+                    });
+                    return result;
+            }
+        };
+
+        let markdown = processNode(temp);
+
+        // Clean up excessive newlines
+        markdown = markdown.replace(/\n{3,}/g, '\n\n').trim();
+
+        return markdown;
+    },
+
     // Create a new system prompt
     createNew() {
         const promptId = Storage.generateSystemPromptId();
-        const promptName = `System Prompt ${Object.keys(this.state.systemPrompts).length + 1}`;
+        const promptName = 'Agent';
 
         // Calculate max order to place new prompt at bottom
         const existingOrders = Object.values(this.state.systemPrompts).map(p => p.order || 0);
