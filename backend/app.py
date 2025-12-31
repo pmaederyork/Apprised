@@ -464,7 +464,7 @@ Content-Type: application/json; charset=UTF-8
 {json.dumps(metadata)}
 
 --{boundary}
-Content-Type: text/html
+Content-Type: text/html; charset=UTF-8
 
 {document_content}
 
@@ -475,7 +475,8 @@ Content-Type: text/html
             'Content-Type': f'multipart/related; boundary={boundary}'
         }
 
-        response = requests.request(method, url, headers=headers, data=body)
+        # Encode body as UTF-8 to handle Unicode characters
+        response = requests.request(method, url, headers=headers, data=body.encode('utf-8'))
 
         if response.status_code in [200, 201]:
             file_data = response.json()
