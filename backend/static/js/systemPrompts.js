@@ -15,11 +15,9 @@ const SystemPrompts = {
 
     // Initialize system prompts functionality
     init() {
-        // MIGRATION: Add order field to existing prompts that don't have it
+        // Add order field to legacy prompts (backwards compatibility)
         let needsSave = false;
         const prompts = Object.values(this.state.systemPrompts);
-
-        // Sort by createdAt (current order) to preserve visual ordering
         const sortedByCreatedAt = prompts.sort((a, b) => b.createdAt - a.createdAt);
 
         sortedByCreatedAt.forEach((prompt, index) => {

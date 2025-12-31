@@ -16,23 +16,21 @@ const ScreenShare = {
      */
     async startStream() {
         try {
-            console.log('Starting screenshare stream...');
-            
             // Request screen selection from user
             this.stream = await navigator.mediaDevices.getDisplayMedia({
                 video: { mediaSource: 'screen' },
                 audio: false
             });
-            
+
             // Get preview elements
             this.previewContainer = UI.elements.screensharePreviewContainer;
             this.previewImage = UI.elements.screensharePreviewImage;
-            
+
             // Show preview container
             if (this.previewContainer) {
                 this.previewContainer.style.display = 'flex';
             }
-            
+
             // Show loading state immediately
             if (this.previewImage) {
                 this.previewImage.src = 'data:image/svg+xml;base64,' + btoa(`
@@ -42,18 +40,17 @@ const ScreenShare = {
                     </svg>
                 `);
             }
-            
+
             // Set up stream ended handler (auto-cleanup if user closes window)
             this.stream.getTracks().forEach(track => {
                 track.addEventListener('ended', () => {
-                    console.log('Screen share track ended - auto cleanup');
                     this.handleStreamEnded();
                 });
             });
-            
+
             // Capture first screenshot immediately
             await this.captureFrame();
-            
+
             // Start 2-second interval captures
             this.captureInterval = setInterval(() => {
                 this.captureFrame().catch(error => {
@@ -61,9 +58,8 @@ const ScreenShare = {
                     // Don't cleanup on single failure, wait for next interval
                 });
             }, 2000);
-            
+
             this.isActive = true;
-            console.log('Screenshare stream started successfully');
             
         } catch (error) {
             console.warn('Failed to start screenshare:', error);
@@ -80,7 +76,6 @@ const ScreenShare = {
      * Called when toggle is turned OFF
      */
     stopStream() {
-        console.log('Stopping screenshare stream...');
         this.cleanup();
     },
     
@@ -190,14 +185,12 @@ const ScreenShare = {
      * Called on toggle OFF or stream failure
      */
     cleanup() {
-        console.log('Cleaning up screenshare...');
-        
         // Clear interval
         if (this.captureInterval) {
             clearInterval(this.captureInterval);
             this.captureInterval = null;
         }
-        
+
         // Stop stream tracks
         if (this.stream) {
             this.stream.getTracks().forEach(track => {
@@ -205,27 +198,25 @@ const ScreenShare = {
             });
             this.stream = null;
         }
-        
+
         // Clear screenshot data
         if (this.currentScreenshot) {
             this.currentScreenshot = null;
         }
-        
+
         // Hide preview container
         if (this.previewContainer) {
             this.previewContainer.style.display = 'none';
         }
-        
+
         // Clear preview image
         if (this.previewImage) {
             this.previewImage.src = '';
         }
-        
+
         // Clear references
         this.previewContainer = null;
         this.previewImage = null;
         this.isActive = false;
-        
-        console.log('Screenshare cleanup completed');
     }
 };

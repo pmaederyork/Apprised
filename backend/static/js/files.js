@@ -128,8 +128,7 @@ const Files = {
 
     // Validate file
     validateFile(file) {
-        // For now, accept all files as requested
-        // TODO: Add specific validation if needed later
+        // Accept all files (validation can be added if specific restrictions are needed)
         return true;
     },
 

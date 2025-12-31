@@ -957,8 +957,6 @@ const Documents = {
                 UI.elements.documentChangeReview.focus();
             }
         }, 100);
-
-        console.log(`Applied ${changes.length} changes from Claude to document`);
     },
 
     /**
@@ -999,7 +997,6 @@ const Documents = {
                         innerHTML: originalNode.innerHTML || '',
                         outerHTML: originalNode.outerHTML || ''
                     };
-                    console.log(`✅ DELETE preview: Cached signature for <${change._cachedSignature.tagName}> with text "${change._cachedSignature.textContent.substring(0, 50)}..."`);
                     originalNode.replaceWith(changeElement);
                 } else {
                     // DELETE: Don't render preview if content not found
@@ -1042,7 +1039,6 @@ const Documents = {
                             outerHTML: anchorNode.outerHTML || '',
                             anchorType: 'insertBefore'
                         };
-                        console.log(`✅ ADD preview: Cached insertBefore anchor <${change._cachedSignature.tagName}>`);
                         anchorNode.before(changeElement);
                     } else {
                         console.warn('❌ ADD preview: Could not find insertBefore anchor:', change.insertBefore);
@@ -1070,7 +1066,6 @@ const Documents = {
                         innerHTML: originalNode.innerHTML || '',
                         outerHTML: originalNode.outerHTML || ''
                     };
-                    console.log(`✅ MODIFY preview: Cached signature for <${change._cachedSignature.tagName}>`);
                     originalNode.replaceWith(changeElement);
                 } else {
                     // If can't find exact match, append to end
@@ -1234,8 +1229,6 @@ const Documents = {
         }
 
         const editXML = editMatch[1];
-        console.log('📄 Raw XML from Claude:', editXML);
-        console.log('🔍 Testing outer regex to extract attributes...');
         const changes = [];
 
         // Parse each <change> element - handle attributes that contain HTML with > inside quotes
@@ -1245,12 +1238,6 @@ const Documents = {
 
         while ((match = changeRegex.exec(editXML)) !== null) {
             const [, attributeString, content] = match;
-
-            // Debug: Log what outer regex captured
-            console.log('🔍 Full match (first 200 chars):', match[0].substring(0, 200));
-            console.log('🔍 Captured attribute section:', match[1]);
-            console.log('🔍 Captured content section:', match[2].substring(0, 100));
-            console.log('🔍 Raw attributeString:', JSON.stringify(attributeString));
 
             // Extract attributes independently (order-agnostic)
             // Type is simple (no nested quotes)
@@ -1264,15 +1251,6 @@ const Documents = {
             const insertAfter = insertAfterMatch ? insertAfterMatch[1] : undefined;
             const insertBefore = insertBeforeMatch ? insertBeforeMatch[1] : undefined;
 
-            // Debug: Log extraction results
-            console.log('📋 Extraction results:', {
-                type,
-                insertBeforeMatch: insertBeforeMatch ? 'MATCHED' : 'NO MATCH',
-                insertBefore: insertBefore ? insertBefore.substring(0, 50) + '...' : 'NONE',
-                insertAfterMatch: insertAfterMatch ? 'MATCHED' : 'NO MATCH',
-                insertAfter: insertAfter ? insertAfter.substring(0, 50) + '...' : 'NONE'
-            });
-
             const originalMatch = content.match(/<original>(.*?)<\/original>/s);
             const newMatch = content.match(/<new>(.*?)<\/new>/s);
 
@@ -1285,15 +1263,6 @@ const Documents = {
                 newContent: newMatch ? newMatch[1].trim() : null,
                 status: 'pending'
             };
-
-            // Log parsed change details
-            console.log(`📋 Parsed change ${change.id}:`, {
-                type: change.type,
-                insertBefore: change.insertBefore ? `"${change.insertBefore.substring(0, 50)}..."` : 'NONE',
-                insertAfter: change.insertAfter ? `"${change.insertAfter.substring(0, 50)}..."` : 'NONE',
-                hasOriginal: !!change.originalContent,
-                hasNew: !!change.newContent
-            });
 
             changes.push(change);
         }

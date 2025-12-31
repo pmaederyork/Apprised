@@ -26,8 +26,6 @@ const ClaudeChanges = {
 
         // Add body class for layout adjustment
         document.body.classList.add('review-mode-active');
-
-        console.log(`ClaudeChanges initialized with ${changes.length} changes for document ${documentId}`);
     },
 
     /**
@@ -81,11 +79,8 @@ const ClaudeChanges = {
      */
     findNodeBySignature(container, signature) {
         if (!signature || !signature.tagName) {
-            console.log('🔍 Signature lookup: No valid signature provided');
             return null;
         }
-
-        console.log(`🔍 Signature lookup: Searching for <${signature.tagName}> with text "${signature.textContent.substring(0, 50)}..."`);
 
         // Strategy 1: Match by textContent + tagName (fastest, works across formatting changes)
         const candidates = Array.from(container.getElementsByTagName(signature.tagName));
@@ -93,7 +88,6 @@ const ClaudeChanges = {
         for (const node of candidates) {
             const nodeText = node.textContent?.trim() || '';
             if (nodeText === signature.textContent) {
-                console.log('✅ Signature match: Found using textContent + tagName (Strategy 1)');
                 return node;
             }
         }
@@ -101,7 +95,6 @@ const ClaudeChanges = {
         // Strategy 2: Match by innerHTML
         for (const node of candidates) {
             if (node.innerHTML === signature.innerHTML) {
-                console.log('✅ Signature match: Found using innerHTML (Strategy 2)');
                 return node;
             }
         }
@@ -110,7 +103,6 @@ const ClaudeChanges = {
         const normalizedSignatureHTML = Documents.normalizeHTML(signature.innerHTML);
         for (const node of candidates) {
             if (Documents.normalizeHTML(node.innerHTML) === normalizedSignatureHTML) {
-                console.log('✅ Signature match: Found using normalized innerHTML (Strategy 3)');
                 return node;
             }
         }
@@ -118,12 +110,10 @@ const ClaudeChanges = {
         // Strategy 4: Match by outerHTML
         for (const node of candidates) {
             if (node.outerHTML === signature.outerHTML) {
-                console.log('✅ Signature match: Found using outerHTML (Strategy 4)');
                 return node;
             }
         }
 
-        console.log('⚠️ Signature lookup: No match found with any strategy');
         return null;
     },
 
@@ -141,45 +131,35 @@ const ClaudeChanges = {
         // Apply each accepted change in order
         acceptedChanges.forEach(change => {
             if (change.type === 'delete') {
-                console.log(`🔍 DELETE reconstruction: Processing change ${change.id}`);
-
                 // Try to use cached signature first, fallback to findNodeByContent
                 let nodeToDelete = null;
                 if (change._cachedSignature) {
-                    console.log('🔍 DELETE: Using cached signature');
                     nodeToDelete = this.findNodeBySignature(tempDiv, change._cachedSignature);
                 }
 
                 if (!nodeToDelete) {
-                    console.log('⚠️ DELETE: Signature lookup failed, falling back to findNodeByContent');
                     nodeToDelete = Documents.findNodeByContent(tempDiv, change.originalContent);
                 }
 
                 if (nodeToDelete) {
-                    console.log(`✅ DELETE: Successfully found and removing <${nodeToDelete.tagName}>`);
                     nodeToDelete.remove();
                 } else {
                     const preview = change.originalContent?.substring(0, 100) || 'unknown';
                     console.error(`❌ DELETE: Could not find content to delete: "${preview}..."`);
                 }
             } else if (change.type === 'add') {
-                console.log(`🔍 ADD reconstruction: Processing change ${change.id}`);
-
                 // Find anchor and insert new content
                 if (change.insertAfter) {
                     // Try to use cached signature first, fallback to findNodeByContent
                     let anchorNode = null;
                     if (change._cachedSignature && change._cachedSignature.anchorType === 'insertAfter') {
-                        console.log('🔍 ADD: Using cached signature for insertAfter anchor');
                         anchorNode = this.findNodeBySignature(tempDiv, change._cachedSignature);
                     }
                     if (!anchorNode) {
-                        console.log('⚠️ ADD: Signature lookup failed, falling back to findNodeByContent');
                         anchorNode = Documents.findNodeByContent(tempDiv, change.insertAfter);
                     }
 
                     if (anchorNode) {
-                        console.log(`✅ ADD: Found insertAfter anchor <${anchorNode.tagName}>, inserting content`);
                         const newElement = document.createElement('div');
                         newElement.innerHTML = change.newContent;
                         // Insert all new content after anchor (using DocumentFragment to preserve order)
@@ -199,16 +179,13 @@ const ClaudeChanges = {
                     // Try to use cached signature first, fallback to findNodeByContent
                     let anchorNode = null;
                     if (change._cachedSignature && change._cachedSignature.anchorType === 'insertBefore') {
-                        console.log('🔍 ADD: Using cached signature for insertBefore anchor');
                         anchorNode = this.findNodeBySignature(tempDiv, change._cachedSignature);
                     }
                     if (!anchorNode) {
-                        console.log('⚠️ ADD: Signature lookup failed, falling back to findNodeByContent');
                         anchorNode = Documents.findNodeByContent(tempDiv, change.insertBefore);
                     }
 
                     if (anchorNode) {
-                        console.log(`✅ ADD: Found insertBefore anchor <${anchorNode.tagName}>, inserting content`);
                         const newElement = document.createElement('div');
                         newElement.innerHTML = change.newContent;
                         // Insert all new content before anchor (using DocumentFragment to preserve order)
@@ -226,21 +203,16 @@ const ClaudeChanges = {
                     }
                 }
             } else if (change.type === 'modify') {
-                console.log(`🔍 MODIFY reconstruction: Processing change ${change.id}`);
-
                 // Try to use cached signature first, fallback to findNodeByContent
                 let nodeToModify = null;
                 if (change._cachedSignature) {
-                    console.log('🔍 MODIFY: Using cached signature');
                     nodeToModify = this.findNodeBySignature(tempDiv, change._cachedSignature);
                 }
                 if (!nodeToModify) {
-                    console.log('⚠️ MODIFY: Signature lookup failed, falling back to findNodeByContent');
                     nodeToModify = Documents.findNodeByContent(tempDiv, change.originalContent);
                 }
 
                 if (nodeToModify) {
-                    console.log(`✅ MODIFY: Successfully found <${nodeToModify.tagName}>, replacing content`);
                     const newElement = document.createElement('div');
                     newElement.innerHTML = change.newContent;
                     // Replace with all new content
@@ -722,8 +694,6 @@ const ClaudeChanges = {
         this.documentId = null;
         this.initialized = false;
         this.originalDocumentHTML = null; // Clear cached HTML
-
-        console.log('ClaudeChanges: Exited review mode');
     },
 
     /**
@@ -786,7 +756,5 @@ const ClaudeChanges = {
                     break;
             }
         });
-
-        console.log('ClaudeChanges: Keyboard shortcuts bound');
     }
 };

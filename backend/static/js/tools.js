@@ -114,7 +114,6 @@ const Tools = {
     setWebSearch(enabled) {
         this.webSearchEnabled = enabled;
         this.saveState();
-        console.log('Web search', enabled ? 'enabled' : 'disabled');
     },
 
     // Toggle doc context
@@ -122,7 +121,6 @@ const Tools = {
         this.docContextEnabled = enabled;
         this.saveState();
         this.updateDocContextIndicator();
-        console.log('Doc context', enabled ? 'enabled' : 'disabled');
         
         // Refresh copy-to-document buttons in chat when doc context is toggled
         if (typeof UI !== 'undefined' && UI.refreshCopyToDocumentButtons) {
@@ -152,30 +150,27 @@ const Tools = {
             // Stop stream immediately
             ScreenShare.stopStream();
         }
-        
+
         this.saveState();
-        console.log('Screenshare', this.screenshareEnabled ? 'enabled' : 'disabled');
     },
 
     // Toggle screenshare (for compatibility with existing ScreenShare module)
     async toggleScreenshare() {
         this.screenshareEnabled = !this.screenshareEnabled;
-        
+
         if (this.screenshareEnabled) {
             await ScreenShare.startStream();
         } else {
             ScreenShare.stopStream();
         }
-        
+
         this.saveState();
-        
+
         // Update the checkbox to reflect the new state
         const screenshareToggle = document.getElementById('screenshareToggle');
         if (screenshareToggle) {
             screenshareToggle.checked = this.screenshareEnabled;
         }
-        
-        console.log('Screenshare', this.screenshareEnabled ? 'enabled' : 'disabled');
     },
 
 

@@ -219,23 +219,15 @@ const Agents = {
      * Add a new agent to the current chat
      */
     addAgent(name, systemPromptId) {
-        console.log('➕ addAgent called');
-        console.log('➕ Current chat ID:', Chat.currentChatId);
-        console.log('➕ Agent name:', name);
-        console.log('➕ System prompt ID:', systemPromptId);
-
         if (!Chat.currentChatId) {
-            console.error('➕ ERROR: No current chat ID!');
+            console.error('ERROR: No current chat ID!');
             return;
         }
 
         const chats = Storage.getChats();
         const chat = chats[Chat.currentChatId];
 
-        console.log('➕ Chat object before adding agent:', JSON.parse(JSON.stringify(chat)));
-
         if (!chat.agents) {
-            console.log('➕ Initializing agents array');
             chat.agents = [];
         }
 
@@ -255,12 +247,7 @@ const Agents = {
             color: this.AGENT_COLORS[colorIndex]
         };
 
-        console.log('➕ New agent created:', newAgent);
-
         chat.agents.push(newAgent);
-
-        console.log('➕ Chat object after adding agent:', JSON.parse(JSON.stringify(chat)));
-        console.log('➕ Agents array now has', chat.agents.length, 'agents');
 
         // Initialize turns if first agent
         if (!chat.turns) {
@@ -268,16 +255,8 @@ const Agents = {
         }
 
         Storage.saveChats(chats);
-        console.log('➕ Chat saved to Storage');
-
-        // Verify it was saved
-        const verifyChats = Storage.getChats();
-        const verifyChat = verifyChats[Chat.currentChatId];
-        console.log('➕ VERIFICATION - Chat agents after save:', verifyChat.agents);
 
         this.updateAgentSelectorUI();
-
-        console.log('✅ Agent added successfully:', newAgent);
     },
 
     /**
@@ -293,7 +272,6 @@ const Agents = {
         chat.turns = validTurns;
 
         Storage.saveChats(chats);
-        console.log('Turns updated to:', validTurns);
     },
 
     /**
@@ -446,8 +424,6 @@ const Agents = {
 
         Storage.saveChats(chats);
         this.updateAgentSelectorUI();
-
-        console.log('Agent updated:', chat.agents[agentIndex]);
     },
 
     /**
@@ -473,8 +449,6 @@ const Agents = {
         Storage.saveChats(chats);
         this.closeAgentDropdown();
         this.updateAgentSelectorUI();
-
-        console.log('Agent deleted');
     },
 
     /**
@@ -524,17 +498,13 @@ const Agents = {
 
         try {
             for (let turn = 1; turn <= turns; turn++) {
-                console.log(`🤖 === Turn ${turn} of ${turns} ===`);
-
                 for (let i = 0; i < agents.length; i++) {
                     // Skip Agent 1 on Turn 1 - initial Claude response already handled it
                     if (i === 0 && turn === 1) {
-                        console.log(`🤖 Agent 1 (${agents[i].name}) - already responded as initial Claude`);
                         continue;
                     }
 
                     const agent = agents[i];
-                    console.log(`🤖 Agent ${i + 1}/${agents.length}: ${agent.name}`);
 
                     // Update placeholder with progress
                     this.setInputEnabled(false, {
@@ -555,9 +525,6 @@ const Agents = {
                         // Get agent's system prompt
                         const systemPrompts = Storage.getSystemPrompts();
                         const systemPrompt = systemPrompts[agent.systemPromptId]?.content || '';
-
-                        console.log(`🤖 System prompt for ${agent.name}:`, systemPrompt ? `Found (${systemPrompt.length} chars)` : 'MISSING!');
-                        console.log(`🤖 Context for ${agent.name}:`, context);
 
                         // Call API with agent's context
                         const response = await API.sendMessage(
