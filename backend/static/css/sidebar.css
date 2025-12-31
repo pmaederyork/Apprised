@@ -16,15 +16,133 @@
     border-bottom: 1px solid var(--color-sidebar-border);
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 8px;
     flex-shrink: 0;
+}
+
+.app-logo {
+    height: 28px;
+    width: auto;
+    object-fit: contain;
+}
+
+.user-avatar-sidebar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--color-sidebar-border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.user-avatar-sidebar:hover {
+    border-color: var(--color-primary);
+    transform: scale(1.05);
 }
 
 .sidebar-content {
     flex: 1;
     padding: 16px;
     overflow-y: auto;
+}
+
+.sidebar-footer {
+    padding: 12px 16px;
+    min-height: 68px;
+    border-top: 1px solid var(--color-sidebar-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-shrink: 0;
+    background: var(--color-sidebar-bg);
+    position: relative;
+}
+
+/* User Profile in Footer */
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.user-profile:hover {
+    background: #f5f5f4;
+}
+
+.user-profile .user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.user-profile .user-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-profile .user-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text);
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* User Menu Dropdown */
+.user-menu-dropdown {
+    position: absolute;
+    bottom: 72px;
+    left: 12px;
+    right: 12px;
+    background: white;
+    border: 1px solid #e7e5e4;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 8px;
+    z-index: 1000;
+}
+
+.user-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-size: 0.875rem;
+    color: #292524;
+}
+
+.user-menu-item:hover {
+    background: #f5f5f4;
+}
+
+.user-menu-item .menu-icon {
+    flex-shrink: 0;
+    color: #57534e;
+}
+
+.user-menu-item span {
+    font-weight: 500;
+}
+
+.sidebar-footer .settings-btn,
+.sidebar-footer .logout-btn {
+    flex: 1;
+    max-width: 120px;
 }
 
 /* System prompt section */
@@ -436,17 +554,47 @@
 
 .settings-body {
     padding: 24px;
+    max-height: 70vh;
+    overflow-y: auto;
 }
 
-.api-key-section {
+/* Settings Sections - Repeatable pattern */
+.settings-section {
     margin-bottom: 32px;
-    padding-bottom: 20px;
+    padding-bottom: 24px;
     border-bottom: 1px solid var(--color-bg-subtle);
 }
 
-.api-key-section:last-child {
+.settings-section:last-child {
     border-bottom: none;
     padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+.settings-section-title {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.settings-section-content {
+    /* Container for section controls */
+}
+
+.settings-section-content label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    margin-bottom: 8px;
+}
+
+/* Legacy support for old class names */
+.api-key-section {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
 }
 
 .api-key-section label {

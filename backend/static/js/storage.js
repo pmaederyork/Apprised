@@ -2,11 +2,6 @@
  * Storage utilities for localStorage operations
  */
 const Storage = {
-    // Passphrase and encryption state
-    sessionPassphrase: null, // In-memory only, cleared on lock/logout
-    inactivityTimer: null,
-    PASSPHRASE_STORAGE_DAYS: 7,
-    INACTIVITY_TIMEOUT_MS: 60 * 60 * 1000, // 1 hour
     // Chat storage
     getChats() {
         try {
@@ -127,172 +122,78 @@ const Storage = {
         }
     },
 
-    // Passphrase management
-    async setSessionPassphrase(passphrase, rememberFor7Days = false) {
-        this.sessionPassphrase = passphrase;
-
-        // Store encrypted passphrase for 7-day convenience if requested
-        if (rememberFor7Days) {
-            try {
-                const encryptedPassphrase = await CryptoUtils.encryptPassphraseForStorage(passphrase);
-                const expiryDate = new Date();
-                expiryDate.setDate(expiryDate.getDate() + this.PASSPHRASE_STORAGE_DAYS);
-
-                localStorage.setItem('storedPassphrase', encryptedPassphrase);
-                localStorage.setItem('passphraseExpiry', expiryDate.getTime().toString());
-            } catch (error) {
-                console.error('Failed to store passphrase:', error);
-            }
-        }
-
-        this.resetInactivityTimer();
+    // API Key storage - Plain text
+    getApiKey() {
+        return localStorage.getItem('anthropicApiKey') || null;
     },
 
-    async getStoredPassphrase() {
-        try {
-            const encrypted = localStorage.getItem('storedPassphrase');
-            const expiry = localStorage.getItem('passphraseExpiry');
-
-            if (!encrypted || !expiry) {
-                return null;
-            }
-
-            // Check if expired
-            const expiryDate = parseInt(expiry);
-            if (Date.now() > expiryDate) {
-                this.clearStoredPassphrase();
-                return null;
-            }
-
-            // Decrypt and return
-            const passphrase = await CryptoUtils.decryptStoredPassphrase(encrypted);
-            return passphrase;
-        } catch (error) {
-            console.error('Failed to retrieve stored passphrase:', error);
-            this.clearStoredPassphrase();
-            return null;
-        }
-    },
-
-    clearStoredPassphrase() {
-        localStorage.removeItem('storedPassphrase');
-        localStorage.removeItem('passphraseExpiry');
-    },
-
-    clearSession() {
-        this.sessionPassphrase = null;
-        if (this.inactivityTimer) {
-            clearTimeout(this.inactivityTimer);
-            this.inactivityTimer = null;
-        }
-    },
-
-    resetInactivityTimer() {
-        // Clear existing timer
-        if (this.inactivityTimer) {
-            clearTimeout(this.inactivityTimer);
-        }
-
-        // Set new timer to auto-lock after inactivity
-        this.inactivityTimer = setTimeout(() => {
-            console.log('Auto-locking due to inactivity');
-            this.clearSession();
-
-            // Notify user and refresh UI
-            if (window.App && typeof App.handleAutoLock === 'function') {
-                App.handleAutoLock();
-            }
-        }, this.INACTIVITY_TIMEOUT_MS);
-    },
-
-    isLocked() {
-        return this.isEncryptionEnabled() && !this.sessionPassphrase;
-    },
-
-    isEncryptionEnabled() {
-        return localStorage.getItem('encryptionEnabled') === 'true';
-    },
-
-    enableEncryption() {
-        localStorage.setItem('encryptionEnabled', 'true');
-    },
-
-    // API Key storage - Encrypted
-    async getApiKey() {
-        // Check if encryption is enabled
-        if (!this.isEncryptionEnabled()) {
-            // Legacy plain text storage
-            return localStorage.getItem('anthropicApiKey') || null;
-        }
-
-        // Encrypted storage
-        const encrypted = localStorage.getItem('anthropicApiKey_encrypted');
-        if (!encrypted) {
-            return null;
-        }
-
-        // Check if we have passphrase in memory
-        if (!this.sessionPassphrase) {
-            return null; // Locked state
-        }
-
-        try {
-            return await CryptoUtils.decrypt(encrypted, this.sessionPassphrase);
-        } catch (error) {
-            console.error('Failed to decrypt API key:', error);
-            return null;
-        }
-    },
-
-    async saveApiKey(apiKey, passphrase = null) {
+    saveApiKey(apiKey) {
         if (!apiKey || !apiKey.trim()) {
             this.deleteApiKey();
             return;
         }
-
-        const trimmedKey = apiKey.trim();
-
-        // If passphrase provided, use encryption
-        if (passphrase) {
-            try {
-                const encrypted = await CryptoUtils.encrypt(trimmedKey, passphrase);
-                localStorage.setItem('anthropicApiKey_encrypted', encrypted);
-                localStorage.removeItem('anthropicApiKey'); // Remove plain text if exists
-                this.enableEncryption();
-                this.sessionPassphrase = passphrase;
-                this.resetInactivityTimer();
-                return true;
-            } catch (error) {
-                console.error('Failed to encrypt API key:', error);
-                throw error;
-            }
-        } else {
-            // Use existing session passphrase if available
-            if (this.sessionPassphrase) {
-                return this.saveApiKey(trimmedKey, this.sessionPassphrase);
-            }
-
-            // Fallback to plain text (backward compatibility)
-            localStorage.setItem('anthropicApiKey', trimmedKey);
-            return true;
-        }
+        localStorage.setItem('anthropicApiKey', apiKey.trim());
     },
 
     deleteApiKey() {
         localStorage.removeItem('anthropicApiKey');
-        localStorage.removeItem('anthropicApiKey_encrypted');
+        localStorage.removeItem('anthropicApiKey_encrypted'); // Clean up any old encrypted keys
     },
 
-    async hasApiKey() {
-        // Check if encrypted key exists (don't try to decrypt)
-        // This way we return true even when locked
-        if (this.isEncryptionEnabled()) {
-            const encrypted = localStorage.getItem('anthropicApiKey_encrypted');
-            return encrypted && encrypted.length > 0;
-        }
-
-        // Fallback to plain text check
+    hasApiKey() {
         const apiKey = localStorage.getItem('anthropicApiKey');
         return apiKey && apiKey.length > 0;
+    },
+
+    // Generic Settings storage
+    getSettings() {
+        try {
+            return JSON.parse(localStorage.getItem('appSettings') || '{}');
+        } catch (error) {
+            console.warn('Failed to parse settings from localStorage:', error);
+            return {};
+        }
+    },
+
+    saveSettings(settings) {
+        try {
+            localStorage.setItem('appSettings', JSON.stringify(settings));
+        } catch (error) {
+            console.error('Failed to save settings:', error);
+        }
+    },
+
+    getSetting(key, defaultValue = null) {
+        try {
+            const settings = this.getSettings();
+            return settings[key] !== undefined ? settings[key] : defaultValue;
+        } catch (error) {
+            console.warn(`Failed to get setting ${key}:`, error);
+            return defaultValue;
+        }
+    },
+
+    saveSetting(key, value) {
+        try {
+            const settings = this.getSettings();
+            settings[key] = value;
+            this.saveSettings(settings);
+            return true;
+        } catch (error) {
+            console.error(`Failed to save setting ${key}:`, error);
+            return false;
+        }
+    },
+
+    deleteSetting(key) {
+        try {
+            const settings = this.getSettings();
+            delete settings[key];
+            this.saveSettings(settings);
+            return true;
+        } catch (error) {
+            console.error(`Failed to delete setting ${key}:`, error);
+            return false;
+        }
     }
 };

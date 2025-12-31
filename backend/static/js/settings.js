@@ -1,73 +1,110 @@
 /**
- * Settings module for managing API key and other settings
+ * Settings module for managing API key and other application settings
  */
+
+// Settings configuration - Add new settings here
+const SETTINGS_CONFIG = {
+    apiKey: {
+        label: 'Anthropic API Key',
+        type: 'password',
+        section: 'api',
+        validator: (value) => value && value.trim().length > 0 && value.startsWith('sk-ant-') && value.length >= 50,
+        storage: 'anthropicApiKey', // Use legacy storage for API key
+        required: true
+    }
+    // Add more settings here as needed:
+    // theme: {
+    //     label: 'Theme',
+    //     type: 'select',
+    //     options: ['light', 'dark', 'auto'],
+    //     section: 'appearance',
+    //     validator: (value) => ['light', 'dark', 'auto'].includes(value),
+    //     storage: 'theme'
+    // }
+};
+
 const Settings = {
+    // State management
+    initialized: false,
+    settings: {},
+
+    // DOM elements
     elements: {
-        settingsBtn: null,
         settingsModal: null,
         closeSettingsBtn: null,
         apiKeyInput: null,
         showHideBtn: null,
         apiKeyStatus: null,
         saveApiKeyBtn: null,
+        saveApiKeyBtnModal: null,
         deleteApiKeyBtn: null,
         apiKeyNotification: null,
         openSettingsFromNotification: null
     },
 
-    init() {
+    /**
+     * Initialize settings module
+     */
+    async init() {
+        if (this.initialized) return;
+
         this.initElements();
         this.bindEvents();
-        this.loadApiKey();
+        await this.loadAllSettings();
         this.updateUI();
+
+        this.initialized = true;
     },
 
+    /**
+     * Initialize DOM element references
+     */
     initElements() {
-        this.elements.settingsBtn = document.getElementById('settingsBtn');
         this.elements.settingsModal = document.getElementById('settingsModal');
         this.elements.closeSettingsBtn = document.getElementById('closeSettingsBtn');
         this.elements.apiKeyInput = document.getElementById('apiKeyInput');
         this.elements.showHideBtn = document.getElementById('showHideBtn');
         this.elements.apiKeyStatus = document.getElementById('apiKeyStatus');
         this.elements.saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+        this.elements.saveApiKeyBtnModal = document.getElementById('saveApiKeyBtnModal');
         this.elements.deleteApiKeyBtn = document.getElementById('deleteApiKeyBtn');
         this.elements.apiKeyNotification = document.getElementById('apiKeyNotification');
         this.elements.openSettingsFromNotification = document.getElementById('openSettingsFromNotification');
     },
 
+    /**
+     * Bind event listeners
+     */
     bindEvents() {
-        // Settings button
-        this.elements.settingsBtn?.addEventListener('click', () => this.openSettings());
-        
         // Close settings
         this.elements.closeSettingsBtn?.addEventListener('click', () => this.closeSettings());
-        
+
         // Click outside modal to close
         this.elements.settingsModal?.addEventListener('click', (e) => {
             if (e.target === this.elements.settingsModal) {
                 this.closeSettings();
             }
         });
-        
+
         // Show/hide password toggle
         this.elements.showHideBtn?.addEventListener('click', () => this.togglePasswordVisibility());
-        
-        // Save API key
-        this.elements.saveApiKeyBtn?.addEventListener('click', () => this.saveApiKey());
-        
+
+        // Save API key (settings modal)
+        this.elements.saveApiKeyBtnModal?.addEventListener('click', () => this.saveApiKey());
+
         // Delete API key
         this.elements.deleteApiKeyBtn?.addEventListener('click', () => this.deleteApiKey());
-        
+
         // API key input validation
         this.elements.apiKeyInput?.addEventListener('input', () => this.validateApiKey());
-        
+
         // Enter key to save
         this.elements.apiKeyInput?.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 this.saveApiKey();
             }
         });
-        
+
         // Open settings from notification
         this.elements.openSettingsFromNotification?.addEventListener('click', () => {
             this.hideApiKeyNotification();
@@ -87,47 +124,71 @@ const Settings = {
         });
     },
 
-    async loadApiKey() {
-        const apiKey = await Storage.getApiKey();
-        if (apiKey) {
+    /**
+     * Load all settings from storage
+     */
+    async loadAllSettings() {
+        // Load API key (uses legacy storage)
+        const apiKey = Storage.getApiKey();
+        this.settings.apiKey = apiKey || '';
+
+        // Future: Load other settings from generic storage
+        // const appSettings = Storage.getSettings();
+        // Object.keys(SETTINGS_CONFIG).forEach(key => {
+        //     if (key !== 'apiKey') {
+        //         this.settings[key] = appSettings[key] || SETTINGS_CONFIG[key].default;
+        //     }
+        // });
+    },
+
+    /**
+     * Load API key into UI
+     */
+    loadApiKey() {
+        const apiKey = Storage.getApiKey();
+        if (apiKey && this.elements.apiKeyInput) {
             this.elements.apiKeyInput.value = apiKey;
             this.showStatus('API key loaded', 'success');
-        } else {
+        } else if (this.elements.apiKeyInput) {
             this.elements.apiKeyInput.value = '';
-            if (Storage.isLocked()) {
-                this.showStatus('Locked - unlock to view', 'warning');
-            } else {
-                this.showStatus('No API key found', 'warning');
-            }
+            this.showStatus('No API key found', 'warning');
         }
     },
 
-    async openSettings() {
-        // Check if app is locked
-        if (Storage.isLocked()) {
-            const unlocked = await this.promptForPassphrase('unlock');
-            if (!unlocked) {
-                return; // User cancelled
-            }
-        }
+    /**
+     * Open settings modal
+     */
+    openSettings() {
+        if (!this.elements.settingsModal) return;
 
         this.elements.settingsModal.style.display = 'flex';
-        await this.loadApiKey();
+        this.loadApiKey();
         this.validateApiKey();
+
         // Focus on input after modal opens
         setTimeout(() => {
             this.elements.apiKeyInput?.focus();
         }, 100);
     },
 
+    /**
+     * Close settings modal
+     */
     closeSettings() {
-        this.elements.settingsModal.style.display = 'none';
+        if (this.elements.settingsModal) {
+            this.elements.settingsModal.style.display = 'none';
+        }
     },
 
+    /**
+     * Toggle password visibility
+     */
     togglePasswordVisibility() {
         const input = this.elements.apiKeyInput;
         const btn = this.elements.showHideBtn;
-        
+
+        if (!input || !btn) return;
+
         if (input.type === 'password') {
             input.type = 'text';
             btn.textContent = '🙈';
@@ -137,13 +198,22 @@ const Settings = {
         }
     },
 
+    /**
+     * Validate API key
+     */
     validateApiKey() {
+        if (!this.elements.apiKeyInput) return false;
+
         const apiKey = this.elements.apiKeyInput.value.trim();
-        const isValid = apiKey.length > 0 && apiKey.startsWith('sk-ant-');
-        
-        // Enable/disable save button
-        this.elements.saveApiKeyBtn.disabled = !isValid;
-        
+        const config = SETTINGS_CONFIG.apiKey;
+        const isValid = config.validator(apiKey);
+
+        // Enable/disable save button (settings modal)
+        if (this.elements.saveApiKeyBtnModal) {
+            this.elements.saveApiKeyBtnModal.disabled = !isValid;
+        }
+
+        // Show validation feedback
         if (apiKey.length === 0) {
             this.showStatus('Enter your API key', 'warning');
         } else if (!apiKey.startsWith('sk-ant-')) {
@@ -153,56 +223,33 @@ const Settings = {
         } else {
             this.showStatus('API key format looks correct', 'success');
         }
-        
+
         return isValid;
     },
 
-    async saveApiKey() {
-        const apiKey = this.elements.apiKeyInput.value.trim();
-
+    /**
+     * Save API key
+     */
+    saveApiKey() {
         if (!this.validateApiKey()) {
             return;
         }
 
+        const apiKey = this.elements.apiKeyInput.value.trim();
+
         try {
-            // Check if we need to prompt for passphrase
-            let passphrase = Storage.sessionPassphrase;
-
-            if (!passphrase) {
-                // Check if there are existing plain text keys to migrate
-                const hasPlainKeys = localStorage.getItem('anthropicApiKey');
-
-                if (hasPlainKeys) {
-                    // Migration flow
-                    passphrase = await this.promptForPassphrase('create', true);
-                } else {
-                    // First time setup
-                    passphrase = await this.promptForPassphrase('create');
-                }
-
-                if (!passphrase) {
-                    return; // User cancelled
-                }
-            }
-
-            await Storage.saveApiKey(apiKey, passphrase);
-            this.showStatus('API key encrypted and saved!', 'success');
+            Storage.saveApiKey(apiKey);
+            this.settings.apiKey = apiKey;
+            this.showStatus('API key saved!', 'success');
 
             // Hide notification if visible
             this.hideApiKeyNotification();
 
             // Update UI
-            await this.updateUI();
+            this.updateUI();
 
-            // Show lock button now that encryption is enabled
-            if (UI.elements.lockBtn) {
-                UI.elements.lockBtn.style.display = 'flex';
-            }
-
-            // Close settings after a short delay
-            setTimeout(() => {
-                this.closeSettings();
-            }, 1000);
+            // Close settings immediately
+            this.closeSettings();
 
         } catch (error) {
             console.error('Error saving API key:', error);
@@ -210,21 +257,26 @@ const Settings = {
         }
     },
 
+    /**
+     * Delete API key
+     */
     deleteApiKey() {
         if (confirm('Are you sure you want to delete your API key?')) {
             try {
                 Storage.deleteApiKey();
-                this.elements.apiKeyInput.value = '';
+                this.settings.apiKey = '';
+
+                if (this.elements.apiKeyInput) {
+                    this.elements.apiKeyInput.value = '';
+                }
+
                 this.showStatus('API key deleted', 'warning');
-                
-                // Update UI
-                this.updateUI();
-                
-                // Show notification after a short delay
-                setTimeout(() => {
-                    this.showApiKeyNotification();
-                }, 500);
-                
+
+                // Update delete button visibility
+                if (this.elements.deleteApiKeyBtn) {
+                    this.elements.deleteApiKeyBtn.style.display = 'none';
+                }
+
             } catch (error) {
                 console.error('Error deleting API key:', error);
                 this.showStatus('Error deleting API key', 'error');
@@ -232,23 +284,42 @@ const Settings = {
         }
     },
 
-    showStatus(message, type) {
-        this.elements.apiKeyStatus.textContent = message;
-        this.elements.apiKeyStatus.className = `api-key-status ${type}`;
-        this.elements.apiKeyStatus.style.display = 'block';
+    /**
+     * Show status message for a specific section
+     */
+    showStatus(message, type, sectionId = 'apiKey') {
+        // Currently only handles API key section
+        // Future: Make this section-aware for multiple settings sections
+        if (this.elements.apiKeyStatus) {
+            this.elements.apiKeyStatus.textContent = message;
+            this.elements.apiKeyStatus.className = `api-key-status ${type}`;
+            this.elements.apiKeyStatus.style.display = 'block';
+        }
     },
 
+    /**
+     * Show API key required notification
+     */
     showApiKeyNotification() {
-        this.elements.apiKeyNotification.style.display = 'block';
+        if (this.elements.apiKeyNotification) {
+            this.elements.apiKeyNotification.style.display = 'block';
+        }
     },
 
+    /**
+     * Hide API key required notification
+     */
     hideApiKeyNotification() {
-        this.elements.apiKeyNotification.style.display = 'none';
+        if (this.elements.apiKeyNotification) {
+            this.elements.apiKeyNotification.style.display = 'none';
+        }
     },
 
-    // Public method to check if API key is available before making requests
+    /**
+     * Check if API key is available before making requests
+     */
     async checkApiKeyBeforeRequest() {
-        const hasKey = await Storage.hasApiKey();
+        const hasKey = Storage.hasApiKey();
         if (!hasKey) {
             this.showApiKeyNotification();
             return false;
@@ -256,195 +327,22 @@ const Settings = {
         return true;
     },
 
-    // Get API key for API requests
+    /**
+     * Get API key for API requests
+     */
     async getApiKeyForRequest() {
-        return await Storage.getApiKey();
+        return Storage.getApiKey();
     },
 
-    // Passphrase modal methods
-    async promptForPassphrase(mode = 'unlock', isMigration = false) {
-        return new Promise((resolve) => {
-            const modal = UI.elements.passphraseModal;
-            const input = UI.elements.passphraseInput;
-            const title = UI.elements.passphraseModalTitle;
-            const description = UI.elements.passphraseModalDescription;
-            const submitBtn = UI.elements.passphraseSubmitBtn;
-            const cancelBtn = UI.elements.passphraseCancelBtn;
-            const forgotBtn = UI.elements.forgotPassphraseBtn;
-            const strengthIndicator = UI.elements.passphraseStrengthIndicator;
-            const options = UI.elements.passphraseOptions;
-            const statusDiv = UI.elements.passphraseStatus;
-
-            // Configure modal based on mode
-            if (mode === 'create') {
-                title.textContent = isMigration ? 'Migrate to Encrypted Storage' : 'Create Passphrase';
-                description.textContent = isMigration
-                    ? 'Create a passphrase to encrypt your existing API keys'
-                    : 'Create a passphrase to protect your API keys';
-                submitBtn.textContent = 'Create';
-                strengthIndicator.style.display = 'block';
-                options.style.display = 'block';
-                forgotBtn.style.display = 'none';
-            } else {
-                title.textContent = 'Unlock App';
-                description.textContent = 'Enter your passphrase to unlock your encrypted API keys';
-                submitBtn.textContent = 'Unlock';
-                strengthIndicator.style.display = 'none';
-                options.style.display = 'block'; // Show "Remember for 7 days" in unlock mode
-                forgotBtn.style.display = 'block';
-            }
-
-            // Clear previous state
-            input.value = '';
-            statusDiv.className = 'passphrase-status';
-            statusDiv.style.display = 'none';
-
-            // Show modal
-            modal.style.display = 'flex';
-            setTimeout(() => input.focus(), 100);
-
-            // Input validation for create mode
-            const handleInput = () => {
-                if (mode === 'create') {
-                    const strength = CryptoUtils.checkPassphraseStrength(input.value);
-                    UI.elements.strengthBarFill.setAttribute('data-score', strength.score);
-                    UI.elements.strengthLabel.textContent = strength.label;
-                    UI.elements.strengthFeedback.textContent = strength.feedback;
-                    submitBtn.disabled = !strength.isAcceptable;
-                }
-            };
-
-            input.addEventListener('input', handleInput);
-
-            // Handle submit
-            const handleSubmit = async () => {
-                const passphrase = input.value;
-
-                if (!passphrase) {
-                    this.showPassphraseStatus('Please enter a passphrase', 'error');
-                    return;
-                }
-
-                if (mode === 'create') {
-                    const strength = CryptoUtils.checkPassphraseStrength(passphrase);
-                    if (!strength.isAcceptable) {
-                        this.showPassphraseStatus('Passphrase is too weak', 'error');
-                        return;
-                    }
-
-                    // Set passphrase in storage
-                    const rememberFor7Days = UI.elements.rememberPassphraseCheckbox.checked;
-                    await Storage.setSessionPassphrase(passphrase, rememberFor7Days);
-
-                    // Migrate existing keys if needed
-                    if (isMigration) {
-                        await Storage.migratePlainTextKeys(passphrase);
-                    }
-
-                    cleanup();
-                    modal.style.display = 'none';
-                    resolve(passphrase);
-                } else {
-                    // Unlock mode - verify passphrase
-                    try {
-                        const encrypted = localStorage.getItem('anthropicApiKey_encrypted');
-
-                        if (encrypted) {
-                            // Try to decrypt to verify passphrase
-                            await CryptoUtils.decrypt(encrypted, passphrase);
-
-                            // Success - set session passphrase
-                            const rememberFor7Days = UI.elements.rememberPassphraseCheckbox.checked;
-                            await Storage.setSessionPassphrase(passphrase, rememberFor7Days);
-
-                            cleanup();
-                            modal.style.display = 'none';
-                            resolve(passphrase);
-                        } else {
-                            this.showPassphraseStatus('No encrypted data found', 'error');
-                        }
-                    } catch (error) {
-                        this.showPassphraseStatus('Incorrect passphrase', 'error');
-                        input.value = '';
-                        input.focus();
-                    }
-                }
-            };
-
-            // Handle cancel
-            const handleCancel = () => {
-                cleanup();
-                modal.style.display = 'none';
-                resolve(null);
-            };
-
-            // Handle forgot passphrase
-            const handleForgot = () => {
-                if (confirm('Reset passphrase? This will delete your encrypted API keys. You will need to re-enter them.')) {
-                    Storage.deleteApiKey();
-                    Storage.clearStoredPassphrase();
-                    localStorage.removeItem('encryptionEnabled');
-                    cleanup();
-                    modal.style.display = 'none';
-                    alert('Encryption reset. Please enter your API keys again.');
-                    resolve(null);
-                }
-            };
-
-            // Show/hide passphrase
-            const handleShowHide = () => {
-                if (input.type === 'password') {
-                    input.type = 'text';
-                    UI.elements.passphraseShowHideBtn.textContent = '🙈';
-                } else {
-                    input.type = 'password';
-                    UI.elements.passphraseShowHideBtn.textContent = '👁️';
-                }
-            };
-
-            // Enter key to submit
-            const handleKeyPress = (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleSubmit();
-                }
-            };
-
-            // Bind events
-            submitBtn.addEventListener('click', handleSubmit);
-            cancelBtn.addEventListener('click', handleCancel);
-            forgotBtn.addEventListener('click', handleForgot);
-            UI.elements.passphraseShowHideBtn.addEventListener('click', handleShowHide);
-            input.addEventListener('keypress', handleKeyPress);
-
-            // Cleanup function
-            const cleanup = () => {
-                submitBtn.removeEventListener('click', handleSubmit);
-                cancelBtn.removeEventListener('click', handleCancel);
-                forgotBtn.removeEventListener('click', handleForgot);
-                UI.elements.passphraseShowHideBtn.removeEventListener('click', handleShowHide);
-                input.removeEventListener('keypress', handleKeyPress);
-                input.removeEventListener('input', handleInput);
-            };
-        });
-    },
-
-    showPassphraseStatus(message, type) {
-        const statusDiv = UI.elements.passphraseStatus;
-        statusDiv.textContent = message;
-        statusDiv.className = `passphrase-status ${type}`;
-        statusDiv.style.display = 'block';
-    },
-
-    async updateUI() {
-        const hasApiKey = await Storage.hasApiKey();
+    /**
+     * Update UI based on current settings state
+     */
+    updateUI() {
+        const hasApiKey = Storage.hasApiKey();
 
         // Update delete button state
-        this.elements.deleteApiKeyBtn.style.display = hasApiKey ? 'block' : 'none';
-
-        // Show/hide lock button based on encryption
-        if (Storage.isEncryptionEnabled() && UI.elements.lockBtn) {
-            UI.elements.lockBtn.style.display = 'flex';
+        if (this.elements.deleteApiKeyBtn) {
+            this.elements.deleteApiKeyBtn.style.display = hasApiKey ? 'block' : 'none';
         }
 
         // Check if we need to show the notification
@@ -452,6 +350,64 @@ const Settings = {
             this.showApiKeyNotification();
         } else {
             this.hideApiKeyNotification();
+        }
+    },
+
+    /**
+     * Generic method to save a setting (for future expansion)
+     */
+    async saveSetting(key, value) {
+        const config = SETTINGS_CONFIG[key];
+        if (!config) {
+            console.error(`Unknown setting: ${key}`);
+            return false;
+        }
+
+        // Validate
+        if (config.validator && !config.validator(value)) {
+            this.showStatus(`Invalid ${config.label}`, 'error', key);
+            return false;
+        }
+
+        // Save
+        try {
+            if (config.storage === 'anthropicApiKey') {
+                // Use legacy API key storage
+                Storage.saveApiKey(value);
+            } else {
+                // Use generic storage for other settings
+                Storage.saveSetting(config.storage || key, value);
+            }
+
+            this.settings[key] = value;
+            this.showStatus(`${config.label} saved`, 'success', key);
+            return true;
+        } catch (error) {
+            console.error(`Error saving ${key}:`, error);
+            this.showStatus(`Error saving ${config.label}`, 'error', key);
+            return false;
+        }
+    },
+
+    /**
+     * Generic method to load a setting (for future expansion)
+     */
+    async loadSetting(key, defaultValue = null) {
+        const config = SETTINGS_CONFIG[key];
+        if (!config) {
+            console.error(`Unknown setting: ${key}`);
+            return defaultValue;
+        }
+
+        try {
+            if (config.storage === 'anthropicApiKey') {
+                return Storage.getApiKey() || defaultValue;
+            } else {
+                return Storage.getSetting(config.storage || key, defaultValue);
+            }
+        } catch (error) {
+            console.error(`Error loading ${key}:`, error);
+            return defaultValue;
         }
     }
 };

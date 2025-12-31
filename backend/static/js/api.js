@@ -5,20 +5,17 @@ const API = {
     currentAbortController: null,
     
     async sendMessage(message, history, systemPrompt, files = [], screenshotData = null) {
-        // Check if API key is available before making request
-        const hasApiKey = await Settings.checkApiKeyBeforeRequest();
-        if (!hasApiKey) {
-            throw new Error('API key required');
-        }
-
         // Create new AbortController for this request
         this.currentAbortController = new AbortController();
 
         // Get tools configuration
         const tools = Tools.getToolsConfig();
 
-        // Get API key for request
-        const apiKey = await Settings.getApiKeyForRequest();
+        // Get API key from localStorage
+        const apiKey = localStorage.getItem('anthropicApiKey');
+        if (!apiKey) {
+            throw new Error('API key not found. Please add your API key.');
+        }
 
         // Prepare message content - include screenshot if present
         let messageContent = message;

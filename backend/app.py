@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
 
 import anthropic
-from flask import Flask, render_template, request, jsonify, Response
+from flask import Flask, render_template, request, jsonify, Response, redirect, url_for, make_response
 import json
 import os
 import base64
 import logging
 import sys
+from datetime import datetime, timedelta
+from functools import wraps
+from dotenv import load_dotenv
+from authlib.integrations.flask_client import OAuth
+import jwt
+
+# Load environment variables
+load_dotenv()
 
 # Configure logging to stdout for serverless environment
 logging.basicConfig(
@@ -15,9 +23,30 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 
-app = Flask(__name__, 
+app = Flask(__name__,
             static_folder='static',
             template_folder='templates')
+
+# Configuration
+app.config['SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-secret-key-change-in-production')
+app.config['GOOGLE_CLIENT_ID'] = os.getenv('GOOGLE_CLIENT_ID')
+app.config['GOOGLE_CLIENT_SECRET'] = os.getenv('GOOGLE_CLIENT_SECRET')
+app.config['APP_URL'] = os.getenv('APP_URL', 'http://localhost:5000')
+
+# Initialize OAuth
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id=app.config['GOOGLE_CLIENT_ID'],
+    client_secret=app.config['GOOGLE_CLIENT_SECRET'],
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={
+        'scope': 'openid email profile',
+        'prompt': 'select_account'
+    }
+)
+
+# API keys are now stored client-side in localStorage
 
 # Add request logging
 @app.before_request
@@ -38,11 +67,11 @@ def add_security_headers(response):
         "script-src 'self' 'unsafe-inline'; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https:; "
-        "connect-src 'self' https://api.anthropic.com; "
+        "connect-src 'self' https://api.anthropic.com https://accounts.google.com; "
         "font-src 'self'; "
         "object-src 'none'; "
         "base-uri 'self'; "
-        "form-action 'self'; "
+        "form-action 'self' https://accounts.google.com; "
         "frame-ancestors 'none'; "
         "upgrade-insecure-requests;"
     )
@@ -59,6 +88,45 @@ def add_security_headers(response):
     # response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
 
     return response
+
+# JWT Helper Functions
+def create_jwt_token(user_data):
+    """Create a JWT token for authenticated user"""
+    payload = {
+        'google_id': user_data['google_id'],
+        'email': user_data['email'],
+        'name': user_data.get('name', ''),
+        'picture': user_data.get('picture', ''),
+        'exp': datetime.utcnow() + timedelta(days=7)  # 7 day expiration
+    }
+    return jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
+
+def decode_jwt_token(token):
+    """Decode and verify JWT token"""
+    try:
+        payload = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+def get_current_user():
+    """Get current user from JWT token in cookie"""
+    token = request.cookies.get('auth_token')
+    if not token:
+        return None
+    return decode_jwt_token(token)
+
+def login_required(f):
+    """Decorator to require authentication for endpoints"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user = get_current_user()
+        if user is None:
+            return jsonify({'error': 'Authentication required'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Initialize client without API key - will be set per request
 # Enable PDF support and 1M token context window
@@ -123,20 +191,90 @@ def process_files(files):
     
     return content_parts, text_files_content
 
+# Authentication Routes
+@app.route('/auth/login')
+def auth_login():
+    """Initiate Google OAuth login"""
+    redirect_uri = url_for('auth_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+@app.route('/auth/callback')
+def auth_callback():
+    """Handle Google OAuth callback"""
+    try:
+        token = google.authorize_access_token()
+        user_info = token.get('userinfo')
+
+        if not user_info:
+            return redirect('/?error=auth_failed')
+
+        # Create user data
+        user_data = {
+            'google_id': user_info['sub'],
+            'email': user_info['email'],
+            'name': user_info.get('name', ''),
+            'picture': user_info.get('picture', '')
+        }
+
+        # Create JWT token
+        jwt_token = create_jwt_token(user_data)
+
+        # Create response and set cookie
+        response = make_response(redirect('/'))
+        response.set_cookie(
+            'auth_token',
+            jwt_token,
+            max_age=60*60*24*7,  # 7 days
+            httponly=True,
+            secure=request.is_secure,  # HTTPS only in production
+            samesite='Lax'
+        )
+
+        return response
+
+    except Exception as e:
+        logging.error(f"OAuth callback error: {e}")
+        return redirect('/?error=auth_failed')
+
+@app.route('/auth/logout')
+def auth_logout():
+    """Logout user and clear session"""
+    response = make_response(redirect('/'))
+    response.set_cookie('auth_token', '', max_age=0)
+    return response
+
+@app.route('/auth/status')
+def auth_status():
+    """Check if user is authenticated and get user info"""
+    user = get_current_user()
+    if user:
+        return jsonify({
+            'authenticated': True,
+            'user': {
+                'email': user['email'],
+                'name': user['name'],
+                'picture': user.get('picture', '')
+            }
+        })
+    return jsonify({'authenticated': False})
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    """Serve landing page or app based on authentication"""
+    user = get_current_user()
+    if user:
+        return render_template('app.html')
+    else:
+        return render_template('landing.html')
 
 @app.route('/chat', methods=['POST'])
+@login_required
 def chat():
-    # Get API key from request headers
+    # Get API key from request headers (sent from client localStorage)
     api_key = request.headers.get('X-API-Key')
+
     if not api_key:
-        # Fallback to environment variable for backward compatibility
-        api_key = os.getenv('ANTHROPIC_API_KEY')
-    
-    if not api_key:
-        return jsonify({'error': 'API key required. Please add your Anthropic API key in Settings.'}), 401
+        return jsonify({'error': 'API key required. Please add your Anthropic API key.'}), 401
 
     # Create client with the provided API key
     try:

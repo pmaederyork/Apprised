@@ -42,25 +42,6 @@ const UI = {
         screenshareToggle: document.getElementById('screenshareToggle'),
         screensharePreviewContainer: document.getElementById('screensharePreviewContainer'),
         screensharePreviewImage: document.getElementById('screensharePreviewImage'),
-        // Passphrase modal elements
-        lockBtn: document.getElementById('lockBtn'),
-        passphraseModal: document.getElementById('passphraseModal'),
-        passphraseModalTitle: document.getElementById('passphraseModalTitle'),
-        passphraseModalDescription: document.getElementById('passphraseModalDescription'),
-        passphraseInput: document.getElementById('passphraseInput'),
-        passphraseShowHideBtn: document.getElementById('passphraseShowHideBtn'),
-        passphraseStrengthIndicator: document.getElementById('passphraseStrengthIndicator'),
-        strengthBarFill: document.getElementById('strengthBarFill'),
-        strengthLabel: document.getElementById('strengthLabel'),
-        strengthFeedback: document.getElementById('strengthFeedback'),
-        passphraseOptions: document.getElementById('passphraseOptions'),
-        rememberPassphraseCheckbox: document.getElementById('rememberPassphraseCheckbox'),
-        passphraseSubmitBtn: document.getElementById('passphraseSubmitBtn'),
-        passphraseCancelBtn: document.getElementById('passphraseCancelBtn'),
-        forgotPassphraseBtn: document.getElementById('forgotPassphraseBtn'),
-        passphraseStatus: document.getElementById('passphraseStatus'),
-        lockedOverlay: document.getElementById('lockedOverlay'),
-        unlockBtn: document.getElementById('unlockBtn'),
         // Claude change review panel elements
         documentChangeReview: document.getElementById('documentChangeReview'),
         prevChangeBtn: document.getElementById('prevChangeBtn'),
@@ -75,7 +56,14 @@ const UI = {
         // Multi-agent elements
         agentSelector: document.getElementById('agentSelector'),
         addAgentBtn: document.getElementById('addAgentBtn'),
-        turnsSelector: document.getElementById('turnsSelector')
+        turnsSelector: document.getElementById('turnsSelector'),
+        // User menu elements
+        userProfile: document.getElementById('userProfile'),
+        userAvatarFooter: document.getElementById('userAvatarFooter'),
+        userNameFooter: document.getElementById('userNameFooter'),
+        userMenuDropdown: document.getElementById('userMenuDropdown'),
+        menuSettings: document.getElementById('menuSettings'),
+        menuLogout: document.getElementById('menuLogout')
     },
 
     // Helper function to strip document edit XML from chat display

@@ -57,7 +57,7 @@ const App = {
         }
     },
 
-    // Initialize all modules
+    // Initialize all modules (exported for Auth module to call after setup)
     initializeModules() {
         // Initialize system prompts first (needed for chat)
         try {
@@ -185,11 +185,6 @@ const App = {
                 Chat.createNewChat();
             }
 
-            // Ctrl/Cmd + L for lock
-            if ((e.ctrlKey || e.metaKey) && e.key === 'l' && Storage.isEncryptionEnabled()) {
-                e.preventDefault();
-                this.lock();
-            }
         });
 
         // Handle window resize
@@ -204,52 +199,16 @@ const App = {
             }
         });
 
-        // Reset inactivity timer on user activity
-        const resetTimer = () => {
-            if (Storage.sessionPassphrase) {
-                Storage.resetInactivityTimer();
-            }
-        };
-
-        // Track user activity to reset auto-lock timer
-        document.addEventListener('mousemove', resetTimer, { passive: true });
-        document.addEventListener('keypress', resetTimer, { passive: true });
-        document.addEventListener('click', resetTimer, { passive: true });
-
         // Error handling for unhandled promise rejections
         window.addEventListener('unhandledrejection', (event) => {
             console.error('Unhandled promise rejection:', event.reason);
             this.showError('An unexpected error occurred. Please try again.');
-        });
-
-        // Lock button
-        UI.elements.lockBtn?.addEventListener('click', () => {
-            this.lock();
-        });
-
-        // Unlock button
-        UI.elements.unlockBtn?.addEventListener('click', () => {
-            this.unlock();
         });
     },
 
     // Load initial application state
     async loadInitialState() {
         try {
-            // Check if app needs to be unlocked on startup
-            if (Storage.isLocked()) {
-                // Try to auto-unlock with stored passphrase
-                const storedPassphrase = await Storage.getStoredPassphrase();
-                if (storedPassphrase) {
-                    await Storage.setSessionPassphrase(storedPassphrase, false);
-                    console.log('Auto-unlocked with stored passphrase');
-                } else {
-                    // Show locked overlay
-                    this.showLockedOverlay();
-                    return;
-                }
-            }
-
             // Render system prompts list
             SystemPrompts.render();
 
@@ -265,11 +224,6 @@ const App = {
                 // Load the most recent chat
                 const sortedChats = Object.values(chats).sort((a, b) => b.createdAt - a.createdAt);
                 Chat.loadChat(sortedChats[0].id);
-            }
-
-            // Show lock button if encryption is enabled
-            if (Storage.isEncryptionEnabled() && UI.elements.lockBtn) {
-                UI.elements.lockBtn.style.display = 'flex';
             }
         } catch (error) {
             console.error('Failed to load initial state:', error);
@@ -354,67 +308,29 @@ const App = {
                 successDiv.remove();
             }
         }, 3000);
-    },
-
-    // Lock application
-    lock() {
-        if (!Storage.isEncryptionEnabled()) {
-            return;
-        }
-
-        // Clear session passphrase
-        Storage.clearSession();
-
-        // Show locked overlay
-        this.showLockedOverlay();
-
-        this.showSuccess('App locked securely');
-    },
-
-    // Unlock application
-    async unlock() {
-        const passphrase = await Settings.promptForPassphrase('unlock');
-
-        if (passphrase) {
-            // Hide locked overlay
-            this.hideLockedOverlay();
-
-            // Reload UI
-            await this.loadInitialState();
-
-            this.showSuccess('App unlocked');
-        }
-    },
-
-    // Handle auto-lock (called from Storage timeout)
-    handleAutoLock() {
-        console.log('Auto-lock triggered');
-        this.showLockedOverlay();
-        this.showError('App auto-locked due to inactivity');
-    },
-
-    // Show locked overlay
-    showLockedOverlay() {
-        if (UI.elements.lockedOverlay) {
-            UI.elements.lockedOverlay.style.display = 'flex';
-        }
-    },
-
-    // Hide locked overlay
-    hideLockedOverlay() {
-        if (UI.elements.lockedOverlay) {
-            UI.elements.lockedOverlay.style.display = 'none';
-        }
-    },
+    }
 
 };
 
 // Initialize the app when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => App.init());
-} else {
-    App.init();
+// First check authentication, then initialize app
+async function startApp() {
+    // Check authentication first
+    const isAuthenticated = await Auth.init();
+
+    // Only initialize main app if user is fully authenticated
+    if (isAuthenticated) {
+        App.init();
+    }
 }
 
-// Make App available globally for debugging
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => startApp());
+} else {
+    startApp();
+}
+
+// Make App and Auth available globally for debugging
 window.App = App;
+window.Auth = Auth;
+window.initializeModules = () => App.initializeModules();
