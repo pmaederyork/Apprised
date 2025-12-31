@@ -1,0 +1,178 @@
+/*
+ * System Prompt Generator Styling
+ * Uses variables.css for all values to maintain design system consistency
+ */
+
+/* Prompt Generator Bar Container */
+.prompt-generator-bar {
+    background: var(--color-bg-input);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-4);
+    overflow: visible;
+}
+
+/* Collapsible Header */
+.generator-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    cursor: pointer;
+    background: var(--color-bg-subtle);
+    border-bottom: 1px solid var(--color-border);
+    transition: background 0.2s ease;
+}
+
+.generator-header:hover {
+    background: var(--color-sidebar-hover);
+}
+
+.generator-header .collapse-icon {
+    font-size: var(--text-xs);
+    transition: transform 0.2s ease;
+    color: var(--color-text-secondary);
+}
+
+.generator-header .collapse-icon.collapsed {
+    transform: rotate(-90deg);
+}
+
+.generator-title {
+    font-size: var(--text-xs);
+    font-weight: var(--font-semibold);
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Generator Content Area */
+.generator-content {
+    padding: var(--space-4);
+    display: block;
+}
+
+.generator-content.collapsed {
+    display: none;
+}
+
+/* Top Row: Label + Buttons */
+.generator-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-2);
+}
+
+.generator-label {
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--color-text-secondary);
+    margin: 0;
+    flex-shrink: 0;
+}
+
+/* Description Input Textarea */
+.prompt-description-input {
+    width: 100%;
+    padding: var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    color: var(--color-text-primary);
+    resize: vertical;
+    min-height: 60px;
+    background: var(--color-bg-white);
+    margin-bottom: var(--space-2);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.prompt-description-input::placeholder {
+    color: var(--color-text-tertiary);
+}
+
+.prompt-description-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--ring-primary);
+}
+
+/* Action Buttons */
+.generator-actions {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+}
+
+.generate-btn {
+    background: var(--color-primary);
+    color: var(--color-bg-white);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-5);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.generate-btn:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.generate-btn:disabled {
+    background: var(--color-bg-disabled);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.clear-description-btn {
+    background: var(--color-bg-subtle);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.clear-description-btn:hover {
+    background: var(--color-border);
+}
+
+/* Status Messages */
+.generator-status {
+    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+}
+
+.generator-status.loading {
+    background: var(--color-bg-subtle);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+}
+
+.generator-status.success {
+    background: var(--color-success-bg);
+    color: var(--color-success-darker);
+    border: 1px solid var(--color-success-border);
+}
+
+.generator-status.error {
+    background: var(--color-error-bg-light);
+    color: var(--color-error);
+    border: 1px solid var(--color-error-border);
+}

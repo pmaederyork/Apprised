@@ -66,7 +66,15 @@ const App = {
         } catch (error) {
             console.error('Failed to initialize SystemPrompts:', error);
         }
-        
+
+        // Initialize prompt generator (depends on SystemPrompts)
+        try {
+            PromptGenerator.init();
+            console.log('PromptGenerator module initialized');
+        } catch (error) {
+            console.error('Failed to initialize PromptGenerator:', error);
+        }
+
         // Initialize documents module
         try {
             Documents.init();

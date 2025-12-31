@@ -18,6 +18,11 @@ Apprised is a feature-rich web application for conversing with Claude AI. It ext
 ### Chat & Conversations
 
 - **Multi-Agent System**: Create multiple AI agents with different system prompts (e.g., "Writer", "Editor", "Critic") and add them to conversations for collaborative reasoning
+- **AI-Powered Prompt Generation**: Generate comprehensive system prompts from natural language descriptions
+  - Collapsible generation bar in agent editor
+  - Auto-generates agent names (1-3 words)
+  - Real-time streaming generation
+  - Keyboard shortcut: `Ctrl/Cmd+Enter`
 - **Multi-Turn Reasoning**: Configure 1-10 turn iterations for extended AI problem-solving and iterative refinement
 - **Real-time Streaming**: Stream responses with live typing animation and `Ctrl+C` interrupt capability
 - **Chat Management**: Create, rename, delete, and switch between multiple conversations with persistent history
@@ -99,7 +104,13 @@ Apprised is a feature-rich web application for conversing with Claude AI. It ext
 1. **Create an Agent** (optional, or use default)
    - Expand "AGENTS" section in sidebar
    - Click "+" to add new agent
-   - Write system prompt defining agent's role/personality
+   - **Option A**: Use AI generation
+     - Expand "GENERATE SYSTEM PROMPT" bar
+     - Describe what you want the agent to do (e.g., "A Python expert that helps debug code")
+     - Click "Generate" or press `Ctrl/Cmd+Enter`
+     - AI generates both agent name and comprehensive system prompt
+   - **Option B**: Write manually
+     - Write system prompt defining agent's role/personality in the textarea
    - Click "Save"
 
 2. **Start Chatting**
@@ -161,6 +172,11 @@ Apprised is a feature-rich web application for conversing with Claude AI. It ext
 | `Cmd/Ctrl+N` | New chat |
 | `Tab` | Copy Claude's last response to open document |
 
+### Agent Editor
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl/Cmd+Enter` | Generate system prompt from description |
+
 ### Document Editor
 | Shortcut | Action |
 |----------|--------|
@@ -206,7 +222,7 @@ Apprised/
 │       │   ├── editor-changes.css # AI change review panel
 │       │   ├── components.css     # Reusable component styles
 │       │   └── buttons.css        # Button styles & states
-│       ├── js/               # JavaScript modules (15 files)
+│       ├── js/               # JavaScript modules (16 files)
 │       │   ├── app.js             # Application initialization
 │       │   ├── ui.js              # DOM references & utilities
 │       │   ├── storage.js         # localStorage wrapper
@@ -215,6 +231,7 @@ Apprised/
 │       │   ├── chat.js            # Chat management
 │       │   ├── agents.js          # Multi-agent system
 │       │   ├── systemPrompts.js   # Agent/prompt management
+│       │   ├── promptGenerator.js # AI-powered prompt generation
 │       │   ├── documents.js       # Document editor
 │       │   ├── claude-changes.js  # AI change review system
 │       │   ├── files.js           # File upload & paste handling
@@ -231,11 +248,12 @@ Apprised/
 
 **Initialization Order (app.js):**
 1. **SystemPrompts** → Agent/prompt management
-2. **Documents** → Document editor system
-3. **Chat** → Core messaging functionality
-4. **Tools** → Feature toggles
-5. **Files** → Upload & paste handling
-6. **Settings** → API configuration
+2. **PromptGenerator** → AI-powered prompt generation (depends on SystemPrompts)
+3. **Documents** → Document editor system
+4. **Chat** → Core messaging functionality
+5. **Tools** → Feature toggles
+6. **Files** → Upload & paste handling
+7. **Settings** → API configuration
 
 **Core Modules:**
 - `app.js` - Application orchestration & initialization
@@ -248,6 +266,7 @@ Apprised/
 - `chat.js` - Chat management (CRUD, messaging, streaming, UI)
 - `agents.js` - Multi-agent system and selector UI
 - `systemPrompts.js` - Agent/prompt creation, editing, and management
+- `promptGenerator.js` - AI-powered system prompt generation from natural language
 - `documents.js` - Document editor with markdown toolbar and smart paste
 - `claude-changes.js` - AI change review system with visual highlighting
 - `files.js` - File upload and focus-aware paste routing
@@ -361,9 +380,10 @@ python3 app.py
 
 ## Version History
 
-- **Version**: 3.0
+- **Version**: 3.1
 - **Refactored**: December 2024
 - **Major Updates**:
+  - **AI-powered prompt generation** - Generate system prompts from natural language
   - Multi-agent system with agent selector
   - Multi-turn conversation support
   - Full document editor with AI collaboration

@@ -63,7 +63,16 @@ const UI = {
         userNameFooter: document.getElementById('userNameFooter'),
         userMenuDropdown: document.getElementById('userMenuDropdown'),
         menuSettings: document.getElementById('menuSettings'),
-        menuLogout: document.getElementById('menuLogout')
+        menuLogout: document.getElementById('menuLogout'),
+        // Prompt generator elements
+        promptGeneratorBar: document.getElementById('promptGeneratorBar'),
+        generatorHeader: document.getElementById('generatorHeader'),
+        generatorCollapse: document.getElementById('generatorCollapse'),
+        generatorContent: document.getElementById('generatorContent'),
+        promptDescriptionInput: document.getElementById('promptDescriptionInput'),
+        generatePromptBtn: document.getElementById('generatePromptBtn'),
+        clearDescriptionBtn: document.getElementById('clearDescriptionBtn'),
+        generatorStatus: document.getElementById('generatorStatus')
     },
 
     // Helper function to strip document edit XML from chat display

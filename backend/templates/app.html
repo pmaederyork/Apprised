@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="/static/css/components.css">
     <link rel="stylesheet" href="/static/css/buttons.css">
     <link rel="stylesheet" href="/static/css/auth.css">
+    <link rel="stylesheet" href="/static/css/prompt-generator.css">
 </head>
 <body>
     <!-- API Key Setup Screen -->
@@ -207,6 +208,36 @@
                 </div>
             </div>
             <div class="editor-content">
+                <!-- Prompt Generator Bar -->
+                <div class="prompt-generator-bar" id="promptGeneratorBar">
+                    <div class="generator-header" id="generatorHeader">
+                        <span class="collapse-icon" id="generatorCollapse">▼</span>
+                        <span class="generator-title">GENERATE SYSTEM PROMPT</span>
+                    </div>
+                    <div class="generator-content" id="generatorContent">
+                        <div class="generator-top-row">
+                            <label for="promptDescriptionInput" class="generator-label">
+                                Describe what you want this agent to do:
+                            </label>
+                            <div class="generator-actions">
+                                <button id="generatePromptBtn" class="generate-btn">
+                                    ✨ Generate
+                                </button>
+                                <button id="clearDescriptionBtn" class="clear-description-btn">
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+                        <textarea
+                            id="promptDescriptionInput"
+                            class="prompt-description-input"
+                            placeholder='e.g., "A Python expert that helps debug code and explain best practices"'
+                            rows="2"
+                        ></textarea>
+                        <div id="generatorStatus" class="generator-status" style="display: none;"></div>
+                    </div>
+                </div>
+
                 <textarea class="system-prompt-textarea" id="systemPromptTextarea" placeholder="Enter your system prompt here..."></textarea>
             </div>
         </div>
@@ -335,6 +366,7 @@
     <script src="/static/js/ui.js"></script>
     <script src="/static/js/chat.js"></script>
     <script src="/static/js/systemPrompts.js"></script>
+    <script src="/static/js/promptGenerator.js"></script>
     <script src="/static/js/agents.js"></script>
     <script src="/static/js/documents.js"></script>
     <script src="/static/js/claude-changes.js"></script>
