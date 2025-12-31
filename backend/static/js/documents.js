@@ -87,6 +87,20 @@ const Documents = {
 
         // Smart copy/paste functionality
         this.bindSmartCopyPaste();
+
+        // Google Drive buttons
+        UI.elements.saveToDriveBtn?.addEventListener('click', () => {
+            if (this.currentDocumentId) {
+                this.saveToDrive(this.currentDocumentId);
+            }
+        });
+
+        UI.elements.importFromDriveBtn?.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent section collapse
+            if (typeof GDrive !== 'undefined') {
+                GDrive.importFromGoogleDrive();
+            }
+        });
     },
 
     // Create a new document
@@ -330,6 +344,22 @@ const Documents = {
                     finalName.slice(0, -5) : finalName;
                 UI.elements.documentTitle.value = displayTitle;
             }
+        }
+    },
+
+    // Save document to Google Drive
+    async saveToDrive(documentId) {
+        if (typeof GDrive === 'undefined' || !GDrive.isConnected) {
+            const proceed = confirm('Google Drive is not connected. Would you like to enable Drive access now?');
+            if (proceed && typeof GDrive !== 'undefined') {
+                GDrive.reconnect();
+            }
+            return;
+        }
+
+        const result = await GDrive.saveToGoogleDrive(documentId);
+        if (result.success) {
+            this.renderDocumentList(); // Refresh to show sync status
         }
     },
 

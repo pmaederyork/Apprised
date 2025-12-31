@@ -132,6 +132,16 @@ const App = {
             console.error('Failed to initialize Settings:', error);
         }
 
+        // Initialize Google Drive module
+        try {
+            if (typeof GDrive !== 'undefined') {
+                GDrive.init();
+                console.log('GDrive module initialized');
+            }
+        } catch (error) {
+            console.error('Failed to initialize GDrive:', error);
+        }
+
         // Initialize help module
         try {
             Help.init();

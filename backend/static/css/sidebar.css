@@ -856,3 +856,35 @@
     margin-bottom: 0;
 }
 
+/* Google Drive Status in Settings */
+.gdrive-status-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: #f3f4f6;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.gdrive-status-icon {
+    font-size: 20px;
+}
+
+.gdrive-status-text {
+    font-size: 14px;
+    color: #374151;
+    font-weight: 500;
+}
+
+.gdrive-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.gdrive-help-text {
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.5;
+}

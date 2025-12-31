@@ -415,3 +415,110 @@
     background: var(--color-bg-off-white);
     transform: none;
 }
+
+/* Google Drive Buttons */
+.gdrive-connect-btn {
+    background: #4285f4;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s ease;
+    font-size: var(--text-sm);
+}
+
+.gdrive-connect-btn:hover {
+    background: #357ae8;
+}
+
+.gdrive-btn {
+    background: #4285f4 !important;
+    color: white !important;
+    border-color: #4285f4 !important;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px !important;
+}
+
+.gdrive-btn:hover {
+    background: #357ae8 !important;
+    border-color: #357ae8 !important;
+}
+
+.gdrive-btn:disabled {
+    background: #9ca3af !important;
+    border-color: #9ca3af !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Import from Drive Button */
+.import-drive-btn {
+    background: #34a853;
+    color: white;
+    border: none;
+    border-radius: var(--radius-full);
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.import-drive-btn:hover:not(:disabled) {
+    background: #2d8e47;
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.import-drive-btn:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-xs);
+}
+
+.import-drive-btn:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Drive Sync Indicator */
+.drive-sync-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+}
+
+.drive-sync-indicator.syncing {
+    color: #4285f4;
+    background: #e8f0fe;
+}
+
+.drive-sync-indicator.synced {
+    color: #34a853;
+    background: #e6f4ea;
+}
+
+.drive-sync-indicator.error {
+    color: #ea4335;
+    background: #fce8e6;
+}
+
+/* Toolbar Separator */
+.toolbar-separator {
+    width: 1px;
+    height: 24px;
+    background: var(--color-border);
+    margin: 0 8px;
+}

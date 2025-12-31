@@ -122,6 +122,15 @@ const Storage = {
         }
     },
 
+    // Google Drive connection status
+    getGoogleDriveConnected() {
+        return localStorage.getItem('googleDriveConnected') === 'true';
+    },
+
+    saveGoogleDriveConnected(connected) {
+        localStorage.setItem('googleDriveConnected', connected ? 'true' : 'false');
+    },
+
     // API Key storage - Plain text
     getApiKey() {
         return localStorage.getItem('anthropicApiKey') || null;

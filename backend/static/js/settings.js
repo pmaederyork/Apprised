@@ -70,6 +70,9 @@ const Settings = {
         this.elements.deleteApiKeyBtn = document.getElementById('deleteApiKeyBtn');
         this.elements.apiKeyNotification = document.getElementById('apiKeyNotification');
         this.elements.openSettingsFromNotification = document.getElementById('openSettingsFromNotification');
+        // Google Drive elements
+        this.elements.gdriveStatusContainer = document.getElementById('gdriveStatusContainer');
+        this.elements.gdriveConnectBtn = document.getElementById('gdriveConnectBtn');
     },
 
     /**
@@ -109,6 +112,13 @@ const Settings = {
         this.elements.openSettingsFromNotification?.addEventListener('click', () => {
             this.hideApiKeyNotification();
             this.openSettings();
+        });
+
+        // Google Drive connection
+        this.elements.gdriveConnectBtn?.addEventListener('click', () => {
+            if (typeof GDrive !== 'undefined') {
+                GDrive.reconnect();
+            }
         });
 
         // ESC key to close

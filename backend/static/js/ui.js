@@ -76,7 +76,15 @@ const UI = {
         // Help modal elements
         helpModal: document.getElementById('helpModal'),
         closeHelpBtn: document.getElementById('closeHelpBtn'),
-        appLogo: document.getElementById('appLogo')
+        appLogo: document.getElementById('appLogo'),
+        // Google Drive elements
+        gdriveStatusContainer: document.getElementById('gdriveStatusContainer'),
+        gdriveStatusIcon: document.getElementById('gdriveStatusIcon'),
+        gdriveStatusText: document.getElementById('gdriveStatusText'),
+        gdriveConnectBtn: document.getElementById('gdriveConnectBtn'),
+        saveToDriveBtn: document.getElementById('saveToDriveBtn'),
+        importFromDriveBtn: document.getElementById('importFromDriveBtn'),
+        driveSyncIndicator: document.getElementById('driveSyncIndicator')
     },
 
     // Helper function to strip document edit XML from chat display

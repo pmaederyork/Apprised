@@ -12,6 +12,7 @@ from functools import wraps
 from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
 import jwt
+import requests
 
 # Load environment variables
 load_dotenv()
@@ -29,6 +30,9 @@ app = Flask(__name__,
 
 # Configuration
 app.config['SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-secret-key-change-in-production')
+app.config['SESSION_TYPE'] = 'filesystem'  # Enable Flask sessions for Authlib
+app.config['SESSION_COOKIE_NAME'] = 'oauth_session'
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['GOOGLE_CLIENT_ID'] = os.getenv('GOOGLE_CLIENT_ID')
 app.config['GOOGLE_CLIENT_SECRET'] = os.getenv('GOOGLE_CLIENT_SECRET')
 app.config['APP_URL'] = os.getenv('APP_URL', 'http://localhost:5000')
@@ -41,8 +45,9 @@ google = oauth.register(
     client_secret=app.config['GOOGLE_CLIENT_SECRET'],
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={
-        'scope': 'openid email profile',
-        'prompt': 'select_account'
+        'scope': 'openid email profile https://www.googleapis.com/auth/drive',
+        'prompt': 'select_account',
+        'access_type': 'offline'  # Get refresh token for long-term access
     }
 )
 
@@ -64,14 +69,15 @@ def add_security_headers(response):
     # Content Security Policy - allows self and required external domains
     csp = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' https://apis.google.com; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https:; "
-        "connect-src 'self' https://api.anthropic.com https://accounts.google.com; "
+        "connect-src 'self' https://api.anthropic.com https://accounts.google.com https://www.googleapis.com; "
         "font-src 'self'; "
         "object-src 'none'; "
         "base-uri 'self'; "
         "form-action 'self' https://accounts.google.com; "
+        "frame-src https://accounts.google.com https://drive.google.com https://docs.google.com; "
         "frame-ancestors 'none'; "
         "upgrade-insecure-requests;"
     )
@@ -99,6 +105,11 @@ def create_jwt_token(user_data):
         'picture': user_data.get('picture', ''),
         'exp': datetime.utcnow() + timedelta(days=7)  # 7 day expiration
     }
+
+    # Include Google OAuth token if present
+    if 'google_token' in user_data:
+        payload['google_token'] = user_data['google_token']
+
     return jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
 
 def decode_jwt_token(token):
@@ -117,6 +128,18 @@ def get_current_user():
     if not token:
         return None
     return decode_jwt_token(token)
+
+def get_google_token_from_jwt():
+    """Extract Google OAuth token from JWT payload"""
+    token = request.cookies.get('auth_token')
+    if not token:
+        return None
+
+    payload = decode_jwt_token(token)
+    if not payload:
+        return None
+
+    return payload.get('google_token')
 
 def login_required(f):
     """Decorator to require authentication for endpoints"""
@@ -208,12 +231,18 @@ def auth_callback():
         if not user_info:
             return redirect('/?error=auth_failed')
 
-        # Create user data
+        # Create user data including Google OAuth token
         user_data = {
             'google_id': user_info['sub'],
             'email': user_info['email'],
             'name': user_info.get('name', ''),
-            'picture': user_info.get('picture', '')
+            'picture': user_info.get('picture', ''),
+            'google_token': {
+                'access_token': token.get('access_token'),
+                'refresh_token': token.get('refresh_token'),
+                'expires_at': token.get('expires_at'),
+                'scope': token.get('scope', '')
+            }
         }
 
         # Create JWT token
@@ -391,6 +420,168 @@ def chat():
     except Exception as e:
         logging.error(f"Chat endpoint error: {e}")
         return jsonify({'error': str(e)}), 500
+
+# ============================================
+# GOOGLE DRIVE API ENDPOINTS
+# ============================================
+
+@app.route('/drive/save', methods=['POST'])
+@login_required
+def drive_save():
+    """Save document to Google Drive"""
+    try:
+        data = request.json
+        document_title = data.get('title')
+        document_content = data.get('content')
+        drive_file_id = data.get('driveFileId')  # None for new files
+
+        # Get OAuth token from JWT
+        token = get_google_token_from_jwt()
+
+        if not token:
+            return jsonify({'success': False, 'error': 'Not connected to Google Drive'}), 401
+
+        # Prepare file metadata
+        metadata = {
+            'name': document_title,
+            'mimeType': 'application/vnd.google-apps.document'
+        }
+
+        if drive_file_id:
+            # Update existing file
+            url = f'https://www.googleapis.com/upload/drive/v3/files/{drive_file_id}?uploadType=multipart'
+            method = 'PATCH'
+        else:
+            # Create new file
+            url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart'
+            method = 'POST'
+
+        # Create multipart request
+        boundary = 'drive_boundary_12345'
+        body = f"""--{boundary}
+Content-Type: application/json; charset=UTF-8
+
+{json.dumps(metadata)}
+
+--{boundary}
+Content-Type: text/html
+
+{document_content}
+
+--{boundary}--"""
+
+        headers = {
+            'Authorization': f"Bearer {token['access_token']}",
+            'Content-Type': f'multipart/related; boundary={boundary}'
+        }
+
+        response = requests.request(method, url, headers=headers, data=body)
+
+        if response.status_code in [200, 201]:
+            file_data = response.json()
+            return jsonify({
+                'success': True,
+                'fileId': file_data['id'],
+                'name': file_data['name'],
+                'modifiedTime': file_data.get('modifiedTime')
+            })
+        else:
+            logging.error(f"Drive API error: {response.status_code} - {response.text}")
+            return jsonify({
+                'success': False,
+                'error': f"Drive API error: {response.status_code}"
+            }), response.status_code
+
+    except Exception as e:
+        logging.error(f"Drive save error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/drive/import/<file_id>', methods=['GET'])
+@login_required
+def drive_import(file_id):
+    """Import document from Google Drive"""
+    try:
+        # Get OAuth token from JWT
+        token = get_google_token_from_jwt()
+
+        if not token:
+            return jsonify({'success': False, 'error': 'Not connected to Google Drive'}), 401
+
+        # Export file as HTML
+        url = f'https://www.googleapis.com/drive/v3/files/{file_id}/export?mimeType=text/html'
+        headers = {'Authorization': f"Bearer {token['access_token']}"}
+
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            # Also get file metadata for name
+            metadata_url = f'https://www.googleapis.com/drive/v3/files/{file_id}?fields=name,modifiedTime'
+            metadata_response = requests.get(metadata_url, headers=headers)
+            metadata = metadata_response.json()
+
+            return jsonify({
+                'success': True,
+                'content': response.text,
+                'name': metadata.get('name', 'Untitled'),
+                'modifiedTime': metadata.get('modifiedTime')
+            })
+        else:
+            logging.error(f"Drive API error: {response.status_code} - {response.text}")
+            return jsonify({
+                'success': False,
+                'error': f"Drive API error: {response.status_code}"
+            }), response.status_code
+
+    except Exception as e:
+        logging.error(f"Drive import error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/drive/picker-token', methods=['GET'])
+@login_required
+def drive_picker_token():
+    """Get OAuth token for Google Picker (file selector)"""
+    try:
+        # Get OAuth token from JWT
+        token = get_google_token_from_jwt()
+
+        if not token:
+            return jsonify({'success': False, 'error': 'Not connected to Google Drive'}), 401
+
+        return jsonify({
+            'success': True,
+            'accessToken': token['access_token']
+        })
+    except Exception as e:
+        logging.error(f"Picker token error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/drive/status', methods=['GET'])
+@login_required
+def drive_status():
+    """Check if user has granted Drive access"""
+    try:
+        # Get OAuth token from JWT
+        token = get_google_token_from_jwt()
+        has_drive_access = False
+
+        if token:
+            # Check if token has Drive scope
+            scope = token.get('scope', '')
+            logging.info(f"Token scope: {scope}")
+            has_drive_access = 'drive' in scope.lower() if scope else False
+
+        logging.info(f"Drive access check: {has_drive_access}")
+
+        return jsonify({
+            'success': True,
+            'connected': has_drive_access
+        })
+    except Exception as e:
+        logging.error(f"Drive status error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # Health check endpoint
 @app.route('/health')
