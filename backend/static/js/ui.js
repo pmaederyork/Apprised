@@ -72,7 +72,11 @@ const UI = {
         promptDescriptionInput: document.getElementById('promptDescriptionInput'),
         generatePromptBtn: document.getElementById('generatePromptBtn'),
         clearDescriptionBtn: document.getElementById('clearDescriptionBtn'),
-        generatorStatus: document.getElementById('generatorStatus')
+        generatorStatus: document.getElementById('generatorStatus'),
+        // Help modal elements
+        helpModal: document.getElementById('helpModal'),
+        closeHelpBtn: document.getElementById('closeHelpBtn'),
+        appLogo: document.getElementById('appLogo')
     },
 
     // Helper function to strip document edit XML from chat display

@@ -131,7 +131,15 @@ const App = {
         } catch (error) {
             console.error('Failed to initialize Settings:', error);
         }
-        
+
+        // Initialize help module
+        try {
+            Help.init();
+            console.log('Help module initialized');
+        } catch (error) {
+            console.error('Failed to initialize Help:', error);
+        }
+
         console.log('Module initialization completed');
     },
 

@@ -347,6 +347,161 @@
             </div>
         </div>
 
+        <!-- Help Modal -->
+        <div class="settings-modal" id="helpModal" style="display: none;">
+            <div class="settings-modal-content">
+                <div class="settings-header">
+                    <h3>Apprised Chat - Help & Shortcuts</h3>
+                    <button class="close-settings-btn" id="closeHelpBtn">×</button>
+                </div>
+                <div class="settings-body">
+                    <!-- App Features Section - MOVED TO TOP -->
+                    <div class="settings-section">
+                        <h4 class="settings-section-title">✨ Key Features</h4>
+                        <div class="settings-section-content">
+                            <ul class="feature-list">
+                                <li><strong>Agent Document Editor:</strong> Ask agents to reformat, add, remove, and generate text</li>
+                                <li><strong>Review Edits:</strong> Preview, accept or reject inline edits made by agents</li>
+                                <li><strong>Multi-Agent System:</strong> Create custom agents with specialized system prompts</li>
+                                <li><strong>Multi-Turn Reasoning:</strong> Configure 1-10 reasoning turns for complex tasks</li>
+                                <li><strong>Web Search:</strong> Enable Claude to search the web for current information</li>
+                                <li><strong>File Upload:</strong> Attach images and documents to your messages</li>
+                                <li><strong>Screenshare:</strong> Capture and share screenshots with Claude</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Chat Shortcuts Section -->
+                    <div class="settings-section">
+                        <h4 class="settings-section-title">💬 Chat Shortcuts</h4>
+                        <div class="settings-section-content">
+                            <div class="shortcut-grid">
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Enter</span>
+                                    <span class="shortcut-description">Send message</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Shift + Enter</span>
+                                    <span class="shortcut-description">New line in message</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Tab</span>
+                                    <span class="shortcut-description">Copy latest Claude message to document</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">↑</span>
+                                    <span class="shortcut-description">Copy last user message to input</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Escape</span>
+                                    <span class="shortcut-description">Clear chat input</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Ctrl + C</span>
+                                    <span class="shortcut-description">Interrupt streaming response</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Document Editor Shortcuts Section -->
+                    <div class="settings-section">
+                        <h4 class="settings-section-title">📝 Document Editor Shortcuts</h4>
+                        <div class="settings-section-content">
+                            <div class="shortcut-grid">
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Ctrl/Cmd + B</span>
+                                    <span class="shortcut-description">Bold text</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Ctrl/Cmd + I</span>
+                                    <span class="shortcut-description">Italic text</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Ctrl/Cmd + 1/2/3</span>
+                                    <span class="shortcut-description">Header 1/2/3</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Ctrl/Cmd + L</span>
+                                    <span class="shortcut-description">Unordered list</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Ctrl + Shift + L</span>
+                                    <span class="shortcut-description">Ordered list</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Ctrl + Shift + X</span>
+                                    <span class="shortcut-description">Strikethrough</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Ctrl/Cmd + Z</span>
+                                    <span class="shortcut-description">Undo</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Ctrl/Cmd + Y</span>
+                                    <span class="shortcut-description">Redo</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Change Review Shortcuts Section -->
+                    <div class="settings-section">
+                        <h4 class="settings-section-title">🔍 AI Change Review Shortcuts</h4>
+                        <div class="settings-section-content">
+                            <div class="shortcut-grid">
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">← / →</span>
+                                    <span class="shortcut-description">Navigate changes</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Enter / Y</span>
+                                    <span class="shortcut-description">Accept current change</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Delete / N</span>
+                                    <span class="shortcut-description">Reject current change</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Ctrl/Cmd + A</span>
+                                    <span class="shortcut-description">Accept all changes</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Ctrl/Cmd + R</span>
+                                    <span class="shortcut-description">Reject all changes</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Escape</span>
+                                    <span class="shortcut-description">Cancel review and revert</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Global Shortcuts Section -->
+                    <div class="settings-section">
+                        <h4 class="settings-section-title">⚡ Global Shortcuts</h4>
+                        <div class="settings-section-content">
+                            <div class="shortcut-grid">
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Ctrl/Cmd + N</span>
+                                    <span class="shortcut-description">New chat</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Escape</span>
+                                    <span class="shortcut-description">Close modals/editors</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-key">Enter</span>
+                                    <span class="shortcut-description">Save inline edit</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- API Key Required Notification -->
         <div class="api-key-notification" id="apiKeyNotification" style="display: none;">
             <div class="notification-content">
@@ -374,6 +529,7 @@
     <script src="/static/js/screenshare.js"></script>
     <script src="/static/js/files.js"></script>
     <script src="/static/js/settings.js"></script>
+    <script src="/static/js/help.js"></script>
     <script src="/static/js/app.js"></script>
 </body>
 </html>

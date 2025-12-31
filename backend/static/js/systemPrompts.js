@@ -239,7 +239,7 @@ const SystemPrompts = {
     // Create a new system prompt
     createNew() {
         const promptId = Storage.generateSystemPromptId();
-        const promptName = 'Agent';
+        const promptName = 'New Agent';
 
         // Calculate max order to place new prompt at bottom
         const existingOrders = Object.values(this.state.systemPrompts).map(p => p.order || 0);
