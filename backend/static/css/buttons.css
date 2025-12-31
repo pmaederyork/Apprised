@@ -7,7 +7,7 @@
     border-radius: 6px;
     background: var(--color-bg-white);
     color: var(--color-text-primary);
-    font-size: 14px;
+    font-size: var(--text-sm);
     cursor: pointer;
     transition: background 0.2s ease;
     font-family: inherit;
@@ -154,7 +154,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--text-sm);
     padding: 0;
     margin: 0;
     border-radius: 0;
@@ -189,7 +189,7 @@
     border: 1px solid var(--color-border);
     border-radius: 4px;
     padding: 4px 8px;
-    font-size: 12px;
+    font-size: var(--text-xs);
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -221,7 +221,7 @@
     border-radius: 6px;
     background: var(--color-bg-white);
     color: var(--color-text-primary);
-    font-size: 14px;
+    font-size: var(--text-sm);
     cursor: pointer;
     transition: background 0.2s ease;
 }
@@ -247,7 +247,7 @@
     border-radius: 4px;
     background: var(--color-bg-white);
     color: var(--color-text-primary);
-    font-size: 12px;
+    font-size: var(--text-xs);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -307,7 +307,7 @@
     color: var(--color-text-secondary);
     border: 1px solid var(--color-border);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     cursor: pointer;
     transition: background 0.2s ease;
     display: flex;
@@ -327,7 +327,7 @@
     color: white;
     border: none;
     border-radius: var(--radius-lg);
-    font-size: 16px;
+    font-size: var(--text-base);
     font-weight: var(--font-semibold);
     cursor: pointer;
     transition: all 0.15s ease;
@@ -361,7 +361,7 @@
     border: 1px solid var(--color-primary);
     border-radius: 4px;
     padding: 2px 6px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--color-text-primary);
     font-family: inherit;
@@ -387,7 +387,7 @@
 
 /* Tool Indicator */
 .tool-indicator {
-    font-size: 14px;
+    font-size: var(--text-sm);
     padding: 4px 8px;
     border-radius: 4px;
     background: var(--color-bg-subtle);

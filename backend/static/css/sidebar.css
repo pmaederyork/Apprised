@@ -91,7 +91,7 @@
 }
 
 .user-profile .user-name {
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--color-text);
     display: block;
@@ -122,7 +122,7 @@
     border-radius: 8px;
     cursor: pointer;
     transition: background 0.2s ease;
-    font-size: 0.875rem;
+    font-size: var(--text-sm);
     color: #292524;
 }
 
@@ -182,7 +182,7 @@
 }
 
 .collapse-icon {
-    font-size: 12px;
+    font-size: var(--text-xs);
     transition: transform 0.2s ease;
 }
 
@@ -414,7 +414,7 @@
 }
 
 .tool-name {
-    font-size: 14px;
+    font-size: var(--text-sm);
     color: var(--color-text-secondary);
     font-weight: 500;
 }
@@ -471,7 +471,7 @@
     border: 1px solid var(--color-border);
     border-radius: 6px;
     padding: 8px 10px;
-    font-size: 16px;
+    font-size: var(--text-base);
     cursor: pointer;
     transition: all 0.2s ease;
     color: var(--color-text-secondary);
@@ -526,7 +526,7 @@
 
 .settings-header h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     color: var(--color-text-primary);
 }
@@ -534,7 +534,7 @@
 .close-settings-btn {
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: var(--text-2xl);
     cursor: pointer;
     color: #4a5568;
     padding: 0;
@@ -573,7 +573,7 @@
 
 .settings-section-title {
     margin: 0 0 16px 0;
-    font-size: 16px;
+    font-size: var(--text-base);
     font-weight: 600;
     color: var(--color-text-primary);
 }
@@ -584,7 +584,7 @@
 
 .settings-section-content label {
     display: block;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--color-text-secondary);
     margin-bottom: 8px;
@@ -599,7 +599,7 @@
 
 .api-key-section label {
     display: block;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     color: var(--color-text-secondary);
     margin-bottom: 8px;
@@ -618,7 +618,7 @@
     padding-right: 48px;
     border: 1px solid var(--color-border);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
     background: var(--color-bg-input);
     color: var(--color-text-secondary);
@@ -637,7 +637,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 16px;
+    font-size: var(--text-base);
     color: #4a5568;
     padding: 4px;
     border-radius: 4px;
@@ -650,7 +650,7 @@
 }
 
 .api-key-status {
-    font-size: 12px;
+    font-size: var(--text-xs);
     margin-bottom: 16px;
     padding: 8px 12px;
     border-radius: 6px;
@@ -687,7 +687,7 @@
     border: none;
     padding: 10px 16px;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -709,7 +709,7 @@
     border: 1px solid var(--color-border);
     padding: 10px 16px;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -738,7 +738,7 @@
 
 .notification-content h3 {
     margin: 0 0 12px 0;
-    font-size: 18px;
+    font-size: var(--text-lg);
     font-weight: 600;
     color: var(--color-text-primary);
 }
@@ -755,7 +755,7 @@
     border: none;
     padding: 12px 24px;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--text-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
