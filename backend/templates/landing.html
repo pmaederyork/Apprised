@@ -3,22 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apprised - AI-Powered Chat Assistant</title>
-    <meta name="description" content="Experience the power of AI with Apprised - your intelligent chat assistant powered by Claude">
+    <title>Apprised - Multi-Agent AI Conversations</title>
+    <meta name="description" content="Multi-agent AI collaboration meets intelligent document editing. Experience the future of AI-powered productivity with Apprised.">
     <link rel="icon" href="/static/icons/apprised.png" type="image/png">
     <link rel="stylesheet" href="/static/landing.css">
 </head>
 <body>
+    <!-- Particle Background -->
+    <canvas id="particleCanvas"></canvas>
+
     <div class="landing-container">
         <!-- Header -->
         <header class="landing-header">
             <div class="header-content">
                 <div class="logo">
                     <img src="/static/icons/apprised.png" alt="Apprised Logo">
-                    <span>Apprised</span>
+                    <span class="logo-text">Apprised</span>
                 </div>
                 <nav>
-                    <a href="/auth/login" class="btn-login">Sign In</a>
+                    <a href="#features" class="nav-link">Features</a>
+                    <a href="#showcase" class="nav-link">Showcase</a>
+                    <a href="/auth/login" class="btn-login">Launch App</a>
                 </nav>
             </div>
         </header>
@@ -26,59 +31,143 @@
         <!-- Hero Section -->
         <section class="hero">
             <div class="hero-content">
-                <h1>AI-Powered Conversations<br>Made Simple</h1>
+                <div class="hero-badge">
+                    <span class="badge-dot"></span>
+                    Multi-Agent AI Platform
+                </div>
+                <h1 class="hero-title">
+                    <span class="gradient-text">Multi-Agent AI</span>
+                    <br>Conversations.
+                    <br>One Unified Interface.
+                </h1>
                 <p class="hero-subtitle">
-                    Experience intelligent chat assistance powered by Claude.
-                    Organize your conversations, manage documents, and unlock the full potential of AI.
+                    Orchestrate multiple AI agents, collaborate on documents with intelligent editing,
+                    and unlock advanced workflows with multi-turn reasoning. All your data stays local.
                 </p>
                 <div class="cta-buttons">
-                    <a href="/auth/login" class="btn-primary">
+                    <a href="/auth/login" class="cta-button cta-primary">
                         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
                             <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.96v2.332C2.44 15.983 5.485 18 9.003 18z" fill="#34A853"/>
                             <path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
                             <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.485 0 2.44 2.017.96 4.958L3.967 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
                         </svg>
-                        Continue with Google
+                        Start with Google
+                        <span class="button-glow"></span>
                     </a>
+                    <a href="#features" class="cta-button cta-secondary">
+                        Explore Features
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 3L8 13M8 13L13 8M8 13L3 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">∞</div>
+                        <div class="stat-label">Agents</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">10x</div>
+                        <div class="stat-label">Reasoning Depth</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">100%</div>
+                        <div class="stat-label">Privacy First</div>
+                    </div>
                 </div>
             </div>
         </section>
 
         <!-- Features Section -->
-        <section class="features">
+        <section id="features" class="features">
             <div class="features-content">
-                <h2>Everything you need for AI-powered productivity</h2>
+                <h2 class="section-title">
+                    <span class="gradient-text">Powerful Features</span>
+                    <br>Built for Productivity
+                </h2>
                 <div class="features-grid">
                     <div class="feature-card">
-                        <div class="feature-icon">💬</div>
-                        <h3>Smart Conversations</h3>
-                        <p>Organize multiple chat sessions with custom system prompts and conversation history.</p>
+                        <div class="feature-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M13 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <h3>Multi-Agent System</h3>
+                        <p>Orchestrate multiple AI agents with distinct personalities and capabilities in a single conversation thread.</p>
                     </div>
                     <div class="feature-card">
-                        <div class="feature-icon">📄</div>
-                        <h3>Document Management</h3>
-                        <p>Create and manage documents with markdown support and intelligent context integration.</p>
+                        <div class="feature-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <h3>AI-Assisted Documents</h3>
+                        <p>Rich text editor with smart markdown conversion, AI change review system, and one-click document context.</p>
                     </div>
                     <div class="feature-card">
-                        <div class="feature-icon">🔍</div>
-                        <h3>Web Search</h3>
-                        <p>Enable web search capabilities to get up-to-date information in your conversations.</p>
+                        <div class="feature-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                <path d="M21.21 15.89A10 10 0 1 1 8 2.83M22 12A10 10 0 0 0 12 2v10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <h3>Multi-Turn Reasoning</h3>
+                        <p>Configure 1-10 iteration thinking loops for complex problem-solving and deeper analysis.</p>
                     </div>
                     <div class="feature-card">
-                        <div class="feature-icon">📎</div>
-                        <h3>File Attachments</h3>
-                        <p>Upload images, PDFs, and text files to enhance your conversations with visual context.</p>
+                        <div class="feature-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M7.5 4.21l4.5 2.6 4.5-2.6M12 22v-10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <h3>Web Search & Tools</h3>
+                        <p>Real-time web search integration, screenshare capabilities, and smart file handling with focus detection.</p>
                     </div>
                     <div class="feature-card">
-                        <div class="feature-icon">⚙️</div>
-                        <h3>Custom Prompts</h3>
-                        <p>Create reusable system prompts to tailor Claude's responses to your specific needs.</p>
+                        <div class="feature-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <h3>Smart Workflows</h3>
+                        <p>Copy-to-document shortcuts, intelligent paste handling, and comprehensive keyboard navigation.</p>
                     </div>
                     <div class="feature-card">
-                        <div class="feature-icon">🔒</div>
-                        <h3>Secure & Private</h3>
-                        <p>Your API keys are stored locally, and all conversations are private and secure.</p>
+                        <div class="feature-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <h3>Privacy First</h3>
+                        <p>All data stored locally. Optional API key encryption. No tracking, no analytics, complete privacy.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Showcase Section -->
+        <section id="showcase" class="showcase">
+            <div class="showcase-content">
+                <h2 class="section-title">
+                    <span class="gradient-text">Experience the Interface</span>
+                </h2>
+                <p class="showcase-subtitle">A modern, intuitive platform designed for power users</p>
+                <div class="showcase-image">
+                    <div class="image-placeholder">
+                        <div class="placeholder-grid">
+                            <div class="grid-item"></div>
+                            <div class="grid-item"></div>
+                            <div class="grid-item"></div>
+                            <div class="grid-item"></div>
+                        </div>
+                        <div class="placeholder-text">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <p>Multi-layered AI Conversations</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -87,16 +176,19 @@
         <!-- CTA Section -->
         <section class="cta-section">
             <div class="cta-content">
-                <h2>Ready to get started?</h2>
-                <p>Sign in with Google and start your first conversation in seconds</p>
-                <a href="/auth/login" class="btn-primary">
-                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <h2 class="cta-title">
+                    Ready to <span class="gradient-text">Transform</span> Your Workflow?
+                </h2>
+                <p class="cta-subtitle">Join the future of AI-powered productivity. Start in seconds.</p>
+                <a href="/auth/login" class="cta-button cta-primary cta-large">
+                    <svg width="20" height="20" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
                         <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.96v2.332C2.44 15.983 5.485 18 9.003 18z" fill="#34A853"/>
                         <path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
                         <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.485 0 2.44 2.017.96 4.958L3.967 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
                     </svg>
-                    Continue with Google
+                    Get Started with Google
+                    <span class="button-glow"></span>
                 </a>
             </div>
         </section>
@@ -104,9 +196,25 @@
         <!-- Footer -->
         <footer class="landing-footer">
             <div class="footer-content">
-                <p>&copy; 2024 Apprised. All rights reserved.</p>
+                <div class="footer-left">
+                    <div class="footer-logo">
+                        <img src="/static/icons/apprised.png" alt="Apprised">
+                        <span>Apprised</span>
+                    </div>
+                    <p class="footer-tagline">Multi-Agent AI. Simplified.</p>
+                </div>
+                <div class="footer-right">
+                    <div class="footer-links">
+                        <a href="#features">Features</a>
+                        <a href="#showcase">Showcase</a>
+                        <a href="/auth/login">Sign In</a>
+                    </div>
+                    <p class="footer-copyright">&copy; 2024 Apprised. All rights reserved.</p>
+                </div>
             </div>
         </footer>
     </div>
+
+    <script src="/static/landing.js"></script>
 </body>
 </html>
