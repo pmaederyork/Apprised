@@ -1,15 +1,8 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "backend/app.py",
-      "use": "@vercel/python"
-    }
-  ],
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "backend/app.py"
+      "destination": "/backend/app.py"
     }
   ],
   "headers": [
