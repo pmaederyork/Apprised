@@ -130,8 +130,13 @@ const UI = {
         if (files && files.length > 0) {
             const filesDiv = document.createElement('div');
             filesDiv.className = 'message-files';
-            
+
             files.forEach(file => {
+                // Skip doc context files from display
+                if (file.id && file.id.startsWith('doc_context_')) {
+                    return;
+                }
+
                 const fileDiv = document.createElement('div');
                 fileDiv.className = 'message-file';
                 

@@ -15,6 +15,24 @@ const SystemPrompts = {
 
     // Initialize system prompts functionality
     init() {
+        // MIGRATION: Add order field to existing prompts that don't have it
+        let needsSave = false;
+        const prompts = Object.values(this.state.systemPrompts);
+
+        // Sort by createdAt (current order) to preserve visual ordering
+        const sortedByCreatedAt = prompts.sort((a, b) => b.createdAt - a.createdAt);
+
+        sortedByCreatedAt.forEach((prompt, index) => {
+            if (prompt.order === undefined) {
+                prompt.order = index;
+                needsSave = true;
+            }
+        });
+
+        if (needsSave) {
+            this.save();
+        }
+
         this.bindEventListeners();
         this.render();
     },
@@ -55,18 +73,23 @@ const SystemPrompts = {
     createNew() {
         const promptId = Storage.generateSystemPromptId();
         const promptName = `System Prompt ${Object.keys(this.state.systemPrompts).length + 1}`;
-        
+
+        // Calculate max order to place new prompt at bottom
+        const existingOrders = Object.values(this.state.systemPrompts).map(p => p.order || 0);
+        const maxOrder = existingOrders.length > 0 ? Math.max(...existingOrders) : -1;
+
         this.state.systemPrompts[promptId] = {
             id: promptId,
             name: promptName,
             content: '',
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            order: maxOrder + 1
         };
-        
+
         this.save();
         this.render();
         this.edit(promptId);
-        
+
         return promptId;
     },
 
@@ -267,14 +290,24 @@ const SystemPrompts = {
             console.warn('systemPromptList element not found');
             return;
         }
-        
+
         try {
             UI.elements.systemPromptList.innerHTML = '';
+
+            // Sort by order field (ascending)
             const sortedPrompts = Object.values(this.state.systemPrompts)
-                .sort((a, b) => b.createdAt - a.createdAt);
-            
+                .sort((a, b) => (a.order || 0) - (b.order || 0));
+
             sortedPrompts.forEach(prompt => {
                 const promptItem = this.createPromptItem(prompt);
+
+                // Make item draggable
+                promptItem.draggable = true;
+                promptItem.dataset.promptId = prompt.id;
+
+                // Setup drag-and-drop handlers
+                this.setupDragAndDrop(promptItem, prompt.id);
+
                 UI.elements.systemPromptList.appendChild(promptItem);
             });
         } catch (error) {
@@ -308,6 +341,79 @@ const SystemPrompts = {
                 }
             ]
         });
+    },
+
+    // Setup drag-and-drop handlers for a prompt item
+    setupDragAndDrop(promptItem, promptId) {
+        promptItem.addEventListener('dragstart', (e) => {
+            e.stopPropagation();
+            promptItem.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', promptId);
+        });
+
+        promptItem.addEventListener('dragend', (e) => {
+            e.stopPropagation();
+            promptItem.classList.remove('dragging');
+            // Remove drag-over class from all items
+            document.querySelectorAll('.prompt-item').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+        });
+
+        promptItem.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            e.dataTransfer.dropEffect = 'move';
+
+            const draggingItem = document.querySelector('.dragging');
+            if (draggingItem && draggingItem !== promptItem) {
+                promptItem.classList.add('drag-over');
+            }
+        });
+
+        promptItem.addEventListener('dragleave', (e) => {
+            e.stopPropagation();
+            promptItem.classList.remove('drag-over');
+        });
+
+        promptItem.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            promptItem.classList.remove('drag-over');
+
+            const draggedPromptId = e.dataTransfer.getData('text/plain');
+            if (draggedPromptId && draggedPromptId !== promptId) {
+                this.reorderPrompts(draggedPromptId, promptId);
+            }
+        });
+    },
+
+    // Reorder prompts after drag-and-drop
+    reorderPrompts(draggedId, targetId) {
+        try {
+            const prompts = Object.values(this.state.systemPrompts);
+            const sortedPrompts = prompts.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+            const draggedIndex = sortedPrompts.findIndex(p => p.id === draggedId);
+            const targetIndex = sortedPrompts.findIndex(p => p.id === targetId);
+
+            if (draggedIndex === -1 || targetIndex === -1) return;
+
+            // Remove dragged item and insert at target position
+            const [draggedPrompt] = sortedPrompts.splice(draggedIndex, 1);
+            sortedPrompts.splice(targetIndex, 0, draggedPrompt);
+
+            // Reassign order values
+            sortedPrompts.forEach((prompt, index) => {
+                prompt.order = index;
+            });
+
+            this.save();
+            this.render();
+        } catch (error) {
+            console.error('Failed to reorder prompts:', error);
+        }
     },
 
     // Save system prompts to storage

@@ -615,3 +615,22 @@
     background: var(--color-primary-hover);
 }
 
+/* Drag-and-drop styles for system prompts */
+.prompt-item[draggable="true"] {
+    cursor: grab;
+}
+
+.prompt-item[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.prompt-item.dragging {
+    opacity: 0.5;
+    background: var(--color-sidebar-hover);
+}
+
+.prompt-item.drag-over {
+    border-top: 2px solid var(--color-primary);
+    margin-top: 2px;
+}
+
