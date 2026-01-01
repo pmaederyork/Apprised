@@ -8,7 +8,8 @@ const Documents = {
     documents: {},
     isSaving: false,
     saveTimeout: null,
-    
+    isPulling: false, // Flag to prevent recursive auto-pull loops
+
     // Undo/redo state
     undoStacks: {}, // Per document undo stacks
     redoStacks: {}, // Per document redo stacks
@@ -196,8 +197,11 @@ const Documents = {
         this.updateDriveIconVisibility();
 
         // Auto-pull from Drive if document is linked (similar to auto-save on close)
-        if (document.driveFileId && typeof GDrive !== 'undefined' && GDrive.isConnected) {
-            GDrive.pullFromDrive(documentId);
+        if (document.driveFileId && typeof GDrive !== 'undefined' && GDrive.isConnected && !this.isPulling) {
+            this.isPulling = true;
+            GDrive.pullFromDrive(documentId).finally(() => {
+                this.isPulling = false;
+            });
         }
     },
 
