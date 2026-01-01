@@ -233,6 +233,14 @@ const GDrive = {
             UI.hideLoading();
 
             if (data.success) {
+                // Log raw HTML from Google Drive for debugging
+                console.log('=== GOOGLE DRIVE IMPORT: Raw HTML ===');
+                console.log(data.content);
+                console.log('\n=== GOOGLE DRIVE IMPORT: After stripMetaTags() ===');
+                console.log(this.stripMetaTags(data.content));
+                console.log('\n=== GOOGLE DRIVE IMPORT: Document Name ===');
+                console.log(data.name);
+
                 // Check if document with this driveFileId already exists
                 const existingDoc = Object.values(Documents.documents)
                     .find(doc => doc.driveFileId === file.id);
