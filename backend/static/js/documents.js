@@ -79,19 +79,6 @@ const Documents = {
             this.scheduleHistoryCapture();
         });
 
-        // Cursor position tracking for header button states
-        document.addEventListener('selectionchange', () => {
-            if (document.activeElement === UI.elements.documentTextarea) {
-                this.updateHeaderButtonStates();
-            }
-        });
-        UI.elements.documentTextarea?.addEventListener('click', () => {
-            this.updateHeaderButtonStates();
-        });
-        UI.elements.documentTextarea?.addEventListener('keyup', () => {
-            this.updateHeaderButtonStates();
-        });
-
         // Markdown toolbar button events
         this.bindMarkdownEvents();
 
@@ -132,7 +119,7 @@ const Documents = {
         const newDocument = {
             id: this.currentDocumentId,
             title: 'New Document.html',
-            content: '<h1>New Document</h1><p><br></p>',
+            content: '<p>New Document</p><p><br></p>',
             createdAt: Date.now(),
             lastModified: Date.now()
         };
@@ -173,9 +160,6 @@ const Documents = {
         
         // Focus the editor
         UI.elements.documentTextarea.focus();
-        
-        // Update header button states
-        this.updateHeaderButtonStates();
 
         // Refresh copy-to-document buttons in chat
         if (typeof UI !== 'undefined' && UI.refreshCopyToDocumentButtons) {
@@ -521,80 +505,14 @@ const Documents = {
         this.scheduleAutoSave();
     },
 
+    formatUnderline() {
+        document.execCommand('underline', false, null);
+        this.scheduleAutoSave();
+    },
 
     formatStrikethrough() {
         document.execCommand('strikeThrough', false, null);
         this.scheduleAutoSave();
-    },
-
-
-    formatHeader(level) {
-        const selection = window.getSelection();
-        if (!selection.rangeCount) return;
-
-        const currentLevel = this.getCurrentHeaderLevel();
-        let node = selection.focusNode;
-
-        // If focus is on a text node, get the parent element
-        if (node.nodeType === Node.TEXT_NODE) {
-            node = node.parentNode;
-        }
-
-        // Walk up the DOM tree to find either a header OR block-level element
-        let targetElement = null;
-        let currentNode = node;
-
-        while (currentNode && currentNode !== UI.elements.documentTextarea) {
-            if (currentNode.nodeType === Node.ELEMENT_NODE) {
-                const tagName = currentNode.tagName.toUpperCase();
-
-                // Found a header - we'll modify this
-                if (tagName.match(/^H[1-6]$/)) {
-                    targetElement = currentNode;
-                    break;
-                }
-
-                // Found a block element (P, DIV, etc.) - we'll convert this
-                if (['P', 'DIV', 'BLOCKQUOTE', 'PRE'].includes(tagName)) {
-                    targetElement = currentNode;
-                    break;
-                }
-            }
-            currentNode = currentNode.parentNode;
-        }
-
-        if (targetElement) {
-            const isCurrentlyHeader = targetElement.tagName.match(/^H[1-6]$/i);
-
-            if (isCurrentlyHeader && currentLevel === level) {
-                // Same level clicked - convert to paragraph
-                const p = document.createElement('p');
-                p.innerHTML = targetElement.innerHTML;
-                targetElement.replaceWith(p);
-
-                // Restore cursor position
-                const range = document.createRange();
-                range.selectNodeContents(p);
-                range.collapse(false);
-                selection.removeAllRanges();
-                selection.addRange(range);
-            } else {
-                // Convert to header (from any block type)
-                const newHeader = document.createElement(`h${level}`);
-                newHeader.innerHTML = targetElement.innerHTML;
-                targetElement.replaceWith(newHeader);
-
-                // Restore cursor position
-                const range = document.createRange();
-                range.selectNodeContents(newHeader);
-                range.collapse(false);
-                selection.removeAllRanges();
-                selection.addRange(range);
-            }
-        }
-
-        this.scheduleAutoSave();
-        this.updateHeaderButtonStates();
     },
 
     formatList() {
@@ -616,9 +534,7 @@ const Documents = {
             { id: 'redoBtn', handler: () => this.redo() },
             { id: 'boldBtn', handler: () => this.formatBold() },
             { id: 'italicBtn', handler: () => this.formatItalic() },
-            { id: 'h1Btn', handler: () => this.formatHeader(1) },
-            { id: 'h2Btn', handler: () => this.formatHeader(2) },
-            { id: 'h3Btn', handler: () => this.formatHeader(3) },
+            { id: 'underlineBtn', handler: () => this.formatUnderline() },
             { id: 'listBtn', handler: () => this.formatList() },
             { id: 'orderedListBtn', handler: () => this.formatOrderedList() },
             { id: 'strikeBtn', handler: () => this.formatStrikethrough() }
@@ -661,20 +577,10 @@ const Documents = {
                         e.stopPropagation();
                         this.formatItalic();
                         break;
-                    case '1':
+                    case 'u':
                         e.preventDefault();
                         e.stopPropagation();
-                        this.formatHeader(1);
-                        break;
-                    case '2':
-                        e.preventDefault();
-                        e.stopPropagation();
-                        this.formatHeader(2);
-                        break;
-                    case '3':
-                        e.preventDefault();
-                        e.stopPropagation();
-                        this.formatHeader(3);
+                        this.formatUnderline();
                         break;
                     case 'l':
                         e.preventDefault();
@@ -897,59 +803,6 @@ const Documents = {
 
         // Update redo button
         redoBtn.disabled = redoStack.length === 0;
-    },
-
-
-    // Get current header level at cursor position (0 = no header, 1-6 = header level)
-    getCurrentHeaderLevel() {
-        const selection = window.getSelection();
-        if (!selection.rangeCount) return 0;
-
-        let node = selection.focusNode;
-
-        // If focus is on a text node, check its parent
-        if (node.nodeType === Node.TEXT_NODE) {
-            node = node.parentNode;
-        }
-
-        // Walk up the tree to find a header (not just immediate parent)
-        let currentNode = node;
-        while (currentNode && currentNode !== UI.elements.documentTextarea) {
-            if (currentNode.nodeType === Node.ELEMENT_NODE) {
-                const tagName = currentNode.tagName.toLowerCase();
-                if (tagName.match(/^h[1-6]$/)) {
-                    return parseInt(tagName.charAt(1));
-                }
-            }
-            currentNode = currentNode.parentNode;
-        }
-
-        return 0;
-    },
-
-
-    // Update header button visual states based on current cursor position
-    updateHeaderButtonStates() {
-        const h1Btn = document.getElementById('h1Btn');
-        const h2Btn = document.getElementById('h2Btn');
-        const h3Btn = document.getElementById('h3Btn');
-        
-        if (!h1Btn || !h2Btn || !h3Btn) return;
-        
-        // Clear all active states
-        h1Btn.classList.remove('active');
-        h2Btn.classList.remove('active');
-        h3Btn.classList.remove('active');
-        
-        // Set active state based on current header level
-        const currentLevel = this.getCurrentHeaderLevel();
-        if (currentLevel === 1) {
-            h1Btn.classList.add('active');
-        } else if (currentLevel === 2) {
-            h2Btn.classList.add('active');
-        } else if (currentLevel === 3) {
-            h3Btn.classList.add('active');
-        }
     },
 
     // Smart copy/paste functionality for Google Docs integration
