@@ -194,6 +194,11 @@ const Documents = {
 
         // Update Drive icon visibility
         this.updateDriveIconVisibility();
+
+        // Auto-pull from Drive if document is linked (similar to auto-save on close)
+        if (document.driveFileId && typeof GDrive !== 'undefined' && GDrive.isConnected) {
+            GDrive.pullFromDrive(documentId);
+        }
     },
 
     // Close the document editor
