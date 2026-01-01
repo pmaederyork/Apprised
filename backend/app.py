@@ -141,6 +141,69 @@ def get_google_token_from_jwt():
 
     return payload.get('google_token')
 
+def get_google_token_with_auto_refresh():
+    """Get Google token from JWT and auto-refresh if expired"""
+    import time
+
+    auth_token = request.cookies.get('auth_token')
+    if not auth_token:
+        return None, None
+
+    payload = decode_jwt_token(auth_token)
+    if not payload or 'google_token' not in payload:
+        return None, None
+
+    token = payload['google_token']
+    current_time = time.time()
+    expires_at = token.get('expires_at', 0)
+
+    # Check if token expires within 5 minutes (300 seconds grace period)
+    if expires_at < current_time + 300:
+        logging.info("Access token expired or expiring soon, refreshing...")
+
+        refresh_token = token.get('refresh_token')
+        if not refresh_token:
+            logging.error("No refresh token available")
+            return None, None
+
+        # Attempt to refresh the token
+        try:
+            token_url = 'https://oauth2.googleapis.com/token'
+            refresh_data = {
+                'client_id': app.config['GOOGLE_CLIENT_ID'],
+                'client_secret': app.config['GOOGLE_CLIENT_SECRET'],
+                'refresh_token': refresh_token,
+                'grant_type': 'refresh_token'
+            }
+
+            refresh_response = requests.post(token_url, data=refresh_data)
+
+            if refresh_response.status_code == 200:
+                new_token_data = refresh_response.json()
+
+                # Update token with new access_token and expires_at
+                token['access_token'] = new_token_data['access_token']
+                token['expires_at'] = current_time + new_token_data.get('expires_in', 3600)
+
+                # Update payload with refreshed token
+                payload['google_token'] = token
+
+                # Create new JWT with refreshed token (preserve existing exp)
+                new_jwt = jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
+
+                logging.info("Token refreshed successfully")
+                return token, new_jwt
+            else:
+                logging.error(f"Token refresh failed: {refresh_response.status_code}")
+                return None, None
+
+        except Exception as e:
+            logging.error(f"Token refresh error: {e}")
+            return None, None
+
+    # Token is still valid
+    return token, None
+
 def login_required(f):
     """Decorator to require authentication for endpoints"""
     @wraps(f)
@@ -435,8 +498,8 @@ def drive_save():
         document_content = data.get('content')
         drive_file_id = data.get('driveFileId')  # None for new files
 
-        # Get OAuth token from JWT
-        token = get_google_token_from_jwt()
+        # Get OAuth token from JWT (with auto-refresh)
+        token, new_jwt = get_google_token_with_auto_refresh()
 
         if not token:
             return jsonify({'success': False, 'error': 'Not connected to Google Drive'}), 401
@@ -480,12 +543,27 @@ Content-Type: text/html; charset=UTF-8
 
         if response.status_code in [200, 201]:
             file_data = response.json()
-            return jsonify({
+            response_data = {
                 'success': True,
                 'fileId': file_data['id'],
                 'name': file_data['name'],
                 'modifiedTime': file_data.get('modifiedTime')
-            })
+            }
+
+            # Set new JWT cookie if token was refreshed
+            if new_jwt:
+                resp = make_response(jsonify(response_data))
+                resp.set_cookie(
+                    'auth_token',
+                    new_jwt,
+                    max_age=7*24*60*60,
+                    httponly=True,
+                    secure=True,
+                    samesite='Lax'
+                )
+                return resp
+
+            return jsonify(response_data)
         else:
             logging.error(f"Drive API error: {response.status_code} - {response.text}")
             return jsonify({
@@ -503,8 +581,8 @@ Content-Type: text/html; charset=UTF-8
 def drive_import(file_id):
     """Import document from Google Drive"""
     try:
-        # Get OAuth token from JWT
-        token = get_google_token_from_jwt()
+        # Get OAuth token from JWT (with auto-refresh)
+        token, new_jwt = get_google_token_with_auto_refresh()
 
         if not token:
             return jsonify({'success': False, 'error': 'Not connected to Google Drive'}), 401
@@ -521,12 +599,27 @@ def drive_import(file_id):
             metadata_response = requests.get(metadata_url, headers=headers)
             metadata = metadata_response.json()
 
-            return jsonify({
+            response_data = {
                 'success': True,
                 'content': response.text,
                 'name': metadata.get('name', 'Untitled'),
                 'modifiedTime': metadata.get('modifiedTime')
-            })
+            }
+
+            # Set new JWT cookie if token was refreshed
+            if new_jwt:
+                resp = make_response(jsonify(response_data))
+                resp.set_cookie(
+                    'auth_token',
+                    new_jwt,
+                    max_age=7*24*60*60,
+                    httponly=True,
+                    secure=True,
+                    samesite='Lax'
+                )
+                return resp
+
+            return jsonify(response_data)
         else:
             logging.error(f"Drive API error: {response.status_code} - {response.text}")
             return jsonify({
@@ -544,16 +637,31 @@ def drive_import(file_id):
 def drive_picker_token():
     """Get OAuth token for Google Picker (file selector)"""
     try:
-        # Get OAuth token from JWT
-        token = get_google_token_from_jwt()
+        # Get OAuth token from JWT (with auto-refresh)
+        token, new_jwt = get_google_token_with_auto_refresh()
 
         if not token:
             return jsonify({'success': False, 'error': 'Not connected to Google Drive'}), 401
 
-        return jsonify({
+        response_data = {
             'success': True,
             'accessToken': token['access_token']
-        })
+        }
+
+        # Set new JWT cookie if token was refreshed
+        if new_jwt:
+            resp = make_response(jsonify(response_data))
+            resp.set_cookie(
+                'auth_token',
+                new_jwt,
+                max_age=7*24*60*60,
+                httponly=True,
+                secure=True,
+                samesite='Lax'
+            )
+            return resp
+
+        return jsonify(response_data)
     except Exception as e:
         logging.error(f"Picker token error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -564,8 +672,8 @@ def drive_picker_token():
 def drive_status():
     """Check if user has granted Drive access"""
     try:
-        # Get OAuth token from JWT
-        token = get_google_token_from_jwt()
+        # Get OAuth token from JWT (with auto-refresh)
+        token, new_jwt = get_google_token_with_auto_refresh()
         has_drive_access = False
 
         if token:
@@ -576,10 +684,25 @@ def drive_status():
 
         logging.info(f"Drive access check: {has_drive_access}")
 
-        return jsonify({
+        response_data = {
             'success': True,
             'connected': has_drive_access
-        })
+        }
+
+        # Set new JWT cookie if token was refreshed
+        if new_jwt:
+            resp = make_response(jsonify(response_data))
+            resp.set_cookie(
+                'auth_token',
+                new_jwt,
+                max_age=7*24*60*60,
+                httponly=True,
+                secure=True,
+                samesite='Lax'
+            )
+            return resp
+
+        return jsonify(response_data)
     except Exception as e:
         logging.error(f"Drive status error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
