@@ -190,6 +190,12 @@ const Documents = {
         // Save current document before closing
         if (this.currentDocumentId) {
             this.saveCurrentDocument();
+
+            // Save to Google Drive if document is linked
+            const doc = this.documents[this.currentDocumentId];
+            if (doc && doc.driveFileId && typeof GDrive !== 'undefined' && GDrive.isConnected) {
+                GDrive.saveToGoogleDrive(this.currentDocumentId);
+            }
         }
 
         // Clear last open document
