@@ -515,19 +515,37 @@ const Documents = {
             node = node.parentNode;
         }
 
-        // Check if we're inside a header element
-        let headerElement = null;
-        if (node && node.nodeType === Node.ELEMENT_NODE && node.tagName.match(/^H[1-6]$/i)) {
-            headerElement = node;
+        // Walk up the DOM tree to find either a header OR block-level element
+        let targetElement = null;
+        let currentNode = node;
+
+        while (currentNode && currentNode !== UI.elements.documentTextarea) {
+            if (currentNode.nodeType === Node.ELEMENT_NODE) {
+                const tagName = currentNode.tagName.toUpperCase();
+
+                // Found a header - we'll modify this
+                if (tagName.match(/^H[1-6]$/)) {
+                    targetElement = currentNode;
+                    break;
+                }
+
+                // Found a block element (P, DIV, etc.) - we'll convert this
+                if (['P', 'DIV', 'BLOCKQUOTE', 'PRE'].includes(tagName)) {
+                    targetElement = currentNode;
+                    break;
+                }
+            }
+            currentNode = currentNode.parentNode;
         }
 
-        if (headerElement) {
-            // We're inside a header - manually replace it
-            if (currentLevel === level) {
-                // Same level - convert to paragraph
+        if (targetElement) {
+            const isCurrentlyHeader = targetElement.tagName.match(/^H[1-6]$/i);
+
+            if (isCurrentlyHeader && currentLevel === level) {
+                // Same level clicked - convert to paragraph
                 const p = document.createElement('p');
-                p.innerHTML = headerElement.innerHTML;
-                headerElement.replaceWith(p);
+                p.innerHTML = targetElement.innerHTML;
+                targetElement.replaceWith(p);
 
                 // Restore cursor position
                 const range = document.createRange();
@@ -536,10 +554,10 @@ const Documents = {
                 selection.removeAllRanges();
                 selection.addRange(range);
             } else {
-                // Different level - change header tag
+                // Convert to header (from any block type)
                 const newHeader = document.createElement(`h${level}`);
-                newHeader.innerHTML = headerElement.innerHTML;
-                headerElement.replaceWith(newHeader);
+                newHeader.innerHTML = targetElement.innerHTML;
+                targetElement.replaceWith(newHeader);
 
                 // Restore cursor position
                 const range = document.createRange();
@@ -548,10 +566,6 @@ const Documents = {
                 selection.removeAllRanges();
                 selection.addRange(range);
             }
-        } else {
-            // No header - use formatBlock to create one
-            const headerTag = `h${level}`;
-            document.execCommand('formatBlock', false, headerTag);
         }
 
         this.scheduleAutoSave();
@@ -865,22 +879,26 @@ const Documents = {
     getCurrentHeaderLevel() {
         const selection = window.getSelection();
         if (!selection.rangeCount) return 0;
-        
+
         let node = selection.focusNode;
-        
-        // If focus is on a text node, check its immediate parent
+
+        // If focus is on a text node, check its parent
         if (node.nodeType === Node.TEXT_NODE) {
             node = node.parentNode;
         }
-        
-        // Only check the immediate element, not ancestors
-        if (node && node.nodeType === Node.ELEMENT_NODE) {
-            const tagName = node.tagName.toLowerCase();
-            if (tagName.match(/^h[1-6]$/)) {
-                return parseInt(tagName.charAt(1));
+
+        // Walk up the tree to find a header (not just immediate parent)
+        let currentNode = node;
+        while (currentNode && currentNode !== UI.elements.documentTextarea) {
+            if (currentNode.nodeType === Node.ELEMENT_NODE) {
+                const tagName = currentNode.tagName.toLowerCase();
+                if (tagName.match(/^h[1-6]$/)) {
+                    return parseInt(tagName.charAt(1));
+                }
             }
+            currentNode = currentNode.parentNode;
         }
-        
+
         return 0;
     },
 
