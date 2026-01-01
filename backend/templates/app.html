@@ -274,6 +274,18 @@
                 <button class="markdown-btn" id="listBtn" title="Unordered List (Ctrl+L)" data-format="list">•</button>
                 <button class="markdown-btn" id="orderedListBtn" title="Ordered List (Ctrl+Shift+L)" data-format="orderedList">#</button>
                 <button class="markdown-btn" id="strikeBtn" title="Strikethrough (Ctrl+Shift+X)" data-format="strike">S</button>
+
+                <!-- Spacer to push toggle to the right -->
+                <div style="flex: 1;"></div>
+
+                <!-- HTML view toggle on the right -->
+                <div class="html-view-toggle-container">
+                    <span class="html-view-label">HTML View</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="htmlViewToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
             </div>
             <div class="editor-content">
                 <div class="document-textarea" id="documentTextarea" contenteditable="true" data-placeholder="Start writing..."></div>

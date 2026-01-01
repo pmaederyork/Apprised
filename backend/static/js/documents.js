@@ -15,6 +15,7 @@ const Documents = {
     maxHistorySize: 50,
     inputTimeout: null,
     lastSavedState: null,
+    htmlViewMode: false,
 
     // Initialize document system
     init() {
@@ -112,6 +113,11 @@ const Documents = {
             if (typeof GDrive !== 'undefined') {
                 GDrive.importFromGoogleDrive();
             }
+        });
+
+        // HTML view toggle
+        UI.elements.htmlViewToggle?.addEventListener('change', (e) => {
+            this.toggleHtmlView(e.target.checked);
         });
     },
 
@@ -1375,5 +1381,29 @@ const Documents = {
 
         const driveUrl = `https://docs.google.com/document/d/${doc.driveFileId}/edit`;
         window.open(driveUrl, '_blank');
+    },
+
+    /**
+     * Toggle between WYSIWYG and raw HTML view
+     */
+    toggleHtmlView(enabled) {
+        const editor = UI.elements.documentTextarea;
+        if (!editor) return;
+
+        this.htmlViewMode = enabled;
+
+        if (enabled) {
+            // Switch to HTML view - show raw HTML as text
+            const htmlContent = editor.innerHTML;
+            editor.setAttribute('contenteditable', 'false');
+            editor.classList.add('html-view-mode');
+            editor.textContent = htmlContent;
+        } else {
+            // Switch back to WYSIWYG view - render HTML
+            const htmlContent = editor.textContent;
+            editor.setAttribute('contenteditable', 'true');
+            editor.classList.remove('html-view-mode');
+            editor.innerHTML = htmlContent;
+        }
     }
 };
