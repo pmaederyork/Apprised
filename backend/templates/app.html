@@ -253,9 +253,14 @@
         <div class="document-editor" id="documentEditor">
             <div class="editor-header">
                 <input type="text" class="editor-title" id="documentTitle" placeholder="Document Name" />
+                <span id="driveSyncIndicator" class="drive-sync-indicator" style="display: none; margin-left: 8px;"></span>
                 <div class="editor-actions">
-                    <button class="editor-btn" id="documentSyncBtn">Sync</button>
-                    <button class="editor-btn" id="closeDocumentBtn">Close</button>
+                    <a id="openInDriveBtn" class="open-in-drive-btn" href="#" target="_blank" style="display: none; margin-right: 8px;" title="Open in Google Drive">
+                        <img src="/static/assets/gdrive_icon.webp" alt="Open in Drive" style="width: 28px; height: 28px;">
+                    </a>
+                    <button class="editor-btn" id="saveToDriveBtn" style="background: #4285F4; color: white; border: none;" title="Save to Google Drive">Save</button>
+                    <button class="editor-btn" id="documentSyncBtn" style="background: #0F9D58; color: white; border: none;">Pull</button>
+                    <button class="editor-btn" id="closeDocumentBtn" style="background: #6b7280; color: white; border: none;">Close</button>
                 </div>
             </div>
             <div class="markdown-toolbar" id="markdownToolbar">
@@ -269,9 +274,6 @@
                 <button class="markdown-btn" id="listBtn" title="Unordered List (Ctrl+L)" data-format="list">•</button>
                 <button class="markdown-btn" id="orderedListBtn" title="Ordered List (Ctrl+Shift+L)" data-format="orderedList">#</button>
                 <button class="markdown-btn" id="strikeBtn" title="Strikethrough (Ctrl+Shift+X)" data-format="strike">S</button>
-                <div class="toolbar-separator"></div>
-                <button class="markdown-btn gdrive-btn" id="saveToDriveBtn" title="Save to Google Drive">☁️ Save to Drive</button>
-                <span id="driveSyncIndicator" class="drive-sync-indicator" style="display: none;"></span>
             </div>
             <div class="editor-content">
                 <div class="document-textarea" id="documentTextarea" contenteditable="true" data-placeholder="Start writing..."></div>

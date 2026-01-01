@@ -457,7 +457,7 @@
 
 /* Import from Drive Button */
 .import-drive-btn {
-    background: #6b7280;
+    background: #d1d5db;
     color: white;
     border: none;
     border-radius: var(--radius-full);
@@ -477,7 +477,7 @@
 }
 
 .import-drive-btn:hover:not(:disabled) {
-    background: #4b5563;
+    background: #9ca3af;
     box-shadow: var(--shadow-md);
     transform: translateY(-1px);
 }
@@ -525,4 +525,28 @@
     height: 24px;
     background: var(--color-border);
     margin: 0 8px;
+}
+
+/* Open in Drive Button */
+.open-in-drive-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    text-decoration: none;
+    vertical-align: middle;
+    margin-top: 2px;
+}
+
+.open-in-drive-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.open-in-drive-btn img {
+    pointer-events: none;
+    display: block;
 }

@@ -58,6 +58,12 @@ const Documents = {
             this.closeEditor();
         });
 
+        // Open in Drive button
+        UI.elements.openInDriveBtn?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.openInGoogleDrive();
+        });
+
         // Document title saving
         UI.elements.documentTitle?.addEventListener('input', () => {
             this.saveDocumentTitleImmediate();
@@ -169,6 +175,9 @@ const Documents = {
         if (typeof Tools !== 'undefined' && Tools.setDocContext) {
             Tools.setDocContext(true);
         }
+
+        // Update Drive icon visibility
+        this.updateDriveIconVisibility();
     },
 
     // Close the document editor
@@ -1311,5 +1320,36 @@ const Documents = {
      */
     isInEditReviewMode() {
         return ClaudeChanges && ClaudeChanges.isInReviewMode();
+    },
+
+    /**
+     * Update visibility of Drive icon button based on whether current document has driveFileId
+     */
+    updateDriveIconVisibility() {
+        const openInDriveBtn = UI.elements.openInDriveBtn;
+        if (!openInDriveBtn) return;
+
+        const doc = this.documents[this.currentDocumentId];
+        if (doc && doc.driveFileId) {
+            openInDriveBtn.style.display = 'inline-block';
+            // Update href with actual Drive file ID
+            openInDriveBtn.href = `https://docs.google.com/document/d/${doc.driveFileId}/edit`;
+        } else {
+            openInDriveBtn.style.display = 'none';
+        }
+    },
+
+    /**
+     * Open current document in Google Drive in a new tab
+     */
+    openInGoogleDrive() {
+        const doc = this.documents[this.currentDocumentId];
+        if (!doc || !doc.driveFileId) {
+            alert('This document is not linked to Google Drive. Save it to Drive first.');
+            return;
+        }
+
+        const driveUrl = `https://docs.google.com/document/d/${doc.driveFileId}/edit`;
+        window.open(driveUrl, '_blank');
     }
 };

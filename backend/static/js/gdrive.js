@@ -87,6 +87,11 @@ const GDrive = {
                 this.updateSyncIndicator(documentId, 'synced');
                 Documents.renderDocumentList();
 
+                // Update Drive icon visibility
+                if (typeof Documents !== 'undefined' && Documents.updateDriveIconVisibility) {
+                    Documents.updateDriveIconVisibility();
+                }
+
                 return { success: true };
             } else {
                 doc.driveSyncStatus = 'error';
@@ -100,6 +105,63 @@ const GDrive = {
             doc.driveSyncStatus = 'error';
             this.updateSyncIndicator(documentId, 'error');
             alert('Failed to save to Google Drive. Please try again.');
+            return { success: false, error: error.message };
+        }
+    },
+
+    // Pull latest version from Google Drive (for sync button)
+    async pullFromDrive(documentId) {
+        if (!this.isConnected) {
+            alert('Google Drive is not connected. Please enable Drive access in Settings.');
+            return { success: false };
+        }
+
+        const doc = Documents.documents[documentId];
+        if (!doc) return { success: false, error: 'Document not found' };
+
+        if (!doc.driveFileId) {
+            alert('This document is not linked to Google Drive. Save it to Drive first.');
+            return { success: false };
+        }
+
+        try {
+            // Update UI to show syncing
+            this.updateSyncIndicator(documentId, 'syncing', 'sync');
+
+            // Fetch latest version from Drive via backend
+            const response = await fetch(`/drive/import/${doc.driveFileId}`);
+            const data = await response.json();
+
+            if (data.success) {
+                // Update document with latest content from Drive
+                doc.content = data.content;
+                doc.lastModified = Date.now();
+                doc.driveSyncStatus = 'synced';
+                doc.lastSyncedAt = Date.now();
+
+                Storage.saveDocuments(Documents.documents);
+
+                // Refresh UI if this document is currently open
+                if (Documents.currentDocumentId === documentId) {
+                    Documents.openDocument(documentId);
+                }
+
+                this.updateSyncIndicator(documentId, 'synced', 'sync');
+                Documents.renderDocumentList();
+
+                return { success: true };
+            } else {
+                doc.driveSyncStatus = 'error';
+                this.updateSyncIndicator(documentId, 'error', 'sync');
+                alert(`Failed to sync from Drive: ${data.error}`);
+                return { success: false, error: data.error };
+            }
+
+        } catch (error) {
+            console.error('Drive sync error:', error);
+            doc.driveSyncStatus = 'error';
+            this.updateSyncIndicator(documentId, 'error', 'sync');
+            alert('Failed to sync from Google Drive. Please try again.');
             return { success: false, error: error.message };
         }
     },
@@ -230,7 +292,7 @@ const GDrive = {
     },
 
     // Update sync indicator in toolbar
-    updateSyncIndicator(documentId, status) {
+    updateSyncIndicator(documentId, status, operation = 'save') {
         const indicator = UI.elements.driveSyncIndicator;
         if (!indicator) return;
 
@@ -241,12 +303,19 @@ const GDrive = {
         indicator.className = `drive-sync-indicator ${status}`;
 
         const messages = {
-            'syncing': '☁️ Saving to Drive...',
-            'synced': '✓ Saved to Drive',
-            'error': '⚠️ Save failed'
+            save: {
+                'syncing': '☁️ Saving to Drive...',
+                'synced': '✓ Saved to Drive',
+                'error': '⚠️ Save failed'
+            },
+            sync: {
+                'syncing': '🔄 Syncing from Drive...',
+                'synced': '✓ Synced from Drive',
+                'error': '⚠️ Sync failed'
+            }
         };
 
-        indicator.textContent = messages[status] || '';
+        indicator.textContent = messages[operation]?.[status] || '';
 
         // Hide success message after 3 seconds
         if (status === 'synced') {
