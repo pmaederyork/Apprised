@@ -86,7 +86,9 @@
                             <span class="section-title" style="margin: 0;">DOCUMENTS</span>
                         </div>
                         <div style="display: flex; gap: 4px;">
-                            <button class="import-drive-btn" id="importFromDriveBtn" title="Import from Google Drive">↓</button>
+                            <button class="import-drive-btn" id="importFromDriveBtn" title="Import from Google Drive">
+                                <img src="/static/assets/gdrive_icon.webp" alt="Google Drive" style="width: 16px; height: 16px;">
+                            </button>
                             <button class="add-document-btn" id="addDocumentBtn" title="Add new document">+</button>
                         </div>
                     </div>
@@ -252,6 +254,7 @@
             <div class="editor-header">
                 <input type="text" class="editor-title" id="documentTitle" placeholder="Document Name" />
                 <div class="editor-actions">
+                    <button class="editor-btn" id="documentSyncBtn">Sync</button>
                     <button class="editor-btn" id="closeDocumentBtn">Close</button>
                 </div>
             </div>

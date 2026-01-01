@@ -48,6 +48,12 @@ const Documents = {
         });
 
         // Document editor events
+        UI.elements.documentSyncBtn?.addEventListener('click', () => {
+            if (this.currentDocumentId && typeof GDrive !== 'undefined') {
+                GDrive.pullFromDrive(this.currentDocumentId);
+            }
+        });
+
         UI.elements.closeDocumentBtn?.addEventListener('click', () => {
             this.closeEditor();
         });

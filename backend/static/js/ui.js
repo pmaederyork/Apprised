@@ -31,6 +31,7 @@ const UI = {
         documentTextarea: document.getElementById('documentTextarea'),
         undoBtn: document.getElementById('undoBtn'),
         redoBtn: document.getElementById('redoBtn'),
+        documentSyncBtn: document.getElementById('documentSyncBtn'),
         closeDocumentBtn: document.getElementById('closeDocumentBtn'),
         chatContainer: document.getElementById('chatContainer'),
         systemPromptEditor: document.getElementById('systemPromptEditor'),

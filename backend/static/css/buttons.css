@@ -457,7 +457,7 @@
 
 /* Import from Drive Button */
 .import-drive-btn {
-    background: #34a853;
+    background: #6b7280;
     color: white;
     border: none;
     border-radius: var(--radius-full);
@@ -472,8 +472,12 @@
     box-shadow: var(--shadow-sm);
 }
 
+.import-drive-btn img {
+    pointer-events: none; /* Prevents image from interfering with button clicks */
+}
+
 .import-drive-btn:hover:not(:disabled) {
-    background: #2d8e47;
+    background: #4b5563;
     box-shadow: var(--shadow-md);
     transform: translateY(-1px);
 }
