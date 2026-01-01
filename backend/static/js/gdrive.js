@@ -8,6 +8,16 @@ const GDrive = {
     initialized: false,
     pickerApiLoaded: false,
 
+    /**
+     * Remove meta tags from Google Drive HTML
+     * Preserves all content and inline styles
+     */
+    stripMetaTags(html) {
+        if (!html) return '';
+        // Remove all <meta> tags
+        return html.replace(/<meta[^>]*>/gi, '');
+    },
+
     // Initialize Google Drive integration
     async init() {
         if (this.initialized) return;
@@ -134,7 +144,7 @@ const GDrive = {
 
             if (data.success) {
                 // Update document with latest content from Drive
-                doc.content = data.content;
+                doc.content = this.stripMetaTags(data.content);
                 doc.lastModified = Date.now();
                 doc.driveSyncStatus = 'synced';
                 doc.lastSyncedAt = Date.now();
@@ -230,7 +240,7 @@ const GDrive = {
                 if (existingDoc) {
                     // Update existing document
                     existingDoc.title = data.name.endsWith('.html') ? data.name : data.name + '.html';
-                    existingDoc.content = data.content;
+                    existingDoc.content = this.stripMetaTags(data.content);
                     existingDoc.lastModified = Date.now();
                     existingDoc.driveSyncStatus = 'synced';
                     existingDoc.lastSyncedAt = Date.now();
@@ -246,7 +256,7 @@ const GDrive = {
                     const newDoc = {
                         id: documentId,
                         title: data.name.endsWith('.html') ? data.name : data.name + '.html',
-                        content: data.content,
+                        content: this.stripMetaTags(data.content),
                         createdAt: Date.now(),
                         lastModified: Date.now(),
                         driveFileId: file.id,

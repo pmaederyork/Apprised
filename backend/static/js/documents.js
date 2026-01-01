@@ -119,6 +119,16 @@ const Documents = {
         UI.elements.htmlViewToggle?.addEventListener('change', (e) => {
             this.toggleHtmlView(e.target.checked);
         });
+
+        // Clean meta tags from pasted content
+        UI.elements.documentTextarea?.addEventListener('paste', (e) => {
+            const html = e.clipboardData?.getData('text/html');
+            if (html && html.includes('<meta')) {
+                e.preventDefault();
+                const cleaned = html.replace(/<meta[^>]*>/gi, '');
+                document.execCommand('insertHTML', false, cleaned);
+            }
+        });
     },
 
     // Create a new document
