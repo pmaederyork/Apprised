@@ -721,10 +721,10 @@ const Documents = {
     setFontSize(size) {
         if (!this.squireEditor) return;
 
-        // Parse the size value - could be just a number or include 'px'
+        // Parse the size value - could be just a number or include 'pt'
         let sizeValue = size;
-        if (size && !size.includes('px')) {
-            sizeValue = size + 'px';
+        if (size && !size.includes('pt')) {
+            sizeValue = size + 'pt';
         }
 
         // Check if selection contains only headers
