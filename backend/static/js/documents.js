@@ -31,6 +31,10 @@ const Documents = {
             this.squireEditor = new Squire(editorContainer);
             console.log('Squire editor initialized');
 
+            // Disable Squire's built-in Tab handlers so our custom ones work everywhere
+            this.squireEditor.setKeyHandler('Tab', null);
+            this.squireEditor.setKeyHandler('Shift-Tab', null);
+
             // Bind pathChange event to update font size and family display
             this.squireEditor.addEventListener('pathChange', () => {
                 this.updateFontSizeDisplay();
@@ -168,6 +172,7 @@ const Documents = {
 
         // Show document editor
         UI.elements.documentEditor.classList.add('active');
+        UI.elements.chatContainer.classList.add('document-open');
 
         // Update active state in sidebar
         this.updateActiveDocumentInSidebar(documentId);
@@ -216,6 +221,7 @@ const Documents = {
         Storage.saveLastOpenDocumentId(null);
 
         UI.elements.documentEditor.classList.remove('active');
+        UI.elements.chatContainer.classList.remove('document-open');
         this.currentDocumentId = null;
 
         // Clear active state in sidebar
@@ -547,6 +553,72 @@ const Documents = {
         }
     },
 
+    // Set text alignment for selected text
+    setTextAlignment(alignment) {
+        if (!this.squireEditor) return;
+
+        if (alignment) {
+            this.squireEditor.setTextAlignment(alignment);
+        }
+
+        this.scheduleAutoSave();
+    },
+
+    // Increase indentation (margin-based for visual indent)
+    formatIndent() {
+        if (!this.squireEditor) return;
+
+        const path = this.squireEditor.getPath();
+
+        // For lists, use Squire's list level methods
+        if (/(?:^|>)[OU]L/.test(path)) {
+            this.squireEditor.increaseListLevel();
+        } else {
+            // For regular blocks, increase margin-left by 40px
+            this.squireEditor.modifyBlocks((frag) => {
+                const blocks = frag.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6');
+                blocks.forEach(block => {
+                    const currentMargin = parseInt(block.style.marginLeft || '0');
+                    block.style.marginLeft = (currentMargin + 40) + 'px';
+                });
+                return frag;
+            });
+        }
+
+        this.scheduleAutoSave();
+        this.squireEditor.focus();
+    },
+
+    // Decrease indentation (margin-based for visual outdent)
+    formatOutdent() {
+        if (!this.squireEditor) return;
+
+        const path = this.squireEditor.getPath();
+
+        // For lists, use Squire's list level methods
+        if (/(?:^|>)[OU]L/.test(path)) {
+            this.squireEditor.decreaseListLevel();
+        } else {
+            // For regular blocks, decrease margin-left by 40px (minimum 0)
+            this.squireEditor.modifyBlocks((frag) => {
+                const blocks = frag.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6');
+                blocks.forEach(block => {
+                    const currentMargin = parseInt(block.style.marginLeft || '0');
+                    const newMargin = Math.max(0, currentMargin - 40);
+                    if (newMargin === 0) {
+                        block.style.marginLeft = '';
+                    } else {
+                        block.style.marginLeft = newMargin + 'px';
+                    }
+                });
+                return frag;
+            });
+        }
+
+        this.scheduleAutoSave();
+        this.squireEditor.focus();
+    },
+
     formatList() {
         if (this.squireEditor) {
             if (this.squireEditor.hasFormat('UL')) {
@@ -798,7 +870,9 @@ const Documents = {
             { id: 'underlineBtn', handler: () => this.formatUnderline() },
             { id: 'listBtn', handler: () => this.formatList() },
             { id: 'orderedListBtn', handler: () => this.formatOrderedList() },
-            { id: 'strikeBtn', handler: () => this.formatStrikethrough() }
+            { id: 'strikeBtn', handler: () => this.formatStrikethrough() },
+            { id: 'indentBtn', handler: () => this.formatIndent() },
+            { id: 'outdentBtn', handler: () => this.formatOutdent() }
         ];
 
         buttons.forEach(({ id, handler }) => {
@@ -890,6 +964,48 @@ const Documents = {
                 savedSelection = null;
             });
         }
+
+        // Bind text alignment dropdown
+        const textAlignSelect = document.getElementById('textAlignSelect');
+        if (textAlignSelect) {
+            // Store selection when opening dropdown
+            let savedSelection = null;
+
+            // Save selection on mousedown (before focus is lost)
+            textAlignSelect.addEventListener('mousedown', (e) => {
+                if (this.squireEditor) {
+                    try {
+                        savedSelection = this.squireEditor.getSelection();
+                    } catch (error) {
+                        console.warn('Failed to save selection:', error);
+                    }
+                }
+            });
+
+            // Handle change event (when user selects an alignment)
+            textAlignSelect.addEventListener('change', (e) => {
+                const alignment = e.target.value;
+                if (alignment) {
+                    // Restore selection before applying format
+                    if (savedSelection) {
+                        try {
+                            this.squireEditor.setSelection(savedSelection);
+                        } catch (error) {
+                            console.warn('Failed to restore selection:', error);
+                        }
+                    }
+                    this.setTextAlignment(alignment);
+                    savedSelection = null;
+                    // Reset dropdown to default after selection
+                    e.target.value = '';
+                }
+            });
+
+            // Clear saved selection if dropdown is closed without selecting
+            textAlignSelect.addEventListener('blur', () => {
+                savedSelection = null;
+            });
+        }
     },
 
     // Bind rich text keyboard shortcuts
@@ -956,6 +1072,17 @@ const Documents = {
                     e.preventDefault();
                     e.stopPropagation();
                     this.formatStrikethrough();
+                }
+            }
+
+            // Handle Tab and Shift+Tab for indentation
+            if (e.key === 'Tab' && !isCtrlCmd) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.shiftKey) {
+                    this.formatOutdent();
+                } else {
+                    this.formatIndent();
                 }
             }
         });
