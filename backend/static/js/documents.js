@@ -435,43 +435,41 @@ const Documents = {
     },
 
     insertTextAtCursor(text) {
-        const editor = UI.elements.documentTextarea;
-        if (!editor) return;
-        
-        editor.focus();
-        
-        // Use execCommand for better rich text insertion
+        if (!this.squireEditor) return;
+
+        this.squireEditor.focus();
+
+        // Insert HTML or plain text based on content
         if (text.includes('<') && text.includes('>')) {
             // HTML content - insert as HTML
-            document.execCommand('insertHTML', false, text);
+            this.squireEditor.insertHTML(text);
         } else {
             // Plain text
-            document.execCommand('insertText', false, text);
+            this.squireEditor.insertPlainText(text);
         }
-        
+
         // Trigger auto-save
         this.scheduleAutoSave();
     },
 
     wrapSelectedText(before, after = '') {
-        const editor = UI.elements.documentTextarea;
-        if (!editor) return;
-        
+        if (!this.squireEditor) return;
+
         const selection = this.getEditorSelection();
         if (!selection) return;
-        
+
         const selectedText = selection.text;
-        
+
         if (selectedText) {
             // Wrap selected text
             const wrappedText = before + selectedText + after;
-            document.execCommand('insertHTML', false, wrappedText);
+            this.squireEditor.insertHTML(wrappedText);
         } else {
             // No selection, insert template with placeholder
             const placeholder = this.getPlaceholderText(before, after);
             const wrappedText = before + placeholder + after;
-            document.execCommand('insertHTML', false, wrappedText);
-            
+            this.squireEditor.insertHTML(wrappedText);
+
             // Select the placeholder text for easy replacement
             setTimeout(() => {
                 const newSelection = window.getSelection();
@@ -486,8 +484,8 @@ const Documents = {
                 }
             }, 0);
         }
-        
-        editor.focus();
+
+        this.squireEditor.focus();
         this.scheduleAutoSave();
     },
 
@@ -499,17 +497,16 @@ const Documents = {
     },
 
     insertAtLineStart(prefix) {
-        const editor = UI.elements.documentTextarea;
-        if (!editor) return;
-        
+        if (!this.squireEditor) return;
+
         const selection = window.getSelection();
         if (!selection.rangeCount) return;
-        
+
         // For contentEditable, we'll just insert the prefix at cursor
         // This is a simplified implementation for rich text
-        document.execCommand('insertText', false, prefix);
-        
-        editor.focus();
+        this.squireEditor.insertPlainText(prefix);
+
+        this.squireEditor.focus();
         this.scheduleAutoSave();
     },
 

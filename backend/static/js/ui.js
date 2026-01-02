@@ -422,16 +422,10 @@ const UI = {
 
         // Tab-specific: move cursor to end of document first
         if (isTabTriggered) {
-            const editor = UI.elements.documentTextarea;
-            if (editor) {
-                editor.focus();
-                // Move cursor to very end
-                const range = document.createRange();
-                range.selectNodeContents(editor);
-                range.collapse(false); // false = end of range
-                const selection = window.getSelection();
-                selection.removeAllRanges();
-                selection.addRange(range);
+            if (Documents.squireEditor) {
+                // Use Squire's moveCursorToEnd method
+                Documents.squireEditor.focus();
+                Documents.squireEditor.moveCursorToEnd();
             }
         }
 

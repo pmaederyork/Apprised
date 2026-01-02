@@ -64,10 +64,13 @@ const Files = {
         if (!clipboardData) return;
 
         // Check if document editor or system prompt editor is focused - if so, let them handle paste
-        const documentTextarea = document.getElementById('documentTextarea');
         const systemPromptTextarea = document.getElementById('systemPromptTextarea');
-        
-        if ((documentTextarea && document.activeElement === documentTextarea) ||
+
+        // For Squire editor, check if its root element is focused
+        const isDocumentEditorFocused = Documents.squireEditor &&
+            document.activeElement === Documents.squireEditor.getRoot();
+
+        if (isDocumentEditorFocused ||
             (systemPromptTextarea && document.activeElement === systemPromptTextarea)) {
             return; // Let the editor handle the paste normally
         }
