@@ -8,7 +8,14 @@
 - **Manual testing required after changes
 - **Never make changes until I tell you to!
 - **Always use Python3 and Pip3
-- **When referencing external tools, review the online documentation with websearch first before implementing.  
+- **When referencing external tools, review the online documentation with websearch first before implementing.
+
+## Local Documentation
+- **SQUIRE_API.md** - Complete Squire Rich Text Editor API reference (use this instead of WebSearch for Squire questions)
+- **CLAUDE.md** - This development guide (architecture, patterns, implementation rules)
+- **squire_plan.md** - Squire migration plan and feature roadmap
+- **text_editors.md** - Text editor comparison and architecture analysis
+
 ---
 
 ## Full Stack Architecture
