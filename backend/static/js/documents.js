@@ -98,9 +98,6 @@ const Documents = {
         // Markdown keyboard shortcuts
         this.bindMarkdownShortcuts();
 
-        // Smart copy/paste functionality
-        this.bindSmartCopyPaste();
-
         // Google Drive buttons
         UI.elements.saveToDriveBtn?.addEventListener('click', () => {
             if (this.currentDocumentId) {
@@ -115,15 +112,7 @@ const Documents = {
             }
         });
 
-        // Clean meta tags from pasted content
-        UI.elements.documentTextarea?.addEventListener('paste', (e) => {
-            const html = e.clipboardData?.getData('text/html');
-            if (html && html.includes('<meta')) {
-                e.preventDefault();
-                const cleaned = html.replace(/<meta[^>]*>/gi, '');
-                document.execCommand('insertHTML', false, cleaned);
-            }
-        });
+        // Squire handles paste events automatically with DOMPurify sanitization
     },
 
     // Create a new document
@@ -829,31 +818,15 @@ const Documents = {
         redoBtn.disabled = redoStack.length === 0;
     },
 
-    // Smart copy/paste functionality for Google Docs integration
-    bindSmartCopyPaste() {
-        const editor = UI.elements.documentTextarea;
-        if (!editor) return;
-
-        // Rich text editor doesn't need special copy handling - browser handles it
-        // Just ensure paste events trigger auto-save
-        editor.addEventListener('paste', (e) => {
-            if (!this.isDocumentEditorActive()) return;
-            
-            // Let browser handle rich text paste naturally
-            setTimeout(() => {
-                this.scheduleAutoSave();
-            }, 0);
-        });
-    },
-
     // Check if document editor is currently active
     isDocumentEditorActive() {
         const documentEditor = UI.elements.documentEditor;
-        const editor = UI.elements.documentTextarea;
-        return documentEditor && 
-               documentEditor.classList.contains('active') && 
-               editor && 
-               (document.activeElement === editor || editor.contains(document.activeElement));
+        if (!documentEditor || !documentEditor.classList.contains('active')) return false;
+
+        if (!this.squireEditor) return false;
+
+        const squireRoot = this.squireEditor.getRoot();
+        return squireRoot && document.activeElement === squireRoot;
     },
 
     // Convert markdown to HTML for Google Docs compatibility
