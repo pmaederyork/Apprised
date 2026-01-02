@@ -9,6 +9,7 @@ const Documents = {
     isSaving: false,
     saveTimeout: null,
     isPulling: false, // Flag to prevent recursive auto-pull loops
+    squireEditor: null, // Squire editor instance
 
     // Undo/redo state
     undoStacks: {}, // Per document undo stacks
@@ -24,14 +25,23 @@ const Documents = {
             console.warn('Documents module already initialized');
             return;
         }
-        
+
+        // Initialize Squire editor
+        const editorContainer = document.getElementById('documentTextarea');
+        if (editorContainer && typeof Squire !== 'undefined') {
+            this.squireEditor = new Squire(editorContainer);
+            console.log('Squire editor initialized');
+        } else {
+            console.error('Failed to initialize Squire: container or Squire library not found');
+        }
+
         this.documents = Storage.getDocuments();
         this.bindEvents();
         this.renderDocumentList();
-        
+
         // Restore last open document if it exists
         this.restoreLastOpenDocument();
-        
+
         this.initialized = true;
     },
 
@@ -74,10 +84,13 @@ const Documents = {
         });
 
         // Document content auto-save and history tracking
-        UI.elements.documentTextarea?.addEventListener('input', () => {
-            this.scheduleAutoSave();
-            this.scheduleHistoryCapture();
-        });
+        // Use Squire's input event
+        if (this.squireEditor) {
+            this.squireEditor.addEventListener('input', () => {
+                this.scheduleAutoSave();
+                this.scheduleHistoryCapture();
+            });
+        }
 
         // Markdown toolbar button events
         this.bindMarkdownEvents();
