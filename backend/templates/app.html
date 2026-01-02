@@ -311,28 +311,41 @@
                     <option value="justify">≡ Justify</option>
                 </select>
                 <span class="toolbar-separator"></span>
-                <select class="line-spacing-select" id="lineSpacingSelect" title="Line Spacing">
-                    <option value="">Line spacing</option>
-                    <option value="1">Single</option>
-                    <option value="1.15">1.15</option>
-                    <option value="1.5">1.5</option>
-                    <option value="2">Double</option>
-                </select>
-                <span class="toolbar-separator"></span>
-                <select class="paragraph-spacing-select" id="paragraphSpacingBeforeSelect" title="Space Before Paragraph">
-                    <option value="">Space before</option>
-                    <option value="0">0 pt</option>
-                    <option value="6pt">6 pt</option>
-                    <option value="12pt">12 pt</option>
-                    <option value="18pt">18 pt</option>
-                </select>
-                <select class="paragraph-spacing-select" id="paragraphSpacingAfterSelect" title="Space After Paragraph">
-                    <option value="">Space after</option>
-                    <option value="0">0 pt</option>
-                    <option value="6pt">6 pt</option>
-                    <option value="12pt">12 pt</option>
-                    <option value="18pt">18 pt</option>
-                </select>
+                <div class="spacing-dropdown">
+                    <button class="toolbar-btn spacing-dropdown-btn" id="spacingDropdownBtn" title="Line & Paragraph Spacing">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M3 2h10v1H3V2zm0 5h10v1H3V7zm0 5h10v1H3v-1z"/>
+                            <path d="M1 0l1.5 2L1 4V0zm0 12l1.5 2L1 16v-4zm13-12l-1.5 2L14 4V0zm0 12l-1.5 2L14 16v-4z"/>
+                        </svg>
+                    </button>
+                    <div class="spacing-dropdown-menu" id="spacingDropdownMenu" style="display: none;">
+                        <div class="spacing-menu-item" data-action="line-spacing" data-value="1">
+                            <span class="checkmark">✓</span>
+                            <span>Single</span>
+                        </div>
+                        <div class="spacing-menu-item" data-action="line-spacing" data-value="1.15">
+                            <span class="checkmark">✓</span>
+                            <span>1.15</span>
+                        </div>
+                        <div class="spacing-menu-item" data-action="line-spacing" data-value="1.5">
+                            <span class="checkmark">✓</span>
+                            <span>1.5</span>
+                        </div>
+                        <div class="spacing-menu-item" data-action="line-spacing" data-value="2">
+                            <span class="checkmark">✓</span>
+                            <span>Double</span>
+                        </div>
+                        <div class="spacing-menu-separator"></div>
+                        <div class="spacing-menu-item" data-action="space-before">
+                            <span class="checkmark">✓</span>
+                            <span>Add space before paragraph</span>
+                        </div>
+                        <div class="spacing-menu-item" data-action="space-after">
+                            <span class="checkmark">✓</span>
+                            <span>Add space after paragraph</span>
+                        </div>
+                    </div>
+                </div>
 
             </div>
             <div class="editor-content">

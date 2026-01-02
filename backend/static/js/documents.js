@@ -769,44 +769,115 @@ const Documents = {
 
         this.scheduleAutoSave();
         this.squireEditor.focus();
+        this.updateSpacingCheckmarks();
     },
 
-    // Set paragraph spacing before (margin-top)
-    setParagraphSpacingBefore(spacing) {
+    // Toggle paragraph spacing before (margin-top) - uses font size
+    toggleParagraphSpacingBefore() {
         if (!this.squireEditor) return;
 
         this.squireEditor.forEachBlock((block) => {
             // Skip list items to avoid double-spacing issues
             if (block.nodeName === 'LI') return;
 
-            if (spacing) {
-                block.style.marginTop = spacing;
-            } else {
+            const currentMargin = block.style.marginTop;
+            if (currentMargin && currentMargin !== '0px') {
+                // Remove spacing
                 block.style.marginTop = '';
+            } else {
+                // Add spacing equal to font size
+                const fontSize = window.getComputedStyle(block).fontSize;
+                block.style.marginTop = fontSize;
             }
         }, true);
 
         this.scheduleAutoSave();
         this.squireEditor.focus();
+        this.updateSpacingCheckmarks();
     },
 
-    // Set paragraph spacing after (margin-bottom)
-    setParagraphSpacingAfter(spacing) {
+    // Toggle paragraph spacing after (margin-bottom) - uses font size
+    toggleParagraphSpacingAfter() {
         if (!this.squireEditor) return;
 
         this.squireEditor.forEachBlock((block) => {
             // Skip list items to avoid double-spacing issues
             if (block.nodeName === 'LI') return;
 
-            if (spacing) {
-                block.style.marginBottom = spacing;
-            } else {
+            const currentMargin = block.style.marginBottom;
+            if (currentMargin && currentMargin !== '0px') {
+                // Remove spacing
                 block.style.marginBottom = '';
+            } else {
+                // Add spacing equal to font size
+                const fontSize = window.getComputedStyle(block).fontSize;
+                block.style.marginBottom = fontSize;
             }
         }, true);
 
         this.scheduleAutoSave();
         this.squireEditor.focus();
+        this.updateSpacingCheckmarks();
+    },
+
+    // Update spacing dropdown checkmarks based on current selection
+    updateSpacingCheckmarks() {
+        if (!this.squireEditor) return;
+
+        try {
+            const selection = this.squireEditor.getSelection();
+            let node = selection.startContainer;
+            if (node.nodeType === Node.TEXT_NODE) {
+                node = node.parentNode;
+            }
+
+            // Find the block element
+            while (node && node !== this.squireEditor.getRoot()) {
+                if (node.nodeType === Node.ELEMENT_NODE && /^(P|DIV|H[1-6]|LI)$/.test(node.nodeName)) {
+                    break;
+                }
+                node = node.parentNode;
+            }
+
+            if (!node || node === this.squireEditor.getRoot()) return;
+
+            // Get current line-height
+            const lineHeight = node.style.lineHeight || window.getComputedStyle(node).lineHeight;
+            let lineHeightValue = lineHeight;
+            // Convert px to unitless if needed
+            if (lineHeight.includes('px')) {
+                const fontSize = parseFloat(window.getComputedStyle(node).fontSize);
+                const lineHeightPx = parseFloat(lineHeight);
+                lineHeightValue = (lineHeightPx / fontSize).toFixed(2);
+            }
+
+            // Get current margins
+            const marginTop = node.style.marginTop || window.getComputedStyle(node).marginTop;
+            const marginBottom = node.style.marginBottom || window.getComputedStyle(node).marginBottom;
+            const hasSpaceBefore = marginTop && marginTop !== '0px' && parseFloat(marginTop) > 0;
+            const hasSpaceAfter = marginBottom && marginBottom !== '0px' && parseFloat(marginBottom) > 0;
+
+            // Update checkmarks
+            document.querySelectorAll('.spacing-menu-item').forEach(item => {
+                const action = item.getAttribute('data-action');
+                const value = item.getAttribute('data-value');
+                const checkmark = item.querySelector('.checkmark');
+
+                if (action === 'line-spacing') {
+                    if (Math.abs(parseFloat(lineHeightValue) - parseFloat(value)) < 0.1) {
+                        checkmark.style.visibility = 'visible';
+                    } else {
+                        checkmark.style.visibility = 'hidden';
+                    }
+                } else if (action === 'space-before') {
+                    checkmark.style.visibility = hasSpaceBefore ? 'visible' : 'hidden';
+                } else if (action === 'space-after') {
+                    checkmark.style.visibility = hasSpaceAfter ? 'visible' : 'hidden';
+                }
+            });
+        } catch (error) {
+            console.warn('Failed to update spacing checkmarks:', error);
+        }
     },
 
     // Update font size display based on cursor position or selection
@@ -1081,114 +1152,55 @@ const Documents = {
             });
         }
 
-        // Bind line spacing dropdown
-        const lineSpacingSelect = document.getElementById('lineSpacingSelect');
-        if (lineSpacingSelect) {
-            let savedSelection = null;
+        // Bind spacing dropdown
+        const spacingDropdownBtn = document.getElementById('spacingDropdownBtn');
+        const spacingDropdownMenu = document.getElementById('spacingDropdownMenu');
 
-            lineSpacingSelect.addEventListener('mousedown', (e) => {
-                if (this.squireEditor) {
-                    try {
-                        savedSelection = this.squireEditor.getSelection();
-                    } catch (error) {
-                        console.warn('Failed to save selection:', error);
-                    }
+        if (spacingDropdownBtn && spacingDropdownMenu) {
+            // Toggle dropdown on button click
+            spacingDropdownBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isVisible = spacingDropdownMenu.style.display !== 'none';
+                spacingDropdownMenu.style.display = isVisible ? 'none' : 'block';
+
+                // Update checkmarks when opening
+                if (!isVisible) {
+                    this.updateSpacingCheckmarks();
                 }
             });
 
-            lineSpacingSelect.addEventListener('change', (e) => {
-                const lineHeight = e.target.value;
-                if (lineHeight) {
-                    if (savedSelection) {
-                        try {
-                            this.squireEditor.setSelection(savedSelection);
-                        } catch (error) {
-                            console.warn('Failed to restore selection:', error);
-                        }
-                    }
-                    this.setLineSpacing(lineHeight);
-                    savedSelection = null;
-                    // Reset dropdown to default after selection
-                    e.target.value = '';
+            // Handle menu item clicks
+            spacingDropdownMenu.addEventListener('click', (e) => {
+                const menuItem = e.target.closest('.spacing-menu-item');
+                if (!menuItem) return;
+
+                const action = menuItem.getAttribute('data-action');
+                const value = menuItem.getAttribute('data-value');
+
+                if (action === 'line-spacing') {
+                    this.setLineSpacing(value);
+                } else if (action === 'space-before') {
+                    this.toggleParagraphSpacingBefore();
+                } else if (action === 'space-after') {
+                    this.toggleParagraphSpacingAfter();
                 }
+
+                // Keep menu open after selection so user can see updated checkmarks
+                this.updateSpacingCheckmarks();
             });
 
-            lineSpacingSelect.addEventListener('blur', () => {
-                savedSelection = null;
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!spacingDropdownBtn.contains(e.target) && !spacingDropdownMenu.contains(e.target)) {
+                    spacingDropdownMenu.style.display = 'none';
+                }
             });
         }
 
-        // Bind paragraph spacing before dropdown
-        const paragraphSpacingBeforeSelect = document.getElementById('paragraphSpacingBeforeSelect');
-        if (paragraphSpacingBeforeSelect) {
-            let savedSelection = null;
-
-            paragraphSpacingBeforeSelect.addEventListener('mousedown', (e) => {
-                if (this.squireEditor) {
-                    try {
-                        savedSelection = this.squireEditor.getSelection();
-                    } catch (error) {
-                        console.warn('Failed to save selection:', error);
-                    }
-                }
-            });
-
-            paragraphSpacingBeforeSelect.addEventListener('change', (e) => {
-                const spacing = e.target.value;
-                if (spacing) {
-                    if (savedSelection) {
-                        try {
-                            this.squireEditor.setSelection(savedSelection);
-                        } catch (error) {
-                            console.warn('Failed to restore selection:', error);
-                        }
-                    }
-                    this.setParagraphSpacingBefore(spacing);
-                    savedSelection = null;
-                    // Reset dropdown to default after selection
-                    e.target.value = '';
-                }
-            });
-
-            paragraphSpacingBeforeSelect.addEventListener('blur', () => {
-                savedSelection = null;
-            });
-        }
-
-        // Bind paragraph spacing after dropdown
-        const paragraphSpacingAfterSelect = document.getElementById('paragraphSpacingAfterSelect');
-        if (paragraphSpacingAfterSelect) {
-            let savedSelection = null;
-
-            paragraphSpacingAfterSelect.addEventListener('mousedown', (e) => {
-                if (this.squireEditor) {
-                    try {
-                        savedSelection = this.squireEditor.getSelection();
-                    } catch (error) {
-                        console.warn('Failed to save selection:', error);
-                    }
-                }
-            });
-
-            paragraphSpacingAfterSelect.addEventListener('change', (e) => {
-                const spacing = e.target.value;
-                if (spacing) {
-                    if (savedSelection) {
-                        try {
-                            this.squireEditor.setSelection(savedSelection);
-                        } catch (error) {
-                            console.warn('Failed to restore selection:', error);
-                        }
-                    }
-                    this.setParagraphSpacingAfter(spacing);
-                    savedSelection = null;
-                    // Reset dropdown to default after selection
-                    e.target.value = '';
-                }
-            });
-
-            paragraphSpacingAfterSelect.addEventListener('blur', () => {
-                savedSelection = null;
+        // Update checkmarks on selection change
+        if (this.squireEditor) {
+            this.squireEditor.addEventListener('pathChange', () => {
+                this.updateSpacingCheckmarks();
             });
         }
     },
