@@ -1033,7 +1033,26 @@ const Documents = {
             if (fontFamily) {
                 // Extract family name from string (e.g., '"Arial", sans-serif' -> 'Arial')
                 const familyName = fontFamily.split(',')[0].replace(/['"]/g, '').trim();
-                fontFamilySelect.value = familyName;
+
+                // Normalize Google Docs font names to match dropdown options
+                // Google Docs converts "Times New Roman" to "Times", "Courier New" to "Courier", etc.
+                const fontMapping = {
+                    'Times': 'Times New Roman',
+                    'times': 'Times New Roman',
+                    'Times New Roman': 'Times New Roman',
+                    'Courier': 'Courier New',
+                    'courier': 'Courier New',
+                    'Courier New': 'Courier New',
+                    'Arial': 'Arial',
+                    'arial': 'Arial',
+                    'Georgia': 'Georgia',
+                    'georgia': 'Georgia',
+                    'Verdana': 'Verdana',
+                    'verdana': 'Verdana'
+                };
+
+                const normalizedFont = fontMapping[familyName] || familyName;
+                fontFamilySelect.value = normalizedFont;
             } else {
                 fontFamilySelect.value = '';
             }
