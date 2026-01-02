@@ -151,13 +151,53 @@ const Documents = {
                                 const nodeName = target.nodeName;
                                 // Check if this is a block-level element
                                 if (/^(DIV|P|H[1-6]|LI|BLOCKQUOTE)$/.test(nodeName)) {
-                                    // Create a new range that only selects this block's contents
+                                    // Helper function to find first text node recursively
+                                    const getFirstTextNode = (node) => {
+                                        if (node.nodeType === Node.TEXT_NODE) return node;
+                                        for (let child of node.childNodes) {
+                                            const textNode = getFirstTextNode(child);
+                                            if (textNode) return textNode;
+                                        }
+                                        return null;
+                                    };
+
+                                    // Helper function to find last text node recursively
+                                    const getLastTextNode = (node) => {
+                                        if (node.nodeType === Node.TEXT_NODE) return node;
+                                        for (let i = node.childNodes.length - 1; i >= 0; i--) {
+                                            const textNode = getLastTextNode(node.childNodes[i]);
+                                            if (textNode) return textNode;
+                                        }
+                                        return null;
+                                    };
+
+                                    // Find first and last text nodes
+                                    const firstTextNode = getFirstTextNode(target);
+                                    const lastTextNode = getLastTextNode(target);
+
+                                    // Create a new range that selects text nodes, not element nodes
                                     const newRange = document.createRange();
-                                    newRange.selectNodeContents(target);
+
+                                    if (firstTextNode && lastTextNode) {
+                                        // Select from first text node to last text node
+                                        newRange.setStart(firstTextNode, 0);
+                                        newRange.setEnd(lastTextNode, lastTextNode.length);
+                                    } else {
+                                        // Fallback to selectNodeContents if no text nodes found
+                                        newRange.selectNodeContents(target);
+                                    }
 
                                     // Replace the current selection with our constrained range
                                     selection.removeAllRanges();
                                     selection.addRange(newRange);
+
+                                    // CRITICAL: Sync the corrected selection back to Squire
+                                    this.squireEditor.setSelection(newRange);
+
+                                    // Manually trigger font detection to read from corrected selection
+                                    this.updateFontSizeDisplay();
+                                    this.updateFontFamilyDisplay();
+
                                     break;
                                 }
                                 target = target.parentElement;
