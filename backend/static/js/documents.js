@@ -31,14 +31,16 @@ const Documents = {
             this.squireEditor = new Squire(editorContainer);
             console.log('Squire editor initialized');
 
-            // Bind pathChange event to update font size display
+            // Bind pathChange event to update font size and family display
             this.squireEditor.addEventListener('pathChange', () => {
                 this.updateFontSizeDisplay();
+                this.updateFontFamilyDisplay();
             });
 
             // Also update on selection change
             this.squireEditor.addEventListener('select', () => {
                 this.updateFontSizeDisplay();
+                this.updateFontFamilyDisplay();
             });
         } else {
             console.error('Failed to initialize Squire: container or Squire library not found');
@@ -567,7 +569,7 @@ const Documents = {
         }
     },
 
-    // Set font size for selected text
+    // Set font size for selected text (with block-level support for headers)
     setFontSize(size) {
         if (!this.squireEditor) return;
 
@@ -577,15 +579,88 @@ const Documents = {
             sizeValue = size + 'px';
         }
 
-        if (sizeValue) {
-            this.squireEditor.setFontSize(sizeValue);
+        // Check if selection contains only headers
+        let hasHeaders = false;
+        let hasNonHeaders = false;
+
+        try {
+            this.squireEditor.forEachBlock((block) => {
+                if (/^H[1-6]$/.test(block.nodeName)) {
+                    hasHeaders = true;
+                } else {
+                    hasNonHeaders = true;
+                }
+            }, false); // Don't mutate, just checking
+        } catch (error) {
+            console.warn('Error checking blocks:', error);
+        }
+
+        if (hasHeaders && !hasNonHeaders) {
+            // Apply style directly to header blocks
+            this.squireEditor.forEachBlock((block) => {
+                if (/^H[1-6]$/.test(block.nodeName)) {
+                    if (sizeValue) {
+                        block.style.fontSize = sizeValue;
+                    } else {
+                        block.style.fontSize = '';
+                    }
+                }
+            }, true); // true = mutate and save undo state
+            this.squireEditor.focus();
         } else {
-            // Clear font size (pass null to remove formatting)
-            this.squireEditor.setFontSize(null);
+            // Use default SPAN wrapping for paragraphs or mixed content
+            if (sizeValue) {
+                this.squireEditor.setFontSize(sizeValue);
+            } else {
+                this.squireEditor.setFontSize(null);
+            }
         }
 
         this.scheduleAutoSave();
-        this.squireEditor.focus();
+    },
+
+    // Set font family for selected text (with block-level support for headers)
+    setFontFamily(family) {
+        if (!this.squireEditor) return;
+
+        // Check if selection contains only headers
+        let hasHeaders = false;
+        let hasNonHeaders = false;
+
+        try {
+            this.squireEditor.forEachBlock((block) => {
+                if (/^H[1-6]$/.test(block.nodeName)) {
+                    hasHeaders = true;
+                } else {
+                    hasNonHeaders = true;
+                }
+            }, false); // Don't mutate, just checking
+        } catch (error) {
+            console.warn('Error checking blocks:', error);
+        }
+
+        if (hasHeaders && !hasNonHeaders) {
+            // Apply style directly to header blocks
+            this.squireEditor.forEachBlock((block) => {
+                if (/^H[1-6]$/.test(block.nodeName)) {
+                    if (family) {
+                        block.style.fontFamily = family + ', sans-serif';
+                    } else {
+                        block.style.fontFamily = '';
+                    }
+                }
+            }, true); // true = mutate and save undo state
+            this.squireEditor.focus();
+        } else {
+            // Use default SPAN wrapping for paragraphs or mixed content
+            if (family) {
+                this.squireEditor.setFontFace(family);
+            } else {
+                this.squireEditor.setFontFace(null);
+            }
+        }
+
+        this.scheduleAutoSave();
     },
 
     // Update font size display based on cursor position or selection
@@ -597,30 +672,33 @@ const Documents = {
             const selection = this.squireEditor.getSelection();
             let fontSize = null;
 
-            if (selection.collapsed) {
-                // Cursor position - use getFontInfo
-                const fontInfo = this.squireEditor.getFontInfo();
-                fontSize = fontInfo?.fontSize;
-            } else {
-                // Text is selected - traverse from start of selection
-                let node = selection.startContainer;
+            // First check if we're in a header block with direct styling
+            let node = selection.startContainer;
+            if (node.nodeType === Node.TEXT_NODE) {
+                node = node.parentNode;
+            }
 
-                // If text node, get parent element
-                if (node.nodeType === Node.TEXT_NODE) {
-                    node = node.parentNode;
+            // Traverse up to find block-level font-size or header
+            while (node && node !== this.squireEditor.getRoot()) {
+                // Check if this is a header with block-level font-size
+                if (/^H[1-6]$/.test(node.nodeName) && node.style && node.style.fontSize) {
+                    fontSize = node.style.fontSize;
+                    break;
                 }
-
-                // Traverse up to find font-size style
-                while (node && node !== this.squireEditor.getRoot()) {
-                    if (node.style && node.style.fontSize) {
-                        fontSize = node.style.fontSize;
-                        break;
-                    }
-                    node = node.parentNode;
+                // Check for inline font-size style
+                if (node.style && node.style.fontSize) {
+                    fontSize = node.style.fontSize;
+                    break;
                 }
+                node = node.parentNode;
+            }
 
-                // Fallback: compute style from selection start
-                if (!fontSize && selection.startContainer) {
+            // Fallback: use getFontInfo or computed style
+            if (!fontSize) {
+                if (selection.collapsed) {
+                    const fontInfo = this.squireEditor.getFontInfo();
+                    fontSize = fontInfo?.fontSize;
+                } else {
                     const startElement = selection.startContainer.nodeType === Node.TEXT_NODE
                         ? selection.startContainer.parentElement
                         : selection.startContainer;
@@ -637,7 +715,6 @@ const Documents = {
                 const sizeMatch = fontSize.match(/(\d+)/);
                 if (sizeMatch) {
                     const sizeValue = sizeMatch[1];
-                    // Set dropdown to matching value
                     fontSizeSelect.value = sizeValue;
                 } else {
                     fontSizeSelect.value = '';
@@ -648,6 +725,66 @@ const Documents = {
         } catch (error) {
             console.warn('Failed to get font info:', error);
             fontSizeSelect.value = '';
+        }
+    },
+
+    // Update font family display based on cursor position or selection
+    updateFontFamilyDisplay() {
+        const fontFamilySelect = document.getElementById('fontFamilySelect');
+        if (!fontFamilySelect || !this.squireEditor) return;
+
+        try {
+            const selection = this.squireEditor.getSelection();
+            let fontFamily = null;
+
+            // First check if we're in a header block with direct styling
+            let node = selection.startContainer;
+            if (node.nodeType === Node.TEXT_NODE) {
+                node = node.parentNode;
+            }
+
+            // Traverse up to find block-level font-family or header
+            while (node && node !== this.squireEditor.getRoot()) {
+                // Check if this is a header with block-level font-family
+                if (/^H[1-6]$/.test(node.nodeName) && node.style && node.style.fontFamily) {
+                    fontFamily = node.style.fontFamily;
+                    break;
+                }
+                // Check for inline font-family style
+                if (node.style && node.style.fontFamily) {
+                    fontFamily = node.style.fontFamily;
+                    break;
+                }
+                node = node.parentNode;
+            }
+
+            // Fallback: use getFontInfo or computed style
+            if (!fontFamily) {
+                if (selection.collapsed) {
+                    const fontInfo = this.squireEditor.getFontInfo();
+                    fontFamily = fontInfo?.fontFamily;
+                } else {
+                    const startElement = selection.startContainer.nodeType === Node.TEXT_NODE
+                        ? selection.startContainer.parentElement
+                        : selection.startContainer;
+
+                    if (startElement) {
+                        const computedStyle = window.getComputedStyle(startElement);
+                        fontFamily = computedStyle.fontFamily;
+                    }
+                }
+            }
+
+            if (fontFamily) {
+                // Extract family name from string (e.g., '"Arial", sans-serif' -> 'Arial')
+                const familyName = fontFamily.split(',')[0].replace(/['"]/g, '').trim();
+                fontFamilySelect.value = familyName;
+            } else {
+                fontFamilySelect.value = '';
+            }
+        } catch (error) {
+            console.warn('Failed to get font family info:', error);
+            fontFamilySelect.value = '';
         }
     },
 
@@ -710,6 +847,46 @@ const Documents = {
 
             // Clear saved selection if dropdown is closed without selecting
             fontSizeSelect.addEventListener('blur', () => {
+                savedSelection = null;
+            });
+        }
+
+        // Bind font family dropdown
+        const fontFamilySelect = document.getElementById('fontFamilySelect');
+        if (fontFamilySelect) {
+            // Store selection when opening dropdown
+            let savedSelection = null;
+
+            // Save selection on mousedown (before focus is lost)
+            fontFamilySelect.addEventListener('mousedown', (e) => {
+                if (this.squireEditor) {
+                    try {
+                        savedSelection = this.squireEditor.getSelection();
+                    } catch (error) {
+                        console.warn('Failed to save selection:', error);
+                    }
+                }
+            });
+
+            // Handle change event (when user selects a font)
+            fontFamilySelect.addEventListener('change', (e) => {
+                const family = e.target.value;
+                if (family) {
+                    // Restore selection before applying format
+                    if (savedSelection) {
+                        try {
+                            this.squireEditor.setSelection(savedSelection);
+                        } catch (error) {
+                            console.warn('Failed to restore selection:', error);
+                        }
+                    }
+                    this.setFontFamily(family);
+                    savedSelection = null;
+                }
+            });
+
+            // Clear saved selection if dropdown is closed without selecting
+            fontFamilySelect.addEventListener('blur', () => {
                 savedSelection = null;
             });
         }
