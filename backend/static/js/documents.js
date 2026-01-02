@@ -513,42 +513,66 @@ const Documents = {
     // Rich text formatting functions
     formatBold() {
         if (this.squireEditor) {
-            this.squireEditor.bold();
+            if (this.squireEditor.hasFormat('B')) {
+                this.squireEditor.removeBold();
+            } else {
+                this.squireEditor.bold();
+            }
             this.scheduleAutoSave();
         }
     },
 
     formatItalic() {
         if (this.squireEditor) {
-            this.squireEditor.italic();
+            if (this.squireEditor.hasFormat('I')) {
+                this.squireEditor.removeItalic();
+            } else {
+                this.squireEditor.italic();
+            }
             this.scheduleAutoSave();
         }
     },
 
     formatUnderline() {
         if (this.squireEditor) {
-            this.squireEditor.underline();
+            if (this.squireEditor.hasFormat('U')) {
+                this.squireEditor.removeUnderline();
+            } else {
+                this.squireEditor.underline();
+            }
             this.scheduleAutoSave();
         }
     },
 
     formatStrikethrough() {
         if (this.squireEditor) {
-            this.squireEditor.strikethrough();
+            if (this.squireEditor.hasFormat('S')) {
+                this.squireEditor.removeStrikethrough();
+            } else {
+                this.squireEditor.strikethrough();
+            }
             this.scheduleAutoSave();
         }
     },
 
     formatList() {
         if (this.squireEditor) {
-            this.squireEditor.makeUnorderedList();
+            if (this.squireEditor.hasFormat('UL')) {
+                this.squireEditor.removeList();
+            } else {
+                this.squireEditor.makeUnorderedList();
+            }
             this.scheduleAutoSave();
         }
     },
 
     formatOrderedList() {
         if (this.squireEditor) {
-            this.squireEditor.makeOrderedList();
+            if (this.squireEditor.hasFormat('OL')) {
+                this.squireEditor.removeList();
+            } else {
+                this.squireEditor.makeOrderedList();
+            }
             this.scheduleAutoSave();
         }
     },
