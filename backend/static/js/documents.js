@@ -157,22 +157,28 @@ const Documents = {
         Storage.saveLastOpenDocumentId(documentId);
         
         // Update UI - hide .html extension in document editor
-        const displayTitle = document.title.endsWith('.html') ? 
+        const displayTitle = document.title.endsWith('.html') ?
             document.title.slice(0, -5) : document.title;
         UI.elements.documentTitle.value = displayTitle;
-        UI.elements.documentTextarea.innerHTML = document.content;
-        
+
+        // Load content into Squire editor
+        if (this.squireEditor) {
+            this.squireEditor.setHTML(document.content || '');
+        }
+
         // Show document editor
         UI.elements.documentEditor.classList.add('active');
-        
+
         // Update active state in sidebar
         this.updateActiveDocumentInSidebar(documentId);
-        
+
         // Initialize undo/redo for this document
         this.initializeHistory(documentId);
-        
+
         // Focus the editor
-        UI.elements.documentTextarea.focus();
+        if (this.squireEditor) {
+            this.squireEditor.focus();
+        }
 
         // Refresh copy-to-document buttons in chat
         if (typeof UI !== 'undefined' && UI.refreshCopyToDocumentButtons) {
@@ -257,11 +263,11 @@ const Documents = {
     // Save current document content
     saveCurrentDocument() {
         if (!this.currentDocumentId || this.isSaving) return;
-        
+
         this.isSaving = true;
         const document = this.documents[this.currentDocumentId];
-        if (document) {
-            document.content = UI.elements.documentTextarea.innerHTML;
+        if (document && this.squireEditor) {
+            document.content = this.squireEditor.getHTML();
             document.lastModified = Date.now();
             Storage.saveDocuments(this.documents);
         }
