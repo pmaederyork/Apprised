@@ -128,6 +128,44 @@ const Documents = {
         });
 
         // Squire handles paste events automatically with DOMPurify sanitization
+
+        // Triple-click handler to select only current paragraph (fixes browser bug)
+        if (this.squireEditor) {
+            const editorRoot = this.squireEditor.getRoot();
+
+            editorRoot.addEventListener('mousedown', (e) => {
+                // Detect triple-click
+                if (e.detail === 3) {
+                    // Let browser complete the selection first, then fix it
+                    setTimeout(() => {
+                        try {
+                            const selection = window.getSelection();
+                            if (!selection.rangeCount) return;
+
+                            // Find the block element containing the click
+                            let target = e.target;
+                            while (target && target !== editorRoot) {
+                                const nodeName = target.nodeName;
+                                // Check if this is a block-level element
+                                if (/^(DIV|P|H[1-6]|LI|BLOCKQUOTE)$/.test(nodeName)) {
+                                    // Create a new range that only selects this block's contents
+                                    const newRange = document.createRange();
+                                    newRange.selectNodeContents(target);
+
+                                    // Replace the current selection with our constrained range
+                                    selection.removeAllRanges();
+                                    selection.addRange(newRange);
+                                    break;
+                                }
+                                target = target.parentElement;
+                            }
+                        } catch (error) {
+                            console.warn('Failed to constrain triple-click selection:', error);
+                        }
+                    }, 0);
+                }
+            });
+        }
     },
 
     // Create a new document
