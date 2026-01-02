@@ -901,7 +901,13 @@ const Documents = {
      * Render changes in the document with visual highlighting
      */
     renderChangesInDocument(changes) {
-        const editor = UI.elements.documentTextarea;
+        if (!this.squireEditor) return;
+
+        // Save undo state before making changes
+        this.squireEditor.saveUndoState();
+
+        // Get editor root element
+        const editor = this.squireEditor.getRoot();
         if (!editor) return;
 
         // Clean up any existing change numbers before rendering new ones

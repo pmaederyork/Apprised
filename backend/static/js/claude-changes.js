@@ -19,9 +19,11 @@ const ClaudeChanges = {
         this.initialized = true;
 
         // Cache original document HTML before any wrappers are added
-        const editor = UI.elements.documentTextarea;
-        if (editor) {
-            this.originalDocumentHTML = editor.innerHTML;
+        if (Documents.squireEditor) {
+            const editor = Documents.squireEditor.getRoot();
+            if (editor) {
+                this.originalDocumentHTML = editor.innerHTML;
+            }
         }
 
         // Add body class for layout adjustment
@@ -455,9 +457,12 @@ const ClaudeChanges = {
         const reconstructedHTML = this.reconstructDocument(this.originalDocumentHTML, acceptedChanges);
 
         // Update editor with clean reconstructed HTML
-        const editor = UI.elements.documentTextarea;
-        if (editor) {
-            editor.innerHTML = reconstructedHTML;
+        if (Documents.squireEditor) {
+            Documents.squireEditor.saveUndoState();
+            const editor = Documents.squireEditor.getRoot();
+            if (editor) {
+                editor.innerHTML = reconstructedHTML;
+            }
         }
 
         // Clear any lingering change number indicators before re-rendering
@@ -525,9 +530,12 @@ const ClaudeChanges = {
         const reconstructedHTML = this.reconstructDocument(this.originalDocumentHTML, acceptedChanges);
 
         // Update editor with clean reconstructed HTML
-        const editor = UI.elements.documentTextarea;
-        if (editor) {
-            editor.innerHTML = reconstructedHTML;
+        if (Documents.squireEditor) {
+            Documents.squireEditor.saveUndoState();
+            const editor = Documents.squireEditor.getRoot();
+            if (editor) {
+                editor.innerHTML = reconstructedHTML;
+            }
         }
 
         // Clear any lingering change number indicators before re-rendering
@@ -636,9 +644,12 @@ const ClaudeChanges = {
             const acceptedChanges = this.changes.filter(c => c.status === 'accepted');
             const cleanHTML = this.reconstructDocument(this.originalDocumentHTML, acceptedChanges);
 
-            const editor = UI.elements.documentTextarea;
-            if (editor && cleanHTML) {
-                editor.innerHTML = cleanHTML;
+            if (Documents.squireEditor && cleanHTML) {
+                Documents.squireEditor.saveUndoState();
+                const editor = Documents.squireEditor.getRoot();
+                if (editor) {
+                    editor.innerHTML = cleanHTML;
+                }
             }
 
             // Save the rejection to storage
