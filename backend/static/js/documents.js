@@ -17,6 +17,9 @@ const Documents = {
     inputTimeout: null,
     lastSavedState: null,
 
+    // Loading state to prevent premature font detection
+    _loadingDocument: false,
+
     // Initialize document system
     init() {
         // Prevent multiple initialization to avoid duplicate event listeners
@@ -205,7 +208,22 @@ const Documents = {
 
         // Load content into Squire editor
         if (this.squireEditor) {
+            // Set loading flag to prevent premature font detection
+            this._loadingDocument = true;
+
             this.squireEditor.setHTML(document.content || '');
+
+            // Defer cursor positioning and font detection until next event loop tick
+            // This ensures Squire has finished loading content and cursor is in styled content
+            setTimeout(() => {
+                if (this.squireEditor) {
+                    this._loadingDocument = false;
+                    this.squireEditor.moveCursorToStart();
+                    // Manually update font displays now that cursor is properly positioned
+                    this.updateFontSizeDisplay();
+                    this.updateFontFamilyDisplay();
+                }
+            }, 0);
         }
 
         // Show document editor
@@ -920,6 +938,9 @@ const Documents = {
 
     // Update font size display based on cursor position or selection
     updateFontSizeDisplay() {
+        // Skip font detection while document is loading
+        if (this._loadingDocument) return;
+
         const fontSizeSelect = document.getElementById('fontSizeSelect');
         if (!fontSizeSelect || !this.squireEditor) return;
 
@@ -985,6 +1006,9 @@ const Documents = {
 
     // Update font family display based on cursor position or selection
     updateFontFamilyDisplay() {
+        // Skip font detection while document is loading
+        if (this._loadingDocument) return;
+
         const fontFamilySelect = document.getElementById('fontFamilySelect');
         if (!fontFamilySelect || !this.squireEditor) return;
 
