@@ -60,14 +60,9 @@ const GDrive = {
                     const heading = document.createElement(headingLevel);
                     heading.innerHTML = p.innerHTML;
 
-                    // Preserve any non-font-related styles
-                    const preservedStyles = style
-                        .split(';')
-                        .filter(s => !s.includes('font-size') && !s.includes('font-weight'))
-                        .join(';');
-                    if (preservedStyles) {
-                        heading.setAttribute('style', preservedStyles);
-                    }
+                    // Preserve ALL styles including font-size and font-weight
+                    // DOMPurify will handle security sanitization
+                    heading.setAttribute('style', style);
 
                     p.replaceWith(heading);
                 }
