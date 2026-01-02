@@ -607,13 +607,16 @@ const Documents = {
     bindMarkdownShortcuts() {
         document.addEventListener('keydown', (e) => {
             // Only handle shortcuts when document editor is focused
-            const editor = UI.elements.documentTextarea;
             const documentEditor = UI.elements.documentEditor;
 
             // Enhanced focus check with proper grouping
-            if (!editor || !documentEditor) return;
+            if (!documentEditor) return;
             if (!documentEditor.classList.contains('active')) return; // Editor not open
-            if (document.activeElement !== editor && !editor.contains(document.activeElement)) return;
+
+            // Check if Squire editor is focused
+            if (!this.squireEditor) return;
+            const squireRoot = this.squireEditor.getRoot();
+            if (!squireRoot || document.activeElement !== squireRoot) return;
 
             const isCtrlCmd = e.ctrlKey || e.metaKey;
 
