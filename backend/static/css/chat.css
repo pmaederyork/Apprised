@@ -363,7 +363,7 @@
 
 .message-bubble p {
     margin: 12px 0;
-    line-height: 1.6;
+    line-height: 1.25;
 }
 
 .message-bubble ul, .message-bubble ol {
@@ -373,7 +373,7 @@
 
 .message-bubble li {
     margin: 4px 0;
-    line-height: 1.5;
+    line-height: 1.25;
 }
 
 .message-bubble code {

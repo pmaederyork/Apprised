@@ -100,7 +100,7 @@
   /* Font Sizes - 10% smaller for compact UI */
   --text-xs: 0.675rem;     /* 10.8px */
   --text-sm: 0.7875rem;    /* 12.6px */
-  --text-base: 0.9rem;     /* 14.4px */
+  --text-base: 0.8rem;    /* 13px = 13pt */
   --text-lg: 1.0125rem;    /* 16.2px */
   --text-xl: 1.125rem;     /* 18px */
   --text-2xl: 1.35rem;     /* 21.6px */
@@ -114,7 +114,7 @@
   /* Line Heights */
   --leading-tight: 1.25;
   --leading-normal: 1.5;
-  --leading-relaxed: 1.75;
+  --leading-relaxed: 1.25;
 
   /* ===== Spacing System (8px base) ===== */
   --space-0: 0;
