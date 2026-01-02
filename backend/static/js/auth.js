@@ -80,8 +80,8 @@ const Auth = {
         if (UI.elements.sidebar) UI.elements.sidebar.style.display = '';
         if (UI.elements.mainContent) UI.elements.mainContent.style.display = '';
 
-        // Update user menu
-        this.updateUserMenu();
+        // Note: updateUserMenu() is now called from app.js after full initialization
+        // to avoid race condition with DOM elements on hard refresh
     },
 
     /**

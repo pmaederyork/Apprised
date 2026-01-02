@@ -9,13 +9,97 @@ const GDrive = {
     pickerApiLoaded: false,
 
     /**
-     * Remove meta tags from Google Drive HTML
-     * Preserves all content and inline styles
+     * Process Google Docs HTML for proper display
+     * Fixes UTF-8 encoding issues, converts heading styles to semantic HTML,
+     * and cleans up Google Docs-specific markup
      */
-    stripMetaTags(html) {
+    processGoogleDocsHTML(html) {
         if (!html) return '';
-        // Remove all <meta> tags
-        return html.replace(/<meta[^>]*>/gi, '');
+
+        try {
+            // 1. Fix UTF-8 encoding issues (mojibake patterns from Google Drive API)
+            html = html
+                .replace(/â€¢/g, '•')  // Bullet point
+                .replace(/â€"/g, '—')  // Em dash
+                .replace(/â€"/g, '–')  // En dash
+                .replace(/â€˜/g, '\u2018')  // Left single quote
+                .replace(/â€™/g, '\u2019')  // Right single quote
+                .replace(/â€œ/g, '\u201C')  // Left double quote
+                .replace(/â€/g, '\u201D')   // Right double quote
+                .replace(/Â /g, ' ');   // Non-breaking space issues
+
+            // 2. Remove meta tags
+            html = html.replace(/<meta[^>]*>/gi, '');
+
+            // 2.5. Remove external stylesheet links (prevent CSP violations)
+            html = html.replace(/<link[^>]*>/gi, '');
+
+            // 3. Convert Google Docs paragraph-style headings to semantic HTML
+            // Create temporary DOM for manipulation
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+
+            // Find paragraphs with bold + large font-size (Google Docs heading pattern)
+            tempDiv.querySelectorAll('p').forEach(p => {
+                const style = p.getAttribute('style') || '';
+                const isBold = style.includes('font-weight:700') || style.includes('font-weight:bold');
+                const fontSizeMatch = style.match(/font-size:\s*(\d+(?:\.\d+)?)(pt|px)/i);
+
+                if (isBold && fontSizeMatch) {
+                    const size = parseFloat(fontSizeMatch[1]);
+                    const unit = fontSizeMatch[2].toLowerCase();
+
+                    // Convert to points if in pixels (rough conversion)
+                    const sizeInPoints = unit === 'px' ? size * 0.75 : size;
+
+                    // Determine heading level based on font size
+                    let headingLevel = 'h3';
+                    if (sizeInPoints >= 18) headingLevel = 'h1';
+                    else if (sizeInPoints >= 14) headingLevel = 'h2';
+
+                    const heading = document.createElement(headingLevel);
+                    heading.innerHTML = p.innerHTML;
+
+                    // Preserve any non-font-related styles
+                    const preservedStyles = style
+                        .split(';')
+                        .filter(s => !s.includes('font-size') && !s.includes('font-weight'))
+                        .join(';');
+                    if (preservedStyles) {
+                        heading.setAttribute('style', preservedStyles);
+                    }
+
+                    p.replaceWith(heading);
+                }
+            });
+
+            // 4. Clean up Google Docs-specific classes
+            tempDiv.querySelectorAll('[class*="lst-kix"]').forEach(el => {
+                // Remove Google Docs list classes but keep the element
+                const classes = el.className.split(' ').filter(c => !c.includes('lst-kix'));
+                if (classes.length > 0) {
+                    el.className = classes.join(' ');
+                } else {
+                    el.removeAttribute('class');
+                }
+            });
+
+            // 5. Remove Google Docs internal ID attributes
+            tempDiv.querySelectorAll('[id]').forEach(el => {
+                const id = el.getAttribute('id');
+                // Only remove if it looks like a Google Docs generated ID
+                if (id && (id.startsWith('h.') || id.startsWith('id.'))) {
+                    el.removeAttribute('id');
+                }
+            });
+
+            return tempDiv.innerHTML;
+
+        } catch (error) {
+            console.error('Error processing Google Docs HTML:', error);
+            // Fallback: just remove meta tags
+            return html.replace(/<meta[^>]*>/gi, '');
+        }
     },
 
     // Initialize Google Drive integration
@@ -144,7 +228,7 @@ const GDrive = {
 
             if (data.success) {
                 // Update document with latest content from Drive
-                doc.content = this.stripMetaTags(data.content);
+                doc.content = this.processGoogleDocsHTML(data.content);
                 doc.lastModified = Date.now();
                 doc.driveSyncStatus = 'synced';
                 doc.lastSyncedAt = Date.now();
@@ -236,8 +320,8 @@ const GDrive = {
                 // Log raw HTML from Google Drive for debugging
                 console.log('=== GOOGLE DRIVE IMPORT: Raw HTML ===');
                 console.log(data.content);
-                console.log('\n=== GOOGLE DRIVE IMPORT: After stripMetaTags() ===');
-                console.log(this.stripMetaTags(data.content));
+                console.log('\n=== GOOGLE DRIVE IMPORT: After processGoogleDocsHTML() ===');
+                console.log(this.processGoogleDocsHTML(data.content));
                 console.log('\n=== GOOGLE DRIVE IMPORT: Document Name ===');
                 console.log(data.name);
 
@@ -248,7 +332,7 @@ const GDrive = {
                 if (existingDoc) {
                     // Update existing document
                     existingDoc.title = data.name.endsWith('.html') ? data.name : data.name + '.html';
-                    existingDoc.content = this.stripMetaTags(data.content);
+                    existingDoc.content = this.processGoogleDocsHTML(data.content);
                     existingDoc.lastModified = Date.now();
                     existingDoc.driveSyncStatus = 'synced';
                     existingDoc.lastSyncedAt = Date.now();
@@ -264,7 +348,7 @@ const GDrive = {
                     const newDoc = {
                         id: documentId,
                         title: data.name.endsWith('.html') ? data.name : data.name + '.html',
-                        content: this.stripMetaTags(data.content),
+                        content: this.processGoogleDocsHTML(data.content),
                         createdAt: Date.now(),
                         lastModified: Date.now(),
                         driveFileId: file.id,

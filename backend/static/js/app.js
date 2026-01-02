@@ -347,6 +347,10 @@ async function startApp() {
     // Only initialize main app if user is fully authenticated
     if (isAuthenticated) {
         App.init();
+
+        // Update user menu (including avatar) after DOM is fully initialized
+        // This prevents race condition on hard refresh
+        Auth.updateUserMenu();
     }
 }
 

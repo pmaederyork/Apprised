@@ -594,6 +594,19 @@ def drive_import(file_id):
         response = requests.get(url, headers=headers)
 
         if response.status_code == 200:
+            # Get the HTML content
+            html_content = response.text
+
+            # Fix UTF-8 encoding issues from Google Drive API
+            # Try to fix mojibake by re-encoding (common issue with Google Drive exports)
+            try:
+                # Attempt latin-1 to UTF-8 conversion to fix encoding issues
+                html_content = html_content.encode('latin-1').decode('utf-8')
+            except (UnicodeDecodeError, UnicodeEncodeError):
+                # If conversion fails, use original content
+                # (it might already be correctly encoded)
+                pass
+
             # Also get file metadata for name
             metadata_url = f'https://www.googleapis.com/drive/v3/files/{file_id}?fields=name,modifiedTime'
             metadata_response = requests.get(metadata_url, headers=headers)
@@ -601,14 +614,17 @@ def drive_import(file_id):
 
             response_data = {
                 'success': True,
-                'content': response.text,
+                'content': html_content,
                 'name': metadata.get('name', 'Untitled'),
                 'modifiedTime': metadata.get('modifiedTime')
             }
 
+            # Create response with explicit UTF-8 encoding
+            resp = make_response(jsonify(response_data))
+            resp.headers['Content-Type'] = 'application/json; charset=utf-8'
+
             # Set new JWT cookie if token was refreshed
             if new_jwt:
-                resp = make_response(jsonify(response_data))
                 resp.set_cookie(
                     'auth_token',
                     new_jwt,
@@ -617,9 +633,8 @@ def drive_import(file_id):
                     secure=True,
                     samesite='Lax'
                 )
-                return resp
 
-            return jsonify(response_data)
+            return resp
         else:
             logging.error(f"Drive API error: {response.status_code} - {response.text}")
             return jsonify({
