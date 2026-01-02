@@ -515,6 +515,40 @@
     margin: 0 8px;
 }
 
+/* Font Size Dropdown */
+.font-size-select {
+    padding: 4px 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-bg-white);
+    color: var(--color-text-primary);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 28px;
+    min-width: 60px;
+    text-align: center;
+}
+
+.font-size-select:hover {
+    background: var(--color-bg-subtle);
+    border-color: var(--color-primary);
+}
+
+.font-size-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    background: var(--color-bg-white);
+}
+
+.font-size-select:disabled {
+    background: var(--color-bg-off-white);
+    color: #a8a29e;
+    border-color: var(--color-border);
+    cursor: not-allowed;
+}
+
 /* Open in Drive Button */
 .open-in-drive-btn {
     display: inline-flex;

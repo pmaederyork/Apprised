@@ -31,6 +31,16 @@ const Documents = {
         if (editorContainer && typeof Squire !== 'undefined') {
             this.squireEditor = new Squire(editorContainer);
             console.log('Squire editor initialized');
+
+            // Bind pathChange event to update font size display
+            this.squireEditor.addEventListener('pathChange', () => {
+                this.updateFontSizeDisplay();
+            });
+
+            // Also update on selection change
+            this.squireEditor.addEventListener('select', () => {
+                this.updateFontSizeDisplay();
+            });
         } else {
             console.error('Failed to initialize Squire: container or Squire library not found');
         }
@@ -566,7 +576,89 @@ const Documents = {
         }
     },
 
+    // Set font size for selected text
+    setFontSize(size) {
+        if (!this.squireEditor) return;
 
+        // Parse the size value - could be just a number or include 'px'
+        let sizeValue = size;
+        if (size && !size.includes('px')) {
+            sizeValue = size + 'px';
+        }
+
+        if (sizeValue) {
+            this.squireEditor.setFontSize(sizeValue);
+        } else {
+            // Clear font size (pass null to remove formatting)
+            this.squireEditor.setFontSize(null);
+        }
+
+        this.scheduleAutoSave();
+        this.squireEditor.focus();
+    },
+
+    // Update font size display based on cursor position or selection
+    updateFontSizeDisplay() {
+        const fontSizeSelect = document.getElementById('fontSizeSelect');
+        if (!fontSizeSelect || !this.squireEditor) return;
+
+        try {
+            const selection = this.squireEditor.getSelection();
+            let fontSize = null;
+
+            if (selection.collapsed) {
+                // Cursor position - use getFontInfo
+                const fontInfo = this.squireEditor.getFontInfo();
+                fontSize = fontInfo?.fontSize;
+            } else {
+                // Text is selected - traverse from start of selection
+                let node = selection.startContainer;
+
+                // If text node, get parent element
+                if (node.nodeType === Node.TEXT_NODE) {
+                    node = node.parentNode;
+                }
+
+                // Traverse up to find font-size style
+                while (node && node !== this.squireEditor.getRoot()) {
+                    if (node.style && node.style.fontSize) {
+                        fontSize = node.style.fontSize;
+                        break;
+                    }
+                    node = node.parentNode;
+                }
+
+                // Fallback: compute style from selection start
+                if (!fontSize && selection.startContainer) {
+                    const startElement = selection.startContainer.nodeType === Node.TEXT_NODE
+                        ? selection.startContainer.parentElement
+                        : selection.startContainer;
+
+                    if (startElement) {
+                        const computedStyle = window.getComputedStyle(startElement);
+                        fontSize = computedStyle.fontSize;
+                    }
+                }
+            }
+
+            if (fontSize) {
+                // Extract numeric value from fontSize (e.g., "16px" -> "16")
+                const sizeMatch = fontSize.match(/(\d+)/);
+                if (sizeMatch) {
+                    const sizeValue = sizeMatch[1];
+                    // Set dropdown to matching value
+                    fontSizeSelect.value = sizeValue;
+                } else {
+                    fontSizeSelect.value = '';
+                }
+            } else {
+                fontSizeSelect.value = '';
+            }
+        } catch (error) {
+            console.warn('Failed to get font info:', error);
+            fontSizeSelect.value = '';
+        }
+    },
 
     // Bind markdown toolbar button events
     bindMarkdownEvents() {
@@ -590,6 +682,46 @@ const Documents = {
                 });
             }
         });
+
+        // Bind font size dropdown
+        const fontSizeSelect = document.getElementById('fontSizeSelect');
+        if (fontSizeSelect) {
+            // Store selection when opening dropdown
+            let savedSelection = null;
+
+            // Save selection on mousedown (before focus is lost)
+            fontSizeSelect.addEventListener('mousedown', (e) => {
+                if (this.squireEditor) {
+                    try {
+                        savedSelection = this.squireEditor.getSelection();
+                    } catch (error) {
+                        console.warn('Failed to save selection:', error);
+                    }
+                }
+            });
+
+            // Handle change event (when user selects a size)
+            fontSizeSelect.addEventListener('change', (e) => {
+                const size = e.target.value;
+                if (size) {
+                    // Restore selection before applying format
+                    if (savedSelection) {
+                        try {
+                            this.squireEditor.setSelection(savedSelection);
+                        } catch (error) {
+                            console.warn('Failed to restore selection:', error);
+                        }
+                    }
+                    this.setFontSize(size);
+                    savedSelection = null;
+                }
+            });
+
+            // Clear saved selection if dropdown is closed without selecting
+            fontSizeSelect.addEventListener('blur', () => {
+                savedSelection = null;
+            });
+        }
     },
 
     // Bind rich text keyboard shortcuts
