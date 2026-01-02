@@ -515,33 +515,45 @@ const Documents = {
 
     // Rich text formatting functions
     formatBold() {
-        document.execCommand('bold', false, null);
-        this.scheduleAutoSave();
+        if (this.squireEditor) {
+            this.squireEditor.bold();
+            this.scheduleAutoSave();
+        }
     },
 
     formatItalic() {
-        document.execCommand('italic', false, null);
-        this.scheduleAutoSave();
+        if (this.squireEditor) {
+            this.squireEditor.italic();
+            this.scheduleAutoSave();
+        }
     },
 
     formatUnderline() {
-        document.execCommand('underline', false, null);
-        this.scheduleAutoSave();
+        if (this.squireEditor) {
+            this.squireEditor.underline();
+            this.scheduleAutoSave();
+        }
     },
 
     formatStrikethrough() {
-        document.execCommand('strikeThrough', false, null);
-        this.scheduleAutoSave();
+        if (this.squireEditor) {
+            this.squireEditor.strikethrough();
+            this.scheduleAutoSave();
+        }
     },
 
     formatList() {
-        document.execCommand('insertUnorderedList', false, null);
-        this.scheduleAutoSave();
+        if (this.squireEditor) {
+            this.squireEditor.makeUnorderedList();
+            this.scheduleAutoSave();
+        }
     },
 
     formatOrderedList() {
-        document.execCommand('insertOrderedList', false, null);
-        this.scheduleAutoSave();
+        if (this.squireEditor) {
+            this.squireEditor.makeOrderedList();
+            this.scheduleAutoSave();
+        }
     },
 
 
