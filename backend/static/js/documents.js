@@ -660,24 +660,10 @@ const Documents = {
     },
 
     getCurrentState() {
-        const editor = UI.elements.documentTextarea;
-        if (!editor) return null;
-
-        // Save current selection
-        const selection = window.getSelection();
-        let range = null;
-        if (selection.rangeCount > 0) {
-            range = selection.getRangeAt(0);
-        }
+        if (!this.squireEditor) return null;
 
         return {
-            content: editor.innerHTML,
-            range: range ? {
-                startContainer: range.startContainer,
-                startOffset: range.startOffset,
-                endContainer: range.endContainer,
-                endOffset: range.endOffset
-            } : null,
+            content: this.squireEditor.getHTML(),
             timestamp: Date.now()
         };
     },
@@ -727,30 +713,13 @@ const Documents = {
     },
 
     restoreState(state) {
-        const editor = UI.elements.documentTextarea;
-        if (!editor || !state) return;
+        if (!this.squireEditor || !state) return;
 
         // Set flag to prevent history capture during restoration
         this.isRestoring = true;
 
-        editor.innerHTML = state.content;
-
-        // Restore selection if available
-        if (state.range) {
-            try {
-                const selection = window.getSelection();
-                const range = document.createRange();
-                range.setStart(state.range.startContainer, state.range.startOffset);
-                range.setEnd(state.range.endContainer, state.range.endOffset);
-                selection.removeAllRanges();
-                selection.addRange(range);
-            } catch (e) {
-                // If restoration fails, just focus the editor
-                editor.focus();
-            }
-        } else {
-            editor.focus();
-        }
+        this.squireEditor.setHTML(state.content);
+        this.squireEditor.focus();
 
         // Clear restoration flag
         this.isRestoring = false;
