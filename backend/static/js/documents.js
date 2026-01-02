@@ -574,12 +574,24 @@ const Documents = {
         if (/(?:^|>)[OU]L/.test(path)) {
             this.squireEditor.increaseListLevel();
         } else {
-            // For regular blocks, increase margin-left by 40px
+            // Progressive indentation: first-line → full paragraph
             this.squireEditor.modifyBlocks((frag) => {
                 const blocks = frag.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6');
                 blocks.forEach(block => {
+                    const currentTextIndent = parseInt(block.style.textIndent || '0');
                     const currentMargin = parseInt(block.style.marginLeft || '0');
-                    block.style.marginLeft = (currentMargin + 40) + 'px';
+
+                    if (currentTextIndent === 0 && currentMargin === 0) {
+                        // First Tab: First-line indent
+                        block.style.textIndent = '40px';
+                    } else if (currentTextIndent > 0) {
+                        // Second Tab: Convert to full paragraph indent
+                        block.style.textIndent = '';
+                        block.style.marginLeft = '40px';
+                    } else {
+                        // Third+ Tab: Increase margin
+                        block.style.marginLeft = (currentMargin + 40) + 'px';
+                    }
                 });
                 return frag;
             });
@@ -599,16 +611,24 @@ const Documents = {
         if (/(?:^|>)[OU]L/.test(path)) {
             this.squireEditor.decreaseListLevel();
         } else {
-            // For regular blocks, decrease margin-left by 40px (minimum 0)
+            // Progressive outdent: margin → text-indent → none
             this.squireEditor.modifyBlocks((frag) => {
                 const blocks = frag.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6');
                 blocks.forEach(block => {
+                    const currentTextIndent = parseInt(block.style.textIndent || '0');
                     const currentMargin = parseInt(block.style.marginLeft || '0');
-                    const newMargin = Math.max(0, currentMargin - 40);
-                    if (newMargin === 0) {
-                        block.style.marginLeft = '';
-                    } else {
-                        block.style.marginLeft = newMargin + 'px';
+
+                    if (currentMargin > 0) {
+                        // Remove margin first
+                        const newMargin = Math.max(0, currentMargin - 40);
+                        if (newMargin === 0) {
+                            block.style.marginLeft = '';
+                        } else {
+                            block.style.marginLeft = newMargin + 'px';
+                        }
+                    } else if (currentTextIndent > 0) {
+                        // Then remove text-indent
+                        block.style.textIndent = '';
                     }
                 });
                 return frag;
