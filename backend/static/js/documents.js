@@ -755,6 +755,60 @@ const Documents = {
         this.scheduleAutoSave();
     },
 
+    // Set line spacing for selected blocks
+    setLineSpacing(lineHeight) {
+        if (!this.squireEditor) return;
+
+        this.squireEditor.forEachBlock((block) => {
+            if (lineHeight) {
+                block.style.lineHeight = lineHeight;
+            } else {
+                block.style.lineHeight = '';
+            }
+        }, true);
+
+        this.scheduleAutoSave();
+        this.squireEditor.focus();
+    },
+
+    // Set paragraph spacing before (margin-top)
+    setParagraphSpacingBefore(spacing) {
+        if (!this.squireEditor) return;
+
+        this.squireEditor.forEachBlock((block) => {
+            // Skip list items to avoid double-spacing issues
+            if (block.nodeName === 'LI') return;
+
+            if (spacing) {
+                block.style.marginTop = spacing;
+            } else {
+                block.style.marginTop = '';
+            }
+        }, true);
+
+        this.scheduleAutoSave();
+        this.squireEditor.focus();
+    },
+
+    // Set paragraph spacing after (margin-bottom)
+    setParagraphSpacingAfter(spacing) {
+        if (!this.squireEditor) return;
+
+        this.squireEditor.forEachBlock((block) => {
+            // Skip list items to avoid double-spacing issues
+            if (block.nodeName === 'LI') return;
+
+            if (spacing) {
+                block.style.marginBottom = spacing;
+            } else {
+                block.style.marginBottom = '';
+            }
+        }, true);
+
+        this.scheduleAutoSave();
+        this.squireEditor.focus();
+    },
+
     // Update font size display based on cursor position or selection
     updateFontSizeDisplay() {
         const fontSizeSelect = document.getElementById('fontSizeSelect');
@@ -1023,6 +1077,117 @@ const Documents = {
 
             // Clear saved selection if dropdown is closed without selecting
             textAlignSelect.addEventListener('blur', () => {
+                savedSelection = null;
+            });
+        }
+
+        // Bind line spacing dropdown
+        const lineSpacingSelect = document.getElementById('lineSpacingSelect');
+        if (lineSpacingSelect) {
+            let savedSelection = null;
+
+            lineSpacingSelect.addEventListener('mousedown', (e) => {
+                if (this.squireEditor) {
+                    try {
+                        savedSelection = this.squireEditor.getSelection();
+                    } catch (error) {
+                        console.warn('Failed to save selection:', error);
+                    }
+                }
+            });
+
+            lineSpacingSelect.addEventListener('change', (e) => {
+                const lineHeight = e.target.value;
+                if (lineHeight) {
+                    if (savedSelection) {
+                        try {
+                            this.squireEditor.setSelection(savedSelection);
+                        } catch (error) {
+                            console.warn('Failed to restore selection:', error);
+                        }
+                    }
+                    this.setLineSpacing(lineHeight);
+                    savedSelection = null;
+                    // Reset dropdown to default after selection
+                    e.target.value = '';
+                }
+            });
+
+            lineSpacingSelect.addEventListener('blur', () => {
+                savedSelection = null;
+            });
+        }
+
+        // Bind paragraph spacing before dropdown
+        const paragraphSpacingBeforeSelect = document.getElementById('paragraphSpacingBeforeSelect');
+        if (paragraphSpacingBeforeSelect) {
+            let savedSelection = null;
+
+            paragraphSpacingBeforeSelect.addEventListener('mousedown', (e) => {
+                if (this.squireEditor) {
+                    try {
+                        savedSelection = this.squireEditor.getSelection();
+                    } catch (error) {
+                        console.warn('Failed to save selection:', error);
+                    }
+                }
+            });
+
+            paragraphSpacingBeforeSelect.addEventListener('change', (e) => {
+                const spacing = e.target.value;
+                if (spacing) {
+                    if (savedSelection) {
+                        try {
+                            this.squireEditor.setSelection(savedSelection);
+                        } catch (error) {
+                            console.warn('Failed to restore selection:', error);
+                        }
+                    }
+                    this.setParagraphSpacingBefore(spacing);
+                    savedSelection = null;
+                    // Reset dropdown to default after selection
+                    e.target.value = '';
+                }
+            });
+
+            paragraphSpacingBeforeSelect.addEventListener('blur', () => {
+                savedSelection = null;
+            });
+        }
+
+        // Bind paragraph spacing after dropdown
+        const paragraphSpacingAfterSelect = document.getElementById('paragraphSpacingAfterSelect');
+        if (paragraphSpacingAfterSelect) {
+            let savedSelection = null;
+
+            paragraphSpacingAfterSelect.addEventListener('mousedown', (e) => {
+                if (this.squireEditor) {
+                    try {
+                        savedSelection = this.squireEditor.getSelection();
+                    } catch (error) {
+                        console.warn('Failed to save selection:', error);
+                    }
+                }
+            });
+
+            paragraphSpacingAfterSelect.addEventListener('change', (e) => {
+                const spacing = e.target.value;
+                if (spacing) {
+                    if (savedSelection) {
+                        try {
+                            this.squireEditor.setSelection(savedSelection);
+                        } catch (error) {
+                            console.warn('Failed to restore selection:', error);
+                        }
+                    }
+                    this.setParagraphSpacingAfter(spacing);
+                    savedSelection = null;
+                    // Reset dropdown to default after selection
+                    e.target.value = '';
+                }
+            });
+
+            paragraphSpacingAfterSelect.addEventListener('blur', () => {
                 savedSelection = null;
             });
         }
