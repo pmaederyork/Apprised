@@ -643,7 +643,7 @@
 .spacing-dropdown-menu {
     position: absolute;
     top: calc(100% + 4px);
-    left: 0;
+    right: 0;
     background: var(--color-bg-white);
     border: 1px solid var(--color-border);
     border-radius: 6px;
