@@ -42,12 +42,14 @@ const Documents = {
             this.squireEditor.addEventListener('pathChange', () => {
                 this.updateFontSizeDisplay();
                 this.updateFontFamilyDisplay();
+                this.updateToolbarButtonStates();
             });
 
             // Also update on selection change
             this.squireEditor.addEventListener('select', () => {
                 this.updateFontSizeDisplay();
                 this.updateFontFamilyDisplay();
+                this.updateToolbarButtonStates();
             });
         } else {
             console.error('Failed to initialize Squire: container or Squire library not found');
@@ -197,6 +199,7 @@ const Documents = {
                                     // Manually trigger font detection to read from corrected selection
                                     this.updateFontSizeDisplay();
                                     this.updateFontFamilyDisplay();
+                                    this.updateToolbarButtonStates();
 
                                     break;
                                 }
@@ -613,6 +616,7 @@ const Documents = {
                 this.squireEditor.bold();
             }
             this.scheduleAutoSave();
+            this.updateToolbarButtonStates();
         }
     },
 
@@ -624,6 +628,7 @@ const Documents = {
                 this.squireEditor.italic();
             }
             this.scheduleAutoSave();
+            this.updateToolbarButtonStates();
         }
     },
 
@@ -635,6 +640,7 @@ const Documents = {
                 this.squireEditor.underline();
             }
             this.scheduleAutoSave();
+            this.updateToolbarButtonStates();
         }
     },
 
@@ -646,6 +652,7 @@ const Documents = {
                 this.squireEditor.strikethrough();
             }
             this.scheduleAutoSave();
+            this.updateToolbarButtonStates();
         }
     },
 
@@ -743,6 +750,7 @@ const Documents = {
                 this.squireEditor.makeUnorderedList();
             }
             this.scheduleAutoSave();
+            this.updateToolbarButtonStates();
         }
     },
 
@@ -754,6 +762,7 @@ const Documents = {
                 this.squireEditor.makeOrderedList();
             }
             this.scheduleAutoSave();
+            this.updateToolbarButtonStates();
         }
     },
 
@@ -1123,6 +1132,76 @@ const Documents = {
         } catch (error) {
             console.warn('Failed to get font family info:', error);
             fontFamilySelect.value = '';
+        }
+    },
+
+    // Update toolbar button states based on current cursor formatting
+    updateToolbarButtonStates() {
+        // Skip during document loading
+        if (this._loadingDocument || !this.squireEditor) return;
+
+        try {
+            // Get references to toolbar buttons
+            const boldBtn = document.getElementById('boldBtn');
+            const italicBtn = document.getElementById('italicBtn');
+            const underlineBtn = document.getElementById('underlineBtn');
+            const strikeBtn = document.getElementById('strikeBtn');
+            const listBtn = document.getElementById('listBtn');
+            const orderedListBtn = document.getElementById('orderedListBtn');
+
+            // Check inline formatting using hasFormat()
+            if (boldBtn) {
+                if (this.squireEditor.hasFormat('B')) {
+                    boldBtn.classList.add('format-active');
+                } else {
+                    boldBtn.classList.remove('format-active');
+                }
+            }
+
+            if (italicBtn) {
+                if (this.squireEditor.hasFormat('I')) {
+                    italicBtn.classList.add('format-active');
+                } else {
+                    italicBtn.classList.remove('format-active');
+                }
+            }
+
+            if (underlineBtn) {
+                if (this.squireEditor.hasFormat('U')) {
+                    underlineBtn.classList.add('format-active');
+                } else {
+                    underlineBtn.classList.remove('format-active');
+                }
+            }
+
+            if (strikeBtn) {
+                if (this.squireEditor.hasFormat('S')) {
+                    strikeBtn.classList.add('format-active');
+                } else {
+                    strikeBtn.classList.remove('format-active');
+                }
+            }
+
+            // Check block-level formatting using getPath()
+            const path = this.squireEditor.getPath();
+
+            if (listBtn) {
+                if (path.includes('UL')) {
+                    listBtn.classList.add('format-active');
+                } else {
+                    listBtn.classList.remove('format-active');
+                }
+            }
+
+            if (orderedListBtn) {
+                if (path.includes('OL')) {
+                    orderedListBtn.classList.add('format-active');
+                } else {
+                    orderedListBtn.classList.remove('format-active');
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to update toolbar button states:', error);
         }
     },
 

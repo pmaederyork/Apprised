@@ -169,3 +169,15 @@
     flex-wrap: wrap;
     align-items: center;
 }
+
+/* Active state for formatting buttons - indicates current cursor formatting */
+.markdown-btn.format-active {
+    background: #3b82f6;
+    color: white;
+    border-color: #3b82f6;
+}
+
+.markdown-btn.format-active:hover {
+    background: #2563eb;
+    border-color: #2563eb;
+}
