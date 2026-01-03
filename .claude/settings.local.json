@@ -13,7 +13,9 @@
       "Bash(python3:*)",
       "Bash(grep:*)",
       "Bash(ls:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "WebSearch(**)",
+      "WebFetch(**)"
     ],
     "deny": []
   }
