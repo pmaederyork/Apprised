@@ -64,6 +64,35 @@ const GDrive = {
                     // DOMPurify will handle security sanitization
                     heading.setAttribute('style', style);
 
+                    // Clean conflicting inline styles from Google Docs imports
+                    // Required for CSS defaults and font dropdowns to work
+
+                    // 1. Clean inner span styles
+                    heading.querySelectorAll('span[style]').forEach(span => {
+                        // Remove font-size and font-family (header defines these via CSS)
+                        if (span.style.fontSize) span.style.fontSize = '';
+                        if (span.style.fontFamily) span.style.fontFamily = '';
+
+                        // Keep other formatting (bold, italic, color, background, etc.)
+                        const remainingStyle = span.getAttribute('style');
+                        if (!remainingStyle || !remainingStyle.trim()) {
+                            span.removeAttribute('style');
+                        }
+
+                        // Unwrap empty spans
+                        if (span.attributes.length === 0 && span.parentNode) {
+                            while (span.firstChild) {
+                                span.parentNode.insertBefore(span.firstChild, span);
+                            }
+                            span.remove();
+                        }
+                    });
+
+                    // 2. Strip block-level font styles from heading
+                    heading.style.fontSize = '';
+                    heading.style.fontFamily = '';
+                    // Preserve other block styles (text-align, margin, padding, color)
+
                     p.replaceWith(heading);
                 }
             });

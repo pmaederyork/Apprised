@@ -43,6 +43,7 @@ const Documents = {
                 this.updateFontSizeDisplay();
                 this.updateFontFamilyDisplay();
                 this.updateToolbarButtonStates();
+                this.updateFormatDisplay();
             });
 
             // Also update on selection change
@@ -50,6 +51,7 @@ const Documents = {
                 this.updateFontSizeDisplay();
                 this.updateFontFamilyDisplay();
                 this.updateToolbarButtonStates();
+                this.updateFormatDisplay();
             });
         } else {
             console.error('Failed to initialize Squire: container or Squire library not found');
@@ -766,95 +768,114 @@ const Documents = {
         }
     },
 
-    // Set font size for selected text (with block-level support for headers)
+    // Convert block between paragraph and heading formats
+    setFormat(format) {
+        if (!this.squireEditor) return;
+
+        // Validate format value
+        if (!['p', 'h1', 'h2', 'h3'].includes(format)) {
+            console.warn('Invalid format:', format);
+            return;
+        }
+
+        // Save undo state before format changes
+        this.squireEditor.saveUndoState();
+
+        try {
+            // Use modifyBlocks to change tag names
+            this.squireEditor.modifyBlocks((fragment) => {
+                // Find all block elements in the fragment
+                const blocks = fragment.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6');
+
+                blocks.forEach((block) => {
+                    // Create new element with target tag
+                    const newElement = document.createElement(format.toUpperCase());
+
+                    // Copy all attributes (preserve styles, classes, etc.)
+                    Array.from(block.attributes).forEach(attr => {
+                        newElement.setAttribute(attr.name, attr.value);
+                    });
+
+                    // Move all child nodes
+                    while (block.firstChild) {
+                        newElement.appendChild(block.firstChild);
+                    }
+
+                    // Replace old element with new one
+                    block.parentNode.replaceChild(newElement, block);
+
+                    // Clean conflicting inline styles for headers (allow CSS defaults to apply)
+                    if (['H1', 'H2', 'H3'].includes(format.toUpperCase())) {
+                        // 1. Strip block-level font styles
+                        newElement.style.fontSize = '';
+                        newElement.style.fontFamily = '';
+
+                        // 2. Clean inner span styles
+                        newElement.querySelectorAll('span[style]').forEach(span => {
+                            // Remove font-size and font-family (header defines these via CSS)
+                            if (span.style.fontSize) span.style.fontSize = '';
+                            if (span.style.fontFamily) span.style.fontFamily = '';
+
+                            // Keep other formatting (bold, italic, color, background, etc.)
+                            const remainingStyle = span.getAttribute('style');
+                            if (!remainingStyle || !remainingStyle.trim()) {
+                                span.removeAttribute('style');
+                            }
+
+                            // Unwrap empty spans
+                            if (span.attributes.length === 0 && span.parentNode) {
+                                while (span.firstChild) {
+                                    span.parentNode.insertBefore(span.firstChild, span);
+                                }
+                                span.remove();
+                            }
+                        });
+                    }
+                });
+
+                return fragment;
+            });
+
+            // Focus editor and update UI
+            this.squireEditor.focus();
+
+            // Update toolbar displays after DOM settles
+            setTimeout(() => {
+                this.updateFormatDisplay();
+                this.updateFontSizeDisplay();
+                this.updateToolbarButtonStates();
+            }, 0);
+
+            // Save changes
+            this.scheduleAutoSave();
+        } catch (error) {
+            console.error('Failed to set format:', error);
+        }
+    },
+
+    // Set font size for selected text
     setFontSize(size) {
         if (!this.squireEditor) return;
 
-        // Parse the size value - could be just a number or include 'pt'
-        let sizeValue = size;
-        if (size && !size.includes('pt')) {
-            sizeValue = size + 'pt';
-        }
+        const sizeValue = size ? size + 'pt' : null;
 
-        // Check if selection contains only headers
-        let hasHeaders = false;
-        let hasNonHeaders = false;
-
-        try {
-            this.squireEditor.forEachBlock((block) => {
-                if (/^H[1-6]$/.test(block.nodeName)) {
-                    hasHeaders = true;
-                } else {
-                    hasNonHeaders = true;
-                }
-            }, false); // Don't mutate, just checking
-        } catch (error) {
-            console.warn('Error checking blocks:', error);
-        }
-
-        if (hasHeaders && !hasNonHeaders) {
-            // Apply style directly to header blocks
-            this.squireEditor.forEachBlock((block) => {
-                if (/^H[1-6]$/.test(block.nodeName)) {
-                    if (sizeValue) {
-                        block.style.fontSize = sizeValue;
-                    } else {
-                        block.style.fontSize = '';
-                    }
-                }
-            }, true); // true = mutate and save undo state
-            this.squireEditor.focus();
+        if (sizeValue) {
+            this.squireEditor.setFontSize(sizeValue);
         } else {
-            // Use default SPAN wrapping for paragraphs or mixed content
-            if (sizeValue) {
-                this.squireEditor.setFontSize(sizeValue);
-            } else {
-                this.squireEditor.setFontSize(null);
-            }
+            this.squireEditor.setFontSize(null);
         }
 
         this.scheduleAutoSave();
     },
 
-    // Set font family for selected text (with block-level support for headers)
+    // Set font family for selected text
     setFontFamily(family) {
         if (!this.squireEditor) return;
 
-        // Check if selection contains only headers
-        let hasHeaders = false;
-        let hasNonHeaders = false;
-
-        try {
-            this.squireEditor.forEachBlock((block) => {
-                if (/^H[1-6]$/.test(block.nodeName)) {
-                    hasHeaders = true;
-                } else {
-                    hasNonHeaders = true;
-                }
-            }, false); // Don't mutate, just checking
-        } catch (error) {
-            console.warn('Error checking blocks:', error);
-        }
-
-        if (hasHeaders && !hasNonHeaders) {
-            // Apply style directly to header blocks
-            this.squireEditor.forEachBlock((block) => {
-                if (/^H[1-6]$/.test(block.nodeName)) {
-                    if (family) {
-                        block.style.fontFamily = family + ', sans-serif';
-                    } else {
-                        block.style.fontFamily = '';
-                    }
-                }
-            }, true); // true = mutate and save undo state
-            this.squireEditor.focus();
+        if (family) {
+            this.squireEditor.setFontFace(family);
         } else {
-            // Use default SPAN wrapping for paragraphs or mixed content
-            if (family) {
-                this.squireEditor.setFontFace(family);
-            } else {
-                this.squireEditor.setFontFace(null);
-            }
+            this.squireEditor.setFontFace(null);
         }
 
         this.scheduleAutoSave();
@@ -1020,10 +1041,12 @@ const Documents = {
 
             // Fallback: use getFontInfo or computed style
             if (!fontSize) {
-                if (selection.collapsed) {
-                    const fontInfo = this.squireEditor.getFontInfo();
-                    fontSize = fontInfo?.fontSize;
-                } else {
+                // Try getFontInfo first (faster for inline styles)
+                const fontInfo = this.squireEditor.getFontInfo();
+                fontSize = fontInfo?.fontSize;
+
+                // If still no fontSize, check computed style (works for CSS defaults)
+                if (!fontSize) {
                     const startElement = selection.startContainer.nodeType === Node.TEXT_NODE
                         ? selection.startContainer.parentElement
                         : selection.startContainer;
@@ -1036,11 +1059,18 @@ const Documents = {
             }
 
             if (fontSize) {
-                // Extract numeric value from fontSize (e.g., "16px" -> "16")
-                const sizeMatch = fontSize.match(/(\d+)/);
+                // Extract numeric value and unit from fontSize (e.g., "16px" or "12pt")
+                const sizeMatch = fontSize.match(/(\d+(?:\.\d+)?)(px|pt)?/);
                 if (sizeMatch) {
-                    const sizeValue = sizeMatch[1];
-                    fontSizeSelect.value = sizeValue;
+                    let sizeValue = parseFloat(sizeMatch[1]);
+                    const unit = sizeMatch[2];
+
+                    // Convert pixels to points if needed (px * 0.75 = pt)
+                    if (unit === 'px') {
+                        sizeValue = Math.round(sizeValue * 0.75);
+                    }
+
+                    fontSizeSelect.value = sizeValue.toString();
                 } else {
                     fontSizeSelect.value = '';
                 }
@@ -1088,10 +1118,12 @@ const Documents = {
 
             // Fallback: use getFontInfo or computed style
             if (!fontFamily) {
-                if (selection.collapsed) {
-                    const fontInfo = this.squireEditor.getFontInfo();
-                    fontFamily = fontInfo?.fontFamily;
-                } else {
+                // Try getFontInfo first (faster for inline styles)
+                const fontInfo = this.squireEditor.getFontInfo();
+                fontFamily = fontInfo?.fontFamily;
+
+                // If still no fontFamily, check computed style (works for CSS defaults)
+                if (!fontFamily) {
                     const startElement = selection.startContainer.nodeType === Node.TEXT_NODE
                         ? selection.startContainer.parentElement
                         : selection.startContainer;
@@ -1132,6 +1164,38 @@ const Documents = {
         } catch (error) {
             console.warn('Failed to get font family info:', error);
             fontFamilySelect.value = '';
+        }
+    },
+
+    // Update format dropdown to show current block type
+    updateFormatDisplay() {
+        // Skip updates during document loading
+        if (this._loadingDocument) return;
+
+        const formatSelect = document.getElementById('formatSelect');
+        if (!formatSelect || !this.squireEditor) return;
+
+        try {
+            const path = this.squireEditor.getPath();
+
+            // Find first block-level element in path
+            // getPath() returns "BODY>DIV>P>STRONG" - must find block, not inline element
+            const pathSegments = path.split('>');
+            const blockTypes = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'P', 'DIV', 'LI'];
+            const currentBlock = pathSegments.find(seg => blockTypes.includes(seg)) || 'P';
+
+            if (currentBlock === 'H1') {
+                formatSelect.value = 'h1';
+            } else if (currentBlock === 'H2') {
+                formatSelect.value = 'h2';
+            } else if (currentBlock === 'H3') {
+                formatSelect.value = 'h3';
+            } else {
+                formatSelect.value = 'p';
+            }
+        } catch (error) {
+            console.warn('Failed to detect format:', error);
+            formatSelect.value = 'p';
         }
     },
 
@@ -1349,6 +1413,50 @@ const Documents = {
             // Clear saved selection if dropdown is closed without selecting
             textAlignSelect.addEventListener('blur', () => {
                 savedSelection = null;
+            });
+        }
+
+        // Format dropdown with selection preservation
+        const formatSelect = document.getElementById('formatSelect');
+        let formatSavedSelection = null;
+
+        if (formatSelect) {
+            // Save selection BEFORE dropdown opens
+            formatSelect.addEventListener('mousedown', (e) => {
+                if (this.squireEditor) {
+                    try {
+                        formatSavedSelection = this.squireEditor.getSelection();
+                    } catch (error) {
+                        console.warn('Failed to save selection:', error);
+                    }
+                }
+            });
+
+            // Apply format change
+            formatSelect.addEventListener('change', (e) => {
+                // Try to restore selection
+                if (formatSavedSelection) {
+                    try {
+                        this.squireEditor.setSelection(formatSavedSelection);
+                    } catch (error) {
+                        // Range might be invalid - Squire handles cursor positioning
+                        console.warn('Failed to restore selection:', error);
+                    }
+                }
+
+                // Apply format change
+                this.setFormat(e.target.value);
+
+                // Focus editor
+                this.squireEditor.focus();
+
+                // Clear saved selection
+                formatSavedSelection = null;
+            });
+
+            // Clear saved selection if dropdown closed without selecting
+            formatSelect.addEventListener('blur', () => {
+                formatSavedSelection = null;
             });
         }
 

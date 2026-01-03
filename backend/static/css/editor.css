@@ -159,6 +159,22 @@
     border-left: none;
 }
 
+/* Default Header Styling */
+.document-textarea h1 {
+    font-size: 20pt;
+    font-weight: bold;
+}
+
+.document-textarea h2 {
+    font-size: 16pt;
+    font-weight: bold;
+}
+
+.document-textarea h3 {
+    font-size: 14pt;
+    font-weight: bold;
+}
+
 /* Markdown Toolbar */
 .markdown-toolbar {
     background: var(--color-bg-input);
@@ -180,4 +196,38 @@
 .markdown-btn.format-active:hover {
     background: #2563eb;
     border-color: #2563eb;
+}
+
+/* Format Dropdown */
+.format-dropdown {
+    padding: 4px 6px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-bg-white);
+    color: var(--color-text-primary);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 28px;
+    min-width: 55px;
+    text-align: center;
+}
+
+.format-dropdown:hover {
+    background: var(--color-bg-subtle);
+    border-color: var(--color-primary);
+}
+
+.format-dropdown:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    background: var(--color-bg-white);
+}
+
+.format-dropdown:disabled {
+    background: var(--color-bg-off-white);
+    color: #a8a29e;
+    border-color: var(--color-border);
+    cursor: not-allowed;
 }
