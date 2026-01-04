@@ -287,6 +287,10 @@
     padding-left: 12px;
 }
 
+#boldBtn:hover {
+    border-left-color: var(--color-primary);
+}
+
 /* File Button */
 #fileBtn {
     padding: 12px 16px;

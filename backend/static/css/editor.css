@@ -93,8 +93,6 @@
     position: relative;
 }
 
-
-
 .document-editor.active {
     display: flex;
 }
@@ -129,24 +127,7 @@
     pointer-events: none;
 }
 
-/* Rich text formatting styles */
-.document-textarea h1 {
-    font-size: 2em;
-    font-weight: bold;
-    margin: 0.67em 0;
-}
 
-.document-textarea h2 {
-    font-size: 1.5em;
-    font-weight: bold;
-    margin: 0.75em 0;
-}
-
-.document-textarea h3 {
-    font-size: 1.17em;
-    font-weight: bold;
-    margin: 0.83em 0;
-}
 
 .document-textarea ul, .document-textarea ol {
     margin: 1em 0;
@@ -159,21 +140,6 @@
     border-left: none;
 }
 
-/* Default Header Styling */
-.document-textarea h1 {
-    font-size: 20pt;
-    font-weight: bold;
-}
-
-.document-textarea h2 {
-    font-size: 16pt;
-    font-weight: bold;
-}
-
-.document-textarea h3 {
-    font-size: 14pt;
-    font-weight: bold;
-}
 
 /* Markdown Toolbar */
 .markdown-toolbar {
