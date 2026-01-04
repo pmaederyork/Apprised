@@ -129,33 +129,26 @@
 
 
 
-/* Header styles - override browser defaults to allow bold toggling */
+/* Override browser defaults - shared property only */
 .document-textarea h1,
 .document-textarea h2,
 .document-textarea h3 {
-    font-weight: normal; /* Override browser default bold */
-    font-size: 20pt; /* H1 default */
-    margin: 0.67em 0;
+    font-weight: normal; /* Allow bold toggling */
 }
 
-.document-textarea h2 {
+/* H1 specific styles */
+.document-textarea h1 {
     font-size: 16pt;
-    margin: 0.75em 0;
 }
 
+/* H2 specific styles */
+.document-textarea h2 {
+    font-size: 13pt;
+}
+
+/* H3 specific styles */
 .document-textarea h3 {
-    font-size: 14pt;
-    margin: 0.83em 0;
-}
-
-/* Support bold formatting within headers */
-.document-textarea h1 strong,
-.document-textarea h1 b,
-.document-textarea h2 strong,
-.document-textarea h2 b,
-.document-textarea h3 strong,
-.document-textarea h3 b {
-    font-weight: bold;
+    font-size: 12pt;
 }
 
 .document-textarea ul, .document-textarea ol {
