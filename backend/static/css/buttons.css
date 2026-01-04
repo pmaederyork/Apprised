@@ -282,9 +282,9 @@
 }
 
 #boldBtn {
-    margin-left: 8px;
+    margin-left: 0px;
     border-left: 1px solid var(--color-bg-disabled);
-    padding-left: 12px;
+    padding-left: 8px;
 }
 
 #boldBtn:hover {
@@ -516,7 +516,7 @@
     width: 1px;
     height: 24px;
     background: var(--color-border);
-    margin: 0 8px;
+    margin: 0 4px;
 }
 
 /* Font Size Dropdown */
@@ -598,7 +598,7 @@
     cursor: pointer;
     transition: all 0.2s ease;
     height: 28px;
-    min-width: 75px;
+    min-width: 55px;
 }
 
 .text-align-select:hover {
@@ -626,7 +626,7 @@
 }
 
 .spacing-dropdown-btn {
-    padding: 4px 8px;
+    padding: 4px 6px;
     border: 1px solid var(--color-border);
     border-radius: 4px;
     background: var(--color-bg-white);
@@ -634,6 +634,7 @@
     cursor: pointer;
     transition: all 0.2s ease;
     height: 28px;
+    min-width: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
