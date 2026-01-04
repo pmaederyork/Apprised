@@ -38,6 +38,14 @@ const Documents = {
             this.squireEditor.setKeyHandler('Tab', null);
             this.squireEditor.setKeyHandler('Shift-Tab', null);
 
+            // Disable Squire's built-in formatting handlers to prevent conflicts
+            this.squireEditor.setKeyHandler('Ctrl-b', null);
+            this.squireEditor.setKeyHandler('Meta-b', null);
+            this.squireEditor.setKeyHandler('Ctrl-i', null);
+            this.squireEditor.setKeyHandler('Meta-i', null);
+            this.squireEditor.setKeyHandler('Ctrl-u', null);
+            this.squireEditor.setKeyHandler('Meta-u', null);
+
             // Bind pathChange event to update font size and family display
             this.squireEditor.addEventListener('pathChange', () => {
                 this.updateFontSizeDisplay();
@@ -619,6 +627,7 @@ const Documents = {
             }
             this.scheduleAutoSave();
             this.updateToolbarButtonStates();
+            this.updateFormatDisplay();
         }
     },
 
@@ -631,6 +640,7 @@ const Documents = {
             }
             this.scheduleAutoSave();
             this.updateToolbarButtonStates();
+            this.updateFormatDisplay();
         }
     },
 
@@ -643,6 +653,7 @@ const Documents = {
             }
             this.scheduleAutoSave();
             this.updateToolbarButtonStates();
+            this.updateFormatDisplay();
         }
     },
 
