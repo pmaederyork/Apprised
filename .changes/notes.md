@@ -1,5 +1,4 @@
 Saved files .html
-Header / paragraph formating
 turns marker
 
 Switch to main branch: git checkout main
