@@ -58,6 +58,7 @@ const UI = {
         agentSelector: document.getElementById('agentSelector'),
         addAgentBtn: document.getElementById('addAgentBtn'),
         turnsSelector: document.getElementById('turnsSelector'),
+        turnsControl: document.querySelector('.turns-control'),
         // User menu elements
         userProfile: document.getElementById('userProfile'),
         userAvatarFooter: document.getElementById('userAvatarFooter'),

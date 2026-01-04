@@ -359,6 +359,11 @@ def index():
     else:
         return render_template('landing.html')
 
+@app.route('/privacy')
+def privacy():
+    """Serve privacy policy page"""
+    return render_template('privacy.html')
+
 @app.route('/chat', methods=['POST'])
 @login_required
 def chat():

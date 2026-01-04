@@ -108,6 +108,11 @@ const Agents = {
             UI.elements.turnsSelector.value = turns;
         }
 
+        // Show/hide turns control - only visible when there are multiple agents
+        if (UI.elements.turnsControl) {
+            UI.elements.turnsControl.style.display = fullAgents.length > 1 ? 'flex' : 'none';
+        }
+
         // Update agent selector display
         if (UI.elements.agentSelector) {
             // Show "No Agents" only if no active prompt AND no added agents
