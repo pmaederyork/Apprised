@@ -8,6 +8,7 @@ const Chat = {
     currentMessages: [],
     chats: {},
     isSending: false,
+    hadDocumentEditingInstructions: false,
 
     // Initialize chat system
     init() {
@@ -106,6 +107,7 @@ const Chat = {
     createNewChat() {
         this.currentChatId = Storage.generateChatId();
         this.currentMessages = [];
+        this.hadDocumentEditingInstructions = false;
         this.chats[this.currentChatId] = {
             id: this.currentChatId,
             title: 'New Chat',
@@ -131,6 +133,7 @@ const Chat = {
     loadChat(chatId) {
         if (this.chats[chatId]) {
             this.currentChatId = chatId;
+            this.hadDocumentEditingInstructions = false;
             const chat = this.chats[chatId];
             UI.elements.chatTitle.value = chat.title;
             this.currentMessages = [...chat.messages];
@@ -336,6 +339,7 @@ const Chat = {
 
             // Append document editing instructions if document is open
             if (Documents && Documents.currentDocumentId) {
+                this.hadDocumentEditingInstructions = true;
                 const documentEditingInstructions = `
 
 DOCUMENT EDITING CAPABILITY:
@@ -677,6 +681,14 @@ Response: "I'll remove content before main content:
 The user will review each change with visual highlighting (deletions in red, additions in green, modifications in yellow) and can accept or reject individual changes using keyboard shortcuts or buttons.`;
 
                 systemPrompt = systemPrompt ? systemPrompt + documentEditingInstructions : documentEditingInstructions;
+            } else if (this.hadDocumentEditingInstructions) {
+                // Document was open earlier but is now closed
+                const documentClosedNotice = `
+
+DOCUMENT EDITING STATUS:
+The document editor is currently CLOSED. Do not generate <document_edit> tags. If the user requests document edits, remind them that they need to reopen the document first.`;
+
+                systemPrompt = systemPrompt ? systemPrompt + documentClosedNotice : documentClosedNotice;
             }
 
             // Send message to API (include screenshot data but don't store it)

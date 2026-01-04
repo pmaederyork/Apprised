@@ -345,6 +345,11 @@ const Documents = {
         if (typeof UI !== 'undefined' && UI.refreshCopyToDocumentButtons) {
             UI.refreshCopyToDocumentButtons();
         }
+
+        // Notify Claude and user that document is closed
+        if (typeof Chat !== 'undefined' && Chat.currentChatId) {
+            Chat.addSystemMessage('📄 Document closed. Document editing is no longer available.');
+        }
     },
 
     // Delete a document
