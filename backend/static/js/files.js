@@ -257,7 +257,7 @@ const Files = {
         // Add file name/info
         const fileName = document.createElement('div');
         fileName.className = 'file-name';
-        
+
         if (fileData.isPasted) {
             // Show preview of pasted content
             if (fileData.type.includes('text')) {
@@ -267,6 +267,12 @@ const Files = {
             } else {
                 fileName.textContent = fileData.name;
             }
+        } else if (fileData.isDraggedDocument) {
+            // Strip .html extension from dragged document names
+            const displayName = fileData.name.endsWith('.html')
+                ? fileData.name.slice(0, -5)
+                : fileData.name;
+            fileName.textContent = displayName;
         } else {
             fileName.textContent = fileData.name;
         }
@@ -432,8 +438,5 @@ const Files = {
 
         // Update preview
         this.updatePreviewArea();
-
-        // Show success notification
-        this.showPasteNotification('📄 Document attached: ' + documentFileData.name);
     }
 };

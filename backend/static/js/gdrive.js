@@ -242,11 +242,16 @@ const GDrive = {
             // Update UI to show syncing
             this.updateSyncIndicator(documentId, 'syncing');
 
+            // Strip .html extension from title for Google Drive
+            const driveTitle = doc.title.endsWith('.html')
+                ? doc.title.slice(0, -5)
+                : doc.title;
+
             const response = await fetch('/drive/save', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    title: doc.title,
+                    title: driveTitle,
                     content: doc.content,
                     driveFileId: doc.driveFileId || null
                 })
