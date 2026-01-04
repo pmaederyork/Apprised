@@ -34,66 +34,125 @@ const GDrive = {
             // 2.5. Remove external stylesheet links (prevent CSP violations)
             html = html.replace(/<link[^>]*>/gi, '');
 
-            // 3. Convert Google Docs paragraph-style headings to semantic HTML
+            // 3. Convert Google Docs paragraph-style headings to semantic HTML AND clean existing headers
             // Create temporary DOM for manipulation
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = html;
 
-            // Find paragraphs with bold + large font-size (Google Docs heading pattern)
-            tempDiv.querySelectorAll('p').forEach(p => {
-                const style = p.getAttribute('style') || '';
-                const isBold = style.includes('font-weight:700') || style.includes('font-weight:bold');
-                const fontSizeMatch = style.match(/font-size:\s*(\d+(?:\.\d+)?)(pt|px)/i);
+            // Process both paragraphs (convert if needed) and existing headers (clean)
+            tempDiv.querySelectorAll('p, h1, h2, h3, h4, h5, h6').forEach(element => {
+                let heading = element;
 
-                if (isBold && fontSizeMatch) {
-                    const size = parseFloat(fontSizeMatch[1]);
-                    const unit = fontSizeMatch[2].toLowerCase();
+                // If it's a paragraph, check if it should be converted to a header
+                if (element.tagName === 'P') {
+                    const style = element.getAttribute('style') || '';
+                    const isBold = style.includes('font-weight:700') || style.includes('font-weight:bold');
+                    const fontSizeMatch = style.match(/font-size:\s*(\d+(?:\.\d+)?)(pt|px)/i);
 
-                    // Convert to points if in pixels (rough conversion)
-                    const sizeInPoints = unit === 'px' ? size * 0.75 : size;
+                    if (isBold && fontSizeMatch) {
+                        const size = parseFloat(fontSizeMatch[1]);
+                        const unit = fontSizeMatch[2].toLowerCase();
 
-                    // Determine heading level based on font size
-                    let headingLevel = 'h3';
-                    if (sizeInPoints >= 18) headingLevel = 'h1';
-                    else if (sizeInPoints >= 14) headingLevel = 'h2';
+                        // Convert to points if in pixels
+                        const sizeInPoints = unit === 'px' ? size * 0.75 : size;
 
-                    const heading = document.createElement(headingLevel);
-                    heading.innerHTML = p.innerHTML;
+                        // Determine heading level based on font size
+                        let headingLevel = 'h3';
+                        if (sizeInPoints >= 18) headingLevel = 'h1';
+                        else if (sizeInPoints >= 14) headingLevel = 'h2';
 
-                    // Preserve ALL styles including font-size and font-weight
-                    // DOMPurify will handle security sanitization
-                    heading.setAttribute('style', style);
+                        // Create new heading element
+                        const newHeading = document.createElement(headingLevel);
+                        newHeading.innerHTML = element.innerHTML;
+                        newHeading.setAttribute('style', style);
 
-                    // Clean conflicting inline styles from Google Docs imports
-                    // Required for CSS defaults and font dropdowns to work
+                        element.replaceWith(newHeading);
+                        heading = newHeading;
+                    } else {
+                        // Not a header, skip cleanup (keep as normal paragraph)
+                        return;
+                    }
+                }
 
-                    // 1. Clean inner span styles
-                    heading.querySelectorAll('span[style]').forEach(span => {
-                        // Remove font-size and font-family (header defines these via CSS)
-                        if (span.style.fontSize) span.style.fontSize = '';
-                        if (span.style.fontFamily) span.style.fontFamily = '';
+                // === COMPREHENSIVE GOOGLE DOCS CLEANUP ===
+                // (applies to both converted headers and existing h1/h2/h3 tags)
 
-                        // Keep other formatting (bold, italic, color, background, etc.)
-                        const remainingStyle = span.getAttribute('style');
-                        if (!remainingStyle || !remainingStyle.trim()) {
-                            span.removeAttribute('style');
-                        }
+                // Step 1: Remove ALL class attributes (Google Docs adds class="font", class="size", etc.)
+                heading.querySelectorAll('[class]').forEach(el => {
+                    el.removeAttribute('class');
+                });
 
-                        // Unwrap empty spans
+                // Step 2: Strip ALL inline styles from inner elements
+                heading.querySelectorAll('[style]').forEach(el => {
+                    // Don't touch the heading itself yet, only inner elements
+                    if (el !== heading) {
+                        el.removeAttribute('style');
+                    }
+                });
+
+                // Step 3: Recursively unwrap empty SPANs (those with no attributes)
+                let changed = true;
+                while (changed) {
+                    changed = false;
+                    heading.querySelectorAll('span').forEach(span => {
+                        // If span has no attributes (no style, no class, no id), unwrap it
                         if (span.attributes.length === 0 && span.parentNode) {
                             while (span.firstChild) {
                                 span.parentNode.insertBefore(span.firstChild, span);
                             }
                             span.remove();
+                            changed = true;
                         }
                     });
+                }
 
-                    // 2. Strip block-level font styles from heading
-                    heading.style.fontSize = '';
-                    heading.style.fontFamily = '';
-                    // Preserve other block styles (text-align, margin, padding, color)
+                // Step 3.5: Convert block-level CSS formatting to semantic tags
+                // (before we strip the CSS styles)
+                const hasBlockBold = heading.style.fontWeight === '700' ||
+                                     heading.style.fontWeight === 'bold';
+                const hasBlockItalic = heading.style.fontStyle === 'italic';
+                const hasBlockUnderline = heading.style.textDecoration &&
+                                          heading.style.textDecoration.includes('underline');
 
-                    p.replaceWith(heading);
+                // If the header itself has CSS formatting, wrap content in semantic tags
+                if (hasBlockBold || hasBlockItalic || hasBlockUnderline) {
+                    let content = heading.innerHTML;
+
+                    // Wrap in order: innermost first
+                    if (hasBlockBold && !heading.querySelector('b')) {
+                        content = `<b>${content}</b>`;
+                    }
+                    if (hasBlockItalic && !heading.querySelector('i')) {
+                        content = `<i>${content}</i>`;
+                    }
+                    if (hasBlockUnderline && !heading.querySelector('u')) {
+                        content = `<u>${content}</u>`;
+                    }
+
+                    heading.innerHTML = content;
+                }
+
+                // Step 4: Strip block-level formatting styles
+                heading.style.fontWeight = '';
+                heading.style.fontStyle = '';
+                heading.style.textDecoration = '';
+
+                heading.style.padding = '';
+                heading.style.paddingTop = '';
+                heading.style.paddingBottom = '';
+                heading.style.paddingLeft = '';
+                heading.style.paddingRight = '';
+                heading.style.margin = '';
+                heading.style.lineHeight = '';
+                heading.style.pageBreakAfter = '';
+                heading.style.orphans = '';
+                heading.style.widows = '';
+                // Keep: text-align, color, background-color
+
+                // Step 5: Remove style attribute if empty
+                const remainingStyle = heading.getAttribute('style');
+                if (!remainingStyle || !remainingStyle.trim()) {
+                    heading.removeAttribute('style');
                 }
             });
 
