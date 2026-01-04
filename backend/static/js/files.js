@@ -17,8 +17,9 @@ const Files = {
         this.elements.fileInput = document.getElementById('fileInput');
         this.elements.fileBtn = document.getElementById('fileBtn');
         this.elements.filePreviewArea = document.getElementById('filePreviewArea');
-        
+
         this.bindEvents();
+        this.bindDragDropEvents();
     },
 
     // Bind event listeners
@@ -202,10 +203,15 @@ const Files = {
     createThumbnail(fileData) {
         const thumbnail = document.createElement('div');
         thumbnail.className = 'file-thumbnail';
-        
+
         // Add special class for pasted content
         if (fileData.isPasted) {
             thumbnail.classList.add('pasted-content');
+        }
+
+        // Add special class for dragged documents
+        if (fileData.isDraggedDocument) {
+            thumbnail.classList.add('dragged-document');
         }
 
         // Create remove button
@@ -226,9 +232,11 @@ const Files = {
         } else {
             const icon = document.createElement('div');
             icon.className = 'file-icon';
-            
+
             // Use different icons for different file types
-            if (fileData.isPasted && fileData.type.includes('text')) {
+            if (fileData.isDraggedDocument) {
+                icon.textContent = '📄'; // Document icon for dragged documents
+            } else if (fileData.isPasted && fileData.type.includes('text')) {
                 icon.textContent = '📋'; // Clipboard icon for pasted text
             } else if (fileData.isPasted && fileData.type.includes('html')) {
                 icon.textContent = '🌐'; // Web icon for pasted HTML
@@ -358,5 +366,74 @@ const Files = {
                 }, 300);
             }
         }, 3000);
+    },
+
+    // Bind drag-and-drop event listeners for document attachment
+    bindDragDropEvents() {
+        const chatInputContainer = document.querySelector('.chat-input-container');
+        if (!chatInputContainer) return;
+
+        chatInputContainer.addEventListener('dragover', (e) => {
+            // Check if dragging a document
+            if (e.dataTransfer.types.includes('application/x-apprised-document')) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.dataTransfer.dropEffect = 'copy';
+                chatInputContainer.classList.add('drag-over');
+            }
+        });
+
+        chatInputContainer.addEventListener('dragleave', (e) => {
+            // Only remove if leaving the container entirely
+            if (!chatInputContainer.contains(e.relatedTarget)) {
+                chatInputContainer.classList.remove('drag-over');
+            }
+        });
+
+        chatInputContainer.addEventListener('drop', (e) => {
+            chatInputContainer.classList.remove('drag-over');
+
+            const documentId = e.dataTransfer.getData('application/x-apprised-document');
+            if (documentId) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.handleDocumentDrop(documentId);
+            }
+        });
+    },
+
+    // Handle document dropped into chat input
+    handleDocumentDrop(documentId) {
+        // Check if Documents module is available
+        if (typeof Documents === 'undefined') {
+            console.error('Documents module not available');
+            return;
+        }
+
+        // Convert document to file
+        const documentFileData = Documents.getDocumentAsFile(documentId);
+        if (!documentFileData) {
+            console.error('Failed to convert document to file');
+            return;
+        }
+
+        // Check for duplicates
+        const isDuplicate = this.selectedFiles.some(f =>
+            f.sourceDocumentId === documentId
+        );
+
+        if (isDuplicate) {
+            this.showPasteNotification('Document already attached');
+            return;
+        }
+
+        // Add to selected files
+        this.selectedFiles.push(documentFileData);
+
+        // Update preview
+        this.updatePreviewArea();
+
+        // Show success notification
+        this.showPasteNotification('📄 Document attached: ' + documentFileData.name);
     }
 };

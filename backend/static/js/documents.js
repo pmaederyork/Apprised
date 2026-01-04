@@ -460,8 +460,14 @@ const Documents = {
                     }
                 ]
             });
-            
+
+            // Make document draggable for chat attachment
+            documentItem.draggable = true;
             documentItem.setAttribute('data-document-id', document.id);
+
+            // Setup drag-and-drop for attachment
+            this.setupDragForAttachment(documentItem, document.id);
+
             UI.elements.documentsList.appendChild(documentItem);
         });
     },
@@ -2222,6 +2228,60 @@ const Documents = {
 
         const driveUrl = `https://docs.google.com/document/d/${doc.driveFileId}/edit`;
         window.open(driveUrl, '_blank');
+    },
+
+    /**
+     * Convert a document to a File object for drag-and-drop attachment
+     * @param {string} documentId - ID of document to convert
+     * @returns {Object|null} - File data object compatible with Files module
+     */
+    getDocumentAsFile(documentId) {
+        const doc = this.documents[documentId];
+        if (!doc) {
+            console.warn('Document not found:', documentId);
+            return null;
+        }
+
+        // Create HTML blob from document content
+        const htmlContent = doc.content || '<p></p>';
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+
+        // Create File object
+        const file = new File([blob], doc.title, {
+            type: 'text/html',
+            lastModified: doc.lastModified
+        });
+
+        // Return in Files.selectedFiles format
+        return {
+            id: 'dragged_doc_' + doc.id + '_' + Date.now(),
+            file: file,
+            name: doc.title,
+            type: 'text/html',
+            size: blob.size,
+            isDraggedDocument: true, // Flag for special handling/styling
+            sourceDocumentId: doc.id // Track origin for duplicate detection
+        };
+    },
+
+    /**
+     * Setup drag-and-drop handlers for document attachment
+     * @param {HTMLElement} documentItem - Document list item element
+     * @param {string} documentId - Document ID
+     */
+    setupDragForAttachment(documentItem, documentId) {
+        documentItem.addEventListener('dragstart', (e) => {
+            e.stopPropagation();
+            documentItem.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'copy'; // Copy, not move
+            e.dataTransfer.setData('text/plain', documentId);
+            e.dataTransfer.setData('application/x-apprised-document', documentId);
+        });
+
+        documentItem.addEventListener('dragend', (e) => {
+            e.stopPropagation();
+            documentItem.classList.remove('dragging');
+        });
     },
 
 };

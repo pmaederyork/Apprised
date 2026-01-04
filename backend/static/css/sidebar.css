@@ -369,6 +369,20 @@
     visibility: visible;
 }
 
+/* Drag-and-drop visual feedback */
+.document-item[draggable="true"] {
+    cursor: grab;
+}
+
+.document-item[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.document-item.dragging {
+    opacity: 0.5;
+    background: var(--color-sidebar-hover);
+}
+
 
 /* Sidebar resize handle */
 .sidebar-resize-handle {
