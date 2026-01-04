@@ -128,7 +128,6 @@
 }
 
 
-
 /* Override browser defaults - shared property only */
 .document-textarea h1,
 .document-textarea h2,
@@ -136,20 +135,6 @@
     font-weight: normal; /* Allow bold toggling */
 }
 
-/* H1 specific styles */
-.document-textarea h1 {
-    font-size: 16pt;
-}
-
-/* H2 specific styles */
-.document-textarea h2 {
-    font-size: 13pt;
-}
-
-/* H3 specific styles */
-.document-textarea h3 {
-    font-size: 12pt;
-}
 
 .document-textarea ul, .document-textarea ol {
     margin: 1em 0;

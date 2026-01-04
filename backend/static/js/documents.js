@@ -815,15 +815,18 @@ const Documents = {
                     // Replace old element with new one
                     block.parentNode.replaceChild(newElement, block);
 
-                    // Clean conflicting inline styles for headers (allow CSS defaults to apply)
-                    if (['H1', 'H2', 'H3'].includes(format.toUpperCase())) {
-                        // 1. Strip block-level font styles
+                    // Apply formatting from HeaderFormats config
+                    if (typeof HeaderFormats !== 'undefined' && HeaderFormats[format]) {
+                        const formatConfig = HeaderFormats[format];
+                        let content = newElement.innerHTML;
+
+                        // 1. Strip block-level font styles (will be reapplied from config)
                         newElement.style.fontSize = '';
                         newElement.style.fontFamily = '';
 
                         // 2. Clean inner span styles
                         newElement.querySelectorAll('span[style]').forEach(span => {
-                            // Remove font-size and font-family (header defines these via CSS)
+                            // Remove font-size and font-family
                             if (span.style.fontSize) span.style.fontSize = '';
                             if (span.style.fontFamily) span.style.fontFamily = '';
 
@@ -841,6 +844,27 @@ const Documents = {
                                 span.remove();
                             }
                         });
+
+                        // 3. Apply config-defined formatting (only for headers, not paragraphs)
+                        if (format !== 'p') {
+                            // Apply font size
+                            if (formatConfig.fontSize) {
+                                newElement.style.fontSize = formatConfig.fontSize;
+                            }
+
+                            // Wrap content in semantic tags if configured
+                            if (formatConfig.bold && !newElement.querySelector('b')) {
+                                content = `<b>${content}</b>`;
+                            }
+                            if (formatConfig.italic && !newElement.querySelector('i')) {
+                                content = `<i>${content}</i>`;
+                            }
+                            if (formatConfig.underline && !newElement.querySelector('u')) {
+                                content = `<u>${content}</u>`;
+                            }
+
+                            newElement.innerHTML = content;
+                        }
                     }
                 });
 
