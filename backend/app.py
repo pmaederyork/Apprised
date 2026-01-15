@@ -364,6 +364,11 @@ def privacy():
     """Serve privacy policy page"""
     return render_template('privacy.html')
 
+@app.route('/terms')
+def terms():
+    """Serve terms and conditions page"""
+    return render_template('terms.html')
+
 @app.route('/chat', methods=['POST'])
 @login_required
 def chat():
