@@ -15,7 +15,8 @@
       "Bash(ls:*)",
       "Bash(rm:*)",
       "WebSearch(**)",
-      "WebFetch(**)"
+      "WebFetch(**)",
+      "mcp__browserbase"
     ],
     "deny": []
   }
