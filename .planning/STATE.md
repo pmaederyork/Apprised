@@ -5,7 +5,7 @@
 Phase: 1 of 1 (Claude Changes Overhaul)
 Plan: 5 of 5 complete
 Status: Phase complete
-Last activity: 2026-01-26 - Completed quick task 001: Fix edit highlighting cleanup on undo
+Last activity: 2026-01-26 - Completed quick task 002: Add dark mode toggle
 
 Progress: [##########] 100%
 
@@ -45,6 +45,9 @@ See: .planning/PROJECT.md (updated 2025-01-25)
 | 2026-01-26 | Pattern types end with -pattern suffix | delete-pattern triggers client-side expansion |
 | 2026-01-26 | Purple accent for pattern changes | Visually distinguishes pattern changes from regular add/delete/modify |
 | 2026-01-26 | First element shows Nx indicator | Only first element in pattern group shows count |
+| 2026-01-26 | data-theme attribute on documentElement | Allows CSS cascade to work naturally with theme selector overrides |
+| 2026-01-26 | Auto mode with matchMedia listener | Enables automatic theme switching when user changes OS/browser preference |
+| 2026-01-26 | Initialize theme before other settings | Ensures theme applies immediately on page load, preventing flash of wrong theme |
 
 ### Blockers
 None - Phase 1 complete.
@@ -54,11 +57,12 @@ None - Phase 1 complete.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 001 | Fix edit highlighting cleanup on undo | 2026-01-26 | 332b111 | [001-fix-edit-highlighting-cleanup-on-undo](./quick/001-fix-edit-highlighting-cleanup-on-undo/) |
+| 002 | Add dark mode toggle | 2026-01-26 | a115eec | [002-add-dark-mode-toggle](./quick/002-add-dark-mode-toggle/) |
 
 ## Session Continuity
 
-Last session: 2026-01-26T07:21:27Z
-Stopped at: Completed 01-04-PLAN.md (Pattern Matching)
+Last session: 2026-01-26T00:29:43Z
+Stopped at: Completed quick task 002 (Add dark mode toggle)
 Resume file: None - Phase 1 complete
 
 ---
