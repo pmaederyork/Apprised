@@ -5,7 +5,7 @@
 Phase: 1 of 1 (Claude Changes Overhaul)
 Plan: 5 of 5 complete
 Status: Phase complete
-Last activity: 2026-01-26 - Completed 01-04-PLAN.md (Pattern Matching)
+Last activity: 2026-01-26 - Completed quick task 001: Fix edit highlighting cleanup on undo
 
 Progress: [##########] 100%
 
@@ -48,6 +48,12 @@ See: .planning/PROJECT.md (updated 2025-01-25)
 
 ### Blockers
 None - Phase 1 complete.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 001 | Fix edit highlighting cleanup on undo | 2026-01-26 | 332b111 | [001-fix-edit-highlighting-cleanup-on-undo](./quick/001-fix-edit-highlighting-cleanup-on-undo/) |
 
 ## Session Continuity
 
