@@ -120,6 +120,75 @@ const ClaudeChanges = {
     },
 
     /**
+     * Resolve change target using hybrid strategy
+     * Priority: targetId > cached signature > content matching
+     * @param {Element} container - Container to search within
+     * @param {Object} change - The change object with targetId, _cachedSignature, originalContent
+     * @returns {Object} { node: Element|null, method: string }
+     */
+    resolveChangeTarget(container, change) {
+        // Strategy 1: ID-based (highest confidence)
+        if (change.targetId) {
+            const byId = typeof ElementIds !== 'undefined'
+                ? ElementIds.findById(container, change.targetId)
+                : container.querySelector(`[data-edit-id="${change.targetId}"]`);
+
+            if (byId) {
+                return { node: byId, method: 'id' };
+            }
+            console.warn(`Target ID "${change.targetId}" not found, trying fallback strategies`);
+        }
+
+        // Strategy 2: Cached signature (from preview phase)
+        if (change._cachedSignature) {
+            const bySignature = this.findNodeBySignature(container, change._cachedSignature);
+            if (bySignature) {
+                return { node: bySignature, method: 'signature' };
+            }
+        }
+
+        // Strategy 3: Content matching (fallback for backward compatibility)
+        if (change.originalContent) {
+            const byContent = Documents.findNodeByContent(container, change.originalContent);
+            if (byContent) {
+                return { node: byContent, method: 'content' };
+            }
+        }
+
+        // Strategy 4: For add changes, resolve anchor
+        if (change.type === 'add') {
+            const anchorContent = change.insertAfter || change.insertBefore;
+            if (anchorContent) {
+                // Try ID-based anchor resolution if anchor has targetId
+                if (change.anchorTargetId) {
+                    const anchorById = typeof ElementIds !== 'undefined'
+                        ? ElementIds.findById(container, change.anchorTargetId)
+                        : container.querySelector(`[data-edit-id="${change.anchorTargetId}"]`);
+
+                    if (anchorById) {
+                        return { node: anchorById, method: 'anchor-id' };
+                    }
+                }
+
+                // Fall back to content-based anchor resolution
+                const anchorByContent = Documents.findNodeByContent(container, anchorContent);
+                if (anchorByContent) {
+                    return { node: anchorByContent, method: 'anchor-content' };
+                }
+            }
+        }
+
+        // All strategies failed
+        console.warn(`Could not locate target for change ${change.id}`, {
+            hasTargetId: !!change.targetId,
+            hasCachedSignature: !!change._cachedSignature,
+            hasOriginalContent: !!change.originalContent,
+            changeType: change.type
+        });
+        return { node: null, method: 'failed' };
+    },
+
+    /**
      * Reconstruct document from original HTML by applying accepted changes
      * This creates a clean document without wrapper divs
      */
