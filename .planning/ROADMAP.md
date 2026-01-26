@@ -7,7 +7,7 @@
 
 | Phase | Name | Goal | Status |
 |-------|------|------|--------|
-| 1 | Claude Changes Overhaul | Make document editing robust, reliable, and fast | Pending |
+| 1 | Claude Changes Overhaul | Make document editing robust, reliable, and fast | Planning Complete |
 
 ## Phases
 
@@ -28,6 +28,15 @@
 4. Large document rewrites show accurate diffs automatically
 
 **Depends on:** None (first phase)
+
+**Plans:** 5 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Stable element ID infrastructure (Wave 1)
+- [ ] 01-02-PLAN.md — Hybrid change resolution with fallback (Wave 2)
+- [ ] 01-03-PLAN.md — Batch DOM operations for Accept All (Wave 2)
+- [ ] 01-04-PLAN.md — Client-side pattern matching system (Wave 3)
+- [ ] 01-05-PLAN.md — System prompt update for targetId and patterns (Wave 3)
 
 ---
 
