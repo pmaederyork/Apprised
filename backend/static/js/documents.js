@@ -1931,13 +1931,24 @@ const Documents = {
                 }
                 changeElement.innerHTML = change.originalContent || '';
 
-                // Try to find and replace the original content
-                const originalNode = this.findNodeByContent(tempDiv, change.originalContent);
-                if (originalNode) {
+                // Try to find the original content
+                let originalNode = null;
+
+                // Strategy 1: Use targetId if available (most reliable, especially for pattern changes)
+                if (change.targetId) {
+                    originalNode = tempDiv.querySelector(`[data-edit-id="${change.targetId}"]`);
+                }
+
+                // Strategy 2: Fall back to content matching
+                if (!originalNode) {
+                    originalNode = this.findNodeByContent(tempDiv, change.originalContent);
                     // Capture stable ID if element has one (for hybrid resolution)
-                    if (originalNode.dataset && originalNode.dataset.editId) {
+                    if (originalNode && originalNode.dataset && originalNode.dataset.editId) {
                         change.targetId = originalNode.dataset.editId;
                     }
+                }
+
+                if (originalNode) {
                     // Cache content signature (not DOM reference) for reconstruction
                     // Only if not already cached by PatternMatcher
                     if (!change._cachedSignature) {
@@ -2033,13 +2044,24 @@ const Documents = {
                 }
                 changeElement.innerHTML = change.newContent || '';
 
-                // Try to find and replace the original content
-                const originalNode = this.findNodeByContent(tempDiv, change.originalContent);
-                if (originalNode) {
+                // Try to find the original content
+                let originalNode = null;
+
+                // Strategy 1: Use targetId if available (most reliable)
+                if (change.targetId) {
+                    originalNode = tempDiv.querySelector(`[data-edit-id="${change.targetId}"]`);
+                }
+
+                // Strategy 2: Fall back to content matching
+                if (!originalNode) {
+                    originalNode = this.findNodeByContent(tempDiv, change.originalContent);
                     // Capture stable ID if element has one (for hybrid resolution)
-                    if (originalNode.dataset && originalNode.dataset.editId) {
+                    if (originalNode && originalNode.dataset && originalNode.dataset.editId) {
                         change.targetId = originalNode.dataset.editId;
                     }
+                }
+
+                if (originalNode) {
                     // Cache content signature for reconstruction
                     if (!change._cachedSignature) {
                         change._cachedSignature = {
