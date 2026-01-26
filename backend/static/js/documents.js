@@ -1970,7 +1970,11 @@ const Documents = {
                 if (change._patternGroup) {
                     changeElement.classList.add('claude-change-pattern');
                 }
-                changeElement.innerHTML = change.originalContent || '';
+                // Strip data-edit-id from content to prevent duplicate ID issues
+                // (otherwise subsequent queries find elements inside previous wrappers)
+                let deleteContent = change.originalContent || '';
+                deleteContent = deleteContent.replace(/\s*data-edit-id="[^"]*"/g, '');
+                changeElement.innerHTML = deleteContent;
 
                 // Try to find the original content
                 let originalNode = null;
