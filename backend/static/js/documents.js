@@ -38,7 +38,12 @@ const Documents = {
         // Initialize Squire editor
         const editorContainer = document.getElementById('documentTextarea');
         if (editorContainer && typeof Squire !== 'undefined') {
-            this.squireEditor = new Squire(editorContainer);
+            this.squireEditor = new Squire(editorContainer, {
+                blockTag: 'P',
+                blockAttributes: {
+                    style: `padding:0;margin:0;color:#000000;font-size:${this.DEFAULT_FORMATTING.fontSize};font-family:${this.DEFAULT_FORMATTING.fontFamily};line-height:${this.DEFAULT_FORMATTING.lineHeight};text-align:left`
+                }
+            });
             console.log('Squire editor initialized');
 
             // Disable Squire's built-in Tab handlers so our custom ones work everywhere
@@ -978,7 +983,7 @@ const Documents = {
         this.updateSpacingCheckmarks();
     },
 
-    // Toggle paragraph spacing before (margin-top) - uses font size
+    // Toggle paragraph spacing before (margin-top) - Google Docs style
     toggleParagraphSpacingBefore() {
         if (!this.squireEditor) return;
 
@@ -987,13 +992,12 @@ const Documents = {
             if (block.nodeName === 'LI') return;
 
             const currentMargin = block.style.marginTop;
-            if (currentMargin && currentMargin !== '0px') {
+            if (currentMargin && currentMargin !== '0px' && currentMargin !== '0pt') {
                 // Remove spacing
                 block.style.marginTop = '';
             } else {
-                // Add spacing equal to font size
-                const fontSize = window.getComputedStyle(block).fontSize;
-                block.style.marginTop = fontSize;
+                // Add 12pt spacing (Google Docs standard)
+                block.style.marginTop = '12pt';
             }
         }, true);
 
@@ -1002,7 +1006,7 @@ const Documents = {
         this.updateSpacingCheckmarks();
     },
 
-    // Toggle paragraph spacing after (margin-bottom) - uses font size
+    // Toggle paragraph spacing after (margin-bottom) - Google Docs style
     toggleParagraphSpacingAfter() {
         if (!this.squireEditor) return;
 
@@ -1011,13 +1015,12 @@ const Documents = {
             if (block.nodeName === 'LI') return;
 
             const currentMargin = block.style.marginBottom;
-            if (currentMargin && currentMargin !== '0px') {
+            if (currentMargin && currentMargin !== '0px' && currentMargin !== '0pt') {
                 // Remove spacing
                 block.style.marginBottom = '';
             } else {
-                // Add spacing equal to font size
-                const fontSize = window.getComputedStyle(block).fontSize;
-                block.style.marginBottom = fontSize;
+                // Add 12pt spacing (Google Docs standard)
+                block.style.marginBottom = '12pt';
             }
         }, true);
 
@@ -1057,11 +1060,11 @@ const Documents = {
                 lineHeightValue = (lineHeightPx / fontSize).toFixed(2);
             }
 
-            // Get current margins
+            // Get current margins (check inline style first, then computed)
             const marginTop = node.style.marginTop || window.getComputedStyle(node).marginTop;
             const marginBottom = node.style.marginBottom || window.getComputedStyle(node).marginBottom;
-            const hasSpaceBefore = marginTop && marginTop !== '0px' && parseFloat(marginTop) > 0;
-            const hasSpaceAfter = marginBottom && marginBottom !== '0px' && parseFloat(marginBottom) > 0;
+            const hasSpaceBefore = marginTop && marginTop !== '0px' && marginTop !== '0pt' && parseFloat(marginTop) > 0;
+            const hasSpaceAfter = marginBottom && marginBottom !== '0px' && marginBottom !== '0pt' && parseFloat(marginBottom) > 0;
 
             // Update checkmarks
             document.querySelectorAll('.spacing-menu-item').forEach(item => {
