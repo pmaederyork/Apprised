@@ -752,15 +752,74 @@ const ClaudeChanges = {
     },
 
     /**
-     * Reject all pending changes
+     * Reject all pending changes with batch processing
+     * Uses single DOM update for instant operation regardless of change count
      */
     rejectAll() {
         if (!this.isInReviewMode()) return;
+        if (!this.originalDocumentHTML) return;
 
         const pendingChanges = this.changes.filter(c => c.status === 'pending');
+        if (pendingChanges.length === 0) {
+            this.exitReviewMode();
+            return;
+        }
+
+        console.log(`Batch rejecting ${pendingChanges.length} change(s)`);
+        const startTime = performance.now();
+
+        // Capture state BEFORE rejecting changes (for undo)
+        this.captureHistoryState();
+
+        // Mark all pending as rejected in batch
         pendingChanges.forEach(change => {
-            this.rejectChange(change.id);
+            change.status = 'rejected';
         });
+
+        // Reconstruct document with only accepted changes (rejected are excluded)
+        const acceptedChanges = this.changes.filter(c => c.status === 'accepted');
+        const resultHTML = this.reconstructDocument(this.originalDocumentHTML, acceptedChanges);
+
+        // Update editor with single DOM operation using DocumentFragment pattern
+        if (Documents.squireEditor) {
+            Documents.squireEditor.saveUndoState();
+            const editor = Documents.squireEditor.getRoot();
+            if (editor) {
+                // Use DocumentFragment for single reflow
+                const fragment = document.createDocumentFragment();
+                const tempContainer = document.createElement('div');
+                tempContainer.innerHTML = resultHTML;
+                while (tempContainer.firstChild) {
+                    fragment.appendChild(tempContainer.firstChild);
+                }
+                editor.innerHTML = '';
+                editor.appendChild(fragment);
+
+                // Ensure new elements have IDs after batch operation
+                if (typeof ElementIds !== 'undefined') {
+                    ElementIds.ensureIds(editor);
+                }
+            }
+        }
+
+        const elapsed = performance.now() - startTime;
+        console.log(`Batch reject completed in ${elapsed.toFixed(2)}ms`);
+
+        // Save changes to storage
+        Storage.saveClaudeChanges(this.documentId, {
+            changeId: 'changes_' + Date.now(),
+            documentId: this.documentId,
+            timestamp: Date.now(),
+            changes: this.changes
+        });
+
+        // Capture state AFTER rejecting changes (creates undo point)
+        setTimeout(() => {
+            this.captureHistoryState();
+            if (Documents && Documents.updateUndoRedoButtons) {
+                Documents.updateUndoRedoButtons();
+            }
+        }, 100);
 
         this.exitReviewMode();
     },
