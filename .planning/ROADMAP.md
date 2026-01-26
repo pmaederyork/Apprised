@@ -22,10 +22,10 @@
 - Diff-based approach for large edits
 
 **Success criteria:**
-1. User can accept/reject 10+ changes without noticeable delay
-2. "Remove all empty lines" removes ALL empty lines, not just those Claude identified
-3. Changes targeting specific elements work even after document modifications
-4. Large document rewrites show accurate diffs automatically
+1. User can accept/reject 10+ changes without noticeable delay (Plan 01-03)
+2. "Remove all empty lines" removes ALL empty lines, not just those Claude identified (Plan 01-04)
+3. Changes targeting specific elements work even after document modifications (Plans 01-01, 01-02)
+4. Large document rewrites show accurate diffs via stable element targeting (Plans 01-01, 01-02, 01-03)
 
 **Depends on:** None (first phase)
 
