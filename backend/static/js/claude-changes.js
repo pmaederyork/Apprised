@@ -696,15 +696,62 @@ const ClaudeChanges = {
     },
 
     /**
-     * Accept all pending changes
+     * Accept all pending changes with batch processing
+     * Uses single DOM update for instant operation regardless of change count
      */
     acceptAll() {
         if (!this.isInReviewMode()) return;
+        if (!this.originalDocumentHTML) return;
 
         const pendingChanges = this.changes.filter(c => c.status === 'pending');
-        pendingChanges.forEach(change => {
-            this.acceptChange(change.id);
+        if (pendingChanges.length === 0) {
+            this.exitReviewMode();
+            return;
+        }
+
+        // Capture state BEFORE applying changes (for undo)
+        this.captureHistoryState();
+
+        // Use batch processing - single reconstruction for all changes
+        const resultHTML = this.batchApplyChanges(this.originalDocumentHTML, pendingChanges);
+
+        // Update editor with single DOM operation using DocumentFragment pattern
+        if (Documents.squireEditor) {
+            Documents.squireEditor.saveUndoState();
+            const editor = Documents.squireEditor.getRoot();
+            if (editor) {
+                // Use DocumentFragment for single reflow
+                const fragment = document.createDocumentFragment();
+                const tempContainer = document.createElement('div');
+                tempContainer.innerHTML = resultHTML;
+                while (tempContainer.firstChild) {
+                    fragment.appendChild(tempContainer.firstChild);
+                }
+                editor.innerHTML = '';
+                editor.appendChild(fragment);
+
+                // Ensure new elements have IDs after batch operation
+                if (typeof ElementIds !== 'undefined') {
+                    ElementIds.ensureIds(editor);
+                }
+            }
+        }
+
+        // Save changes to storage
+        Storage.saveClaudeChanges(this.documentId, {
+            changeId: 'changes_' + Date.now(),
+            documentId: this.documentId,
+            timestamp: Date.now(),
+            changes: this.changes
         });
+
+        // Capture state AFTER applying changes (creates undo point)
+        setTimeout(() => {
+            this.captureHistoryState();
+            if (Documents && Documents.updateUndoRedoButtons) {
+                Documents.updateUndoRedoButtons();
+            }
+        }, 100);
 
         this.exitReviewMode();
     },
