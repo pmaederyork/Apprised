@@ -10,6 +10,170 @@ const ClaudeChanges = {
     originalDocumentHTML: null, // Cache of clean document HTML before wrappers
 
     /**
+     * Pattern Matcher System
+     * Enables client-side pattern matching for bulk operations.
+     * Claude specifies a pattern type, client finds ALL matching elements.
+     */
+    PatternMatcher: {
+        // Registered patterns - can be extended via register()
+        patterns: {
+            'empty-paragraphs': {
+                description: 'Paragraphs with no content or only whitespace',
+                selector: 'p',
+                match: (node) => {
+                    const text = node.textContent?.trim() || '';
+                    // Check for empty or whitespace-only content
+                    // Also check if innerHTML is just <br> or empty
+                    const html = node.innerHTML?.trim() || '';
+                    return text === '' || html === '' || html === '<br>' || html === '&nbsp;';
+                }
+            },
+            'empty-lines': {
+                description: 'Any block element with no content',
+                selector: 'p, div, h1, h2, h3, h4, h5, h6, li',
+                match: (node) => {
+                    const text = node.textContent?.trim() || '';
+                    const html = node.innerHTML?.trim() || '';
+                    return text === '' || html === '' || html === '<br>' || html === '&nbsp;';
+                }
+            },
+            'duplicate-breaks': {
+                description: 'Consecutive BR tags',
+                selector: 'br',
+                match: (node) => {
+                    // Match if previous or next sibling is also a BR
+                    const prev = node.previousElementSibling;
+                    const next = node.nextElementSibling;
+                    return (prev && prev.tagName === 'BR') || (next && next.tagName === 'BR');
+                }
+            },
+            'trailing-whitespace': {
+                description: 'Elements ending with excessive whitespace',
+                selector: 'p, div, span, h1, h2, h3, h4, h5, h6, li',
+                match: (node) => {
+                    const text = node.textContent || '';
+                    // Has 2+ spaces at end or non-breaking spaces
+                    return /\s{2,}$/.test(text) || /\u00A0{2,}$/.test(text);
+                }
+            }
+        },
+
+        /**
+         * Register a new pattern
+         * @param {string} name - Pattern name for reference
+         * @param {Object} pattern - Pattern definition with description, selector, match function
+         */
+        register(name, pattern) {
+            if (!pattern.description || !pattern.selector || typeof pattern.match !== 'function') {
+                console.error('Invalid pattern definition:', name);
+                return false;
+            }
+            this.patterns[name] = pattern;
+            console.log(`Pattern registered: ${name}`);
+            return true;
+        },
+
+        /**
+         * Find all elements matching a pattern in the container
+         * @param {Element} container - DOM container to search
+         * @param {string} patternName - Name of registered pattern
+         * @returns {Array} Array of matching DOM nodes
+         */
+        findMatches(container, patternName) {
+            const pattern = this.patterns[patternName];
+            if (!pattern) {
+                console.error('Unknown pattern:', patternName);
+                return [];
+            }
+
+            const candidates = container.querySelectorAll(pattern.selector);
+            const matches = [];
+
+            candidates.forEach(node => {
+                if (pattern.match(node)) {
+                    matches.push(node);
+                }
+            });
+
+            console.log(`Pattern "${patternName}" found ${matches.length} match(es)`);
+            return matches;
+        },
+
+        /**
+         * Create change objects from pattern matches
+         * @param {Element} container - DOM container to search
+         * @param {string} patternName - Name of registered pattern
+         * @param {string} changeType - Type of change (delete, modify, etc.)
+         * @returns {Array} Array of change objects with _patternGroup metadata
+         */
+        createChangesFromPattern(container, patternName, changeType = 'delete') {
+            const matches = this.findMatches(container, patternName);
+            const pattern = this.patterns[patternName];
+
+            if (matches.length === 0) {
+                console.log(`No matches found for pattern "${patternName}"`);
+                return [];
+            }
+
+            const patternGroupId = 'pattern_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+            const changes = matches.map((node, index) => {
+                const change = {
+                    id: Storage.generateChangeId(),
+                    type: changeType,
+                    status: 'pending',
+                    originalContent: node.outerHTML,
+                    // Pattern metadata for grouping
+                    _patternGroup: {
+                        groupId: patternGroupId,
+                        patternName: patternName,
+                        description: pattern.description,
+                        totalMatches: matches.length,
+                        index: index,
+                        isFirst: index === 0
+                    }
+                };
+
+                // Capture stable ID if element has one
+                if (node.dataset && node.dataset.editId) {
+                    change.targetId = node.dataset.editId;
+                }
+
+                // Cache signature for reliable resolution
+                change._cachedSignature = {
+                    textContent: node.textContent?.trim() || '',
+                    tagName: node.tagName?.toLowerCase() || '',
+                    innerHTML: node.innerHTML || '',
+                    outerHTML: node.outerHTML || ''
+                };
+
+                return change;
+            });
+
+            console.log(`Created ${changes.length} change(s) from pattern "${patternName}"`);
+            return changes;
+        },
+
+        /**
+         * Get human-readable description for a pattern
+         * @param {string} patternName - Name of registered pattern
+         * @returns {string} Description of the pattern
+         */
+        getDescription(patternName) {
+            const pattern = this.patterns[patternName];
+            return pattern ? pattern.description : `Unknown pattern: ${patternName}`;
+        },
+
+        /**
+         * Get list of all registered pattern names
+         * @returns {Array} Array of pattern names
+         */
+        getPatternNames() {
+            return Object.keys(this.patterns);
+        }
+    },
+
+    /**
      * Initialize the change review system with a set of changes
      */
     init(documentId, changes) {
