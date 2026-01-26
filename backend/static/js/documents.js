@@ -1718,6 +1718,10 @@ const Documents = {
         this.isRestoring = true;
 
         this.squireEditor.setHTML(state.content);
+
+        // Clean up any orphaned Claude Changes overlays
+        this.cleanupChangeOverlays();
+
         this.squireEditor.focus();
 
         // Clear restoration flag
@@ -1725,6 +1729,39 @@ const Documents = {
 
         // Trigger auto-save but NOT history capture
         this.scheduleAutoSave();
+    },
+
+    /**
+     * Clean up all Claude Changes overlay elements and classes
+     * Called during undo/redo to remove visual artifacts from restored content
+     */
+    cleanupChangeOverlays() {
+        // Remove change number indicators
+        document.querySelectorAll('.claude-change-number').forEach(el => el.remove());
+
+        // Remove pattern group indicators
+        document.querySelectorAll('.pattern-group-indicator').forEach(el => el.remove());
+
+        // Get editor root for scoped cleanup
+        const editor = this.squireEditor?.getRoot();
+        if (!editor) return;
+
+        // Remove data-change-id attributes and highlight classes from all elements
+        editor.querySelectorAll('[data-change-id]').forEach(el => {
+            el.removeAttribute('data-change-id');
+            el.classList.remove(
+                'claude-change-delete',
+                'claude-change-add',
+                'claude-change-modify',
+                'claude-change-active',
+                'claude-change-pattern'
+            );
+        });
+
+        // Also call ClaudeChanges cleanup for redundancy
+        if (typeof ClaudeChanges !== 'undefined' && ClaudeChanges.cleanupChangeNumbers) {
+            ClaudeChanges.cleanupChangeNumbers();
+        }
     },
 
     undo() {
