@@ -2164,6 +2164,7 @@ const Documents = {
     /**
      * Parse Claude's response for document edit commands
      * Looks for <document_edit> XML tags in Claude's response
+     * Supports pattern-based changes that expand to all matches client-side
      */
     parseClaudeEditResponse(responseText) {
         if (!responseText) return null;
@@ -2190,6 +2191,43 @@ const Documents = {
             // Extract attributes independently (order-agnostic)
             // Type is simple (no nested quotes)
             const type = attributeString.match(/type="([^"]+)"/)?.[1];
+
+            // Check for pattern-based change (type ends with "-pattern")
+            if (type && type.endsWith('-pattern')) {
+                // Extract pattern attribute
+                const patternMatch = attributeString.match(/pattern="([^"]+)"/);
+                const patternName = patternMatch ? patternMatch[1] : null;
+
+                if (patternName && typeof ClaudeChanges !== 'undefined' && ClaudeChanges.PatternMatcher) {
+                    // Get the document container for pattern matching
+                    const editor = this.squireEditor?.getRoot();
+                    if (editor) {
+                        // Determine change type from pattern type (e.g., "delete-pattern" -> "delete")
+                        const baseType = type.replace('-pattern', '');
+
+                        // Use PatternMatcher to find ALL matches client-side
+                        const patternChanges = ClaudeChanges.PatternMatcher.createChangesFromPattern(
+                            editor,
+                            patternName,
+                            baseType
+                        );
+
+                        if (patternChanges.length > 0) {
+                            console.log(`Pattern "${patternName}" expanded to ${patternChanges.length} change(s)`);
+                            changes.push(...patternChanges);
+                        } else {
+                            console.log(`Pattern "${patternName}" found no matches`);
+                        }
+                    } else {
+                        console.warn('Cannot expand pattern: editor not available');
+                    }
+                } else {
+                    console.warn('Pattern change specified but PatternMatcher not available or pattern not specified');
+                }
+
+                // Skip normal parsing for pattern changes - already handled above
+                continue;
+            }
 
             // For insertAfter/insertBefore, handle nested quotes in HTML content
             // Use positive lookahead to check for space, >, or end-of-string after closing quote
