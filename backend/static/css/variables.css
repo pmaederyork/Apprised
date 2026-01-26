@@ -149,3 +149,39 @@
   --ring-primary: 0 0 0 3px var(--primary-100);
   --ring-offset: 0 0 0 2px var(--color-bg-white);
 }
+
+/* ===== Dark Theme ===== */
+[data-theme="dark"] {
+  /* Text Colors */
+  --color-text-primary: var(--gray-200);        /* Light gray for primary text */
+  --color-text-secondary: var(--gray-400);      /* Medium gray for secondary text */
+  --color-text-tertiary: var(--gray-500);       /* Darker gray for tertiary text */
+
+  /* Border & Background Colors */
+  --color-border: var(--gray-700);              /* Dark border */
+  --color-bg-subtle: var(--gray-800);           /* Dark background for subtle areas */
+  --color-bg-input: var(--gray-900);            /* Dark input background */
+  --color-bg-white: var(--gray-900);            /* Dark panel background */
+  --color-bg-off-white: var(--gray-800);        /* Slightly lighter dark background */
+  --color-bg-disabled: var(--gray-700);         /* Muted dark for disabled elements */
+
+  /* Primary Colors with Dark Mode Adjustments */
+  --color-primary-light: rgba(30, 58, 138, 0.15); /* Dark primary background with low opacity */
+
+  /* Sidebar Theme */
+  --color-sidebar-bg: var(--gray-900);          /* Dark sidebar background */
+  --color-sidebar-hover: var(--gray-800);       /* Dark sidebar hover */
+  --color-sidebar-border: var(--gray-700);      /* Dark sidebar border */
+
+  /* Shadow System - Lighter shadows for dark mode */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+
+  /* Focus Rings */
+  --ring-primary: 0 0 0 3px rgba(37, 99, 235, 0.3);
+  --ring-offset: 0 0 0 2px var(--gray-900);
+}
