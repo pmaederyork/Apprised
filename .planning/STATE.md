@@ -37,6 +37,7 @@ See: .planning/PROJECT.md (updated 2025-01-25)
 | 2026-01-26 | crypto.randomUUID() for IDs | Native API, cryptographically secure, no collisions |
 | 2026-01-26 | Idempotent ID assignment | Safe to call multiple times, preserves existing IDs on reload |
 | 2026-01-26 | Hybrid resolution priority: ID > signature > content | Maximizes reliability while maintaining backward compatibility |
+| 2026-01-26 | Skip-on-failure default for batch operations | Failed resolutions skip with warning instead of blocking entire batch |
 | 2026-01-26 | DocumentFragment for batch DOM updates | Ensures single browser reflow for instant batch operations |
 | 2026-01-26 | Performance timing in batch operations | Console logs enable verification of <100ms target for 10+ changes |
 
