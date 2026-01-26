@@ -1887,6 +1887,7 @@ const Documents = {
 
     /**
      * Render changes in the document with visual highlighting
+     * Supports pattern-based changes with grouped indicators
      */
     renderChangesInDocument(changes) {
         if (!this.squireEditor) return;
@@ -1900,6 +1901,7 @@ const Documents = {
 
         // Clean up any existing change numbers before rendering new ones
         document.querySelectorAll('.claude-change-number').forEach(el => el.remove());
+        document.querySelectorAll('.pattern-group-indicator').forEach(el => el.remove());
 
         // Get current HTML content
         const currentHTML = editor.innerHTML;
@@ -1914,9 +1916,19 @@ const Documents = {
             changeElement.setAttribute('data-change-id', change.id);
             changeElement.setAttribute('data-change-index', index);
 
+            // Add pattern source attribute if this is a pattern-based change
+            if (change._patternGroup) {
+                changeElement.setAttribute('data-pattern-source', change._patternGroup.patternName);
+                changeElement.setAttribute('data-pattern-group', change._patternGroup.groupId);
+            }
+
             if (change.type === 'delete') {
                 // Wrap content to be deleted in red highlight
                 changeElement.className = 'claude-change-delete';
+                // For pattern changes, use the cached signature if available
+                if (change._patternGroup) {
+                    changeElement.classList.add('claude-change-pattern');
+                }
                 changeElement.innerHTML = change.originalContent || '';
 
                 // Try to find and replace the original content
@@ -1927,12 +1939,15 @@ const Documents = {
                         change.targetId = originalNode.dataset.editId;
                     }
                     // Cache content signature (not DOM reference) for reconstruction
-                    change._cachedSignature = {
-                        textContent: originalNode.textContent?.trim() || '',
-                        tagName: originalNode.tagName?.toLowerCase() || '',
-                        innerHTML: originalNode.innerHTML || '',
-                        outerHTML: originalNode.outerHTML || ''
-                    };
+                    // Only if not already cached by PatternMatcher
+                    if (!change._cachedSignature) {
+                        change._cachedSignature = {
+                            textContent: originalNode.textContent?.trim() || '',
+                            tagName: originalNode.tagName?.toLowerCase() || '',
+                            innerHTML: originalNode.innerHTML || '',
+                            outerHTML: originalNode.outerHTML || ''
+                        };
+                    }
                     originalNode.replaceWith(changeElement);
                 } else {
                     // DELETE: Don't render preview if content not found
@@ -1940,11 +1955,16 @@ const Documents = {
                     console.warn('❌ DELETE preview: Could not locate content, no signature cached');
                     console.warn('Change', change.id, 'will not be previewed in document');
                     // User can still review and accept/reject via sidebar
-                    change._cachedSignature = null;
+                    if (!change._cachedSignature) {
+                        change._cachedSignature = null;
+                    }
                 }
             } else if (change.type === 'add') {
                 // Wrap new content in green highlight
                 changeElement.className = 'claude-change-add';
+                if (change._patternGroup) {
+                    changeElement.classList.add('claude-change-pattern');
+                }
                 changeElement.innerHTML = change.newContent || '';
 
                 // Insert at appropriate position using content anchoring
@@ -1956,16 +1976,20 @@ const Documents = {
                             change.anchorTargetId = anchorNode.dataset.editId;
                         }
                         // Cache anchor signature for reconstruction
-                        change._cachedSignature = {
-                            textContent: anchorNode.textContent?.trim() || '',
-                            tagName: anchorNode.tagName?.toLowerCase() || '',
-                            innerHTML: anchorNode.innerHTML || '',
-                            outerHTML: anchorNode.outerHTML || '',
-                            anchorType: 'insertAfter'
-                        };
+                        if (!change._cachedSignature) {
+                            change._cachedSignature = {
+                                textContent: anchorNode.textContent?.trim() || '',
+                                tagName: anchorNode.tagName?.toLowerCase() || '',
+                                innerHTML: anchorNode.innerHTML || '',
+                                outerHTML: anchorNode.outerHTML || '',
+                                anchorType: 'insertAfter'
+                            };
+                        }
                         anchorNode.after(changeElement);
                     } else {
-                        change._cachedSignature = null;
+                        if (!change._cachedSignature) {
+                            change._cachedSignature = null;
+                        }
                         tempDiv.appendChild(changeElement);
                     }
                 } else if (change.insertBefore) {
@@ -1976,28 +2000,37 @@ const Documents = {
                             change.anchorTargetId = anchorNode.dataset.editId;
                         }
                         // Cache anchor signature for reconstruction
-                        change._cachedSignature = {
-                            textContent: anchorNode.textContent?.trim() || '',
-                            tagName: anchorNode.tagName?.toLowerCase() || '',
-                            innerHTML: anchorNode.innerHTML || '',
-                            outerHTML: anchorNode.outerHTML || '',
-                            anchorType: 'insertBefore'
-                        };
+                        if (!change._cachedSignature) {
+                            change._cachedSignature = {
+                                textContent: anchorNode.textContent?.trim() || '',
+                                tagName: anchorNode.tagName?.toLowerCase() || '',
+                                innerHTML: anchorNode.innerHTML || '',
+                                outerHTML: anchorNode.outerHTML || '',
+                                anchorType: 'insertBefore'
+                            };
+                        }
                         anchorNode.before(changeElement);
                     } else {
                         console.warn('❌ ADD preview: Could not find insertBefore anchor:', change.insertBefore);
-                        change._cachedSignature = null;
+                        if (!change._cachedSignature) {
+                            change._cachedSignature = null;
+                        }
                         tempDiv.appendChild(changeElement);
                     }
                 } else {
                     // No anchor specified, append to end
                     console.warn(`⚠️ ADD preview: NO ANCHOR specified (insertBefore/insertAfter both missing) - appending to END`);
-                    change._cachedSignature = null;
+                    if (!change._cachedSignature) {
+                        change._cachedSignature = null;
+                    }
                     tempDiv.appendChild(changeElement);
                 }
             } else if (change.type === 'modify') {
                 // Show both old (strikethrough) and new (highlighted)
                 changeElement.className = 'claude-change-modify';
+                if (change._patternGroup) {
+                    changeElement.classList.add('claude-change-pattern');
+                }
                 changeElement.innerHTML = change.newContent || '';
 
                 // Try to find and replace the original content
@@ -2008,26 +2041,41 @@ const Documents = {
                         change.targetId = originalNode.dataset.editId;
                     }
                     // Cache content signature for reconstruction
-                    change._cachedSignature = {
-                        textContent: originalNode.textContent?.trim() || '',
-                        tagName: originalNode.tagName?.toLowerCase() || '',
-                        innerHTML: originalNode.innerHTML || '',
-                        outerHTML: originalNode.outerHTML || ''
-                    };
+                    if (!change._cachedSignature) {
+                        change._cachedSignature = {
+                            textContent: originalNode.textContent?.trim() || '',
+                            tagName: originalNode.tagName?.toLowerCase() || '',
+                            innerHTML: originalNode.innerHTML || '',
+                            outerHTML: originalNode.outerHTML || ''
+                        };
+                    }
                     originalNode.replaceWith(changeElement);
                 } else {
                     // If can't find exact match, append to end
                     console.warn('❌ MODIFY preview: Could not locate content, no signature cached');
-                    change._cachedSignature = null;
+                    if (!change._cachedSignature) {
+                        change._cachedSignature = null;
+                    }
                     tempDiv.appendChild(changeElement);
                 }
             }
 
-            // Add change number indicator
-            const numberIndicator = document.createElement('span');
-            numberIndicator.className = 'claude-change-number';
-            numberIndicator.textContent = (index + 1).toString();
-            changeElement.appendChild(numberIndicator);
+            // Add change number indicator (or pattern group indicator for first of group)
+            if (change._patternGroup && change._patternGroup.isFirst) {
+                // First element in pattern group - show count indicator
+                const groupIndicator = document.createElement('span');
+                groupIndicator.className = 'pattern-group-indicator';
+                groupIndicator.textContent = `${change._patternGroup.totalMatches}x`;
+                groupIndicator.title = `Pattern: ${change._patternGroup.description} (${change._patternGroup.totalMatches} matches)`;
+                changeElement.appendChild(groupIndicator);
+            } else if (!change._patternGroup) {
+                // Regular (non-pattern) change - show index number
+                const numberIndicator = document.createElement('span');
+                numberIndicator.className = 'claude-change-number';
+                numberIndicator.textContent = (index + 1).toString();
+                changeElement.appendChild(numberIndicator);
+            }
+            // For pattern group members that aren't first, no indicator needed
         });
 
         // Update the editor with the marked-up content

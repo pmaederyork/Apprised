@@ -277,6 +277,64 @@
     font-weight: bold;
 }
 
+/* Pattern Group Styles */
+.claude-change-pattern {
+    border-left-color: #9333ea; /* Purple accent for pattern changes */
+}
+
+.claude-change-delete.claude-change-pattern {
+    background-color: rgba(147, 51, 234, 0.1); /* Light purple bg */
+    border-left-color: #9333ea;
+}
+
+.claude-change-add.claude-change-pattern {
+    background-color: rgba(147, 51, 234, 0.1);
+    border-left-color: #9333ea;
+}
+
+.claude-change-modify.claude-change-pattern {
+    background-color: rgba(147, 51, 234, 0.1);
+    border-left-color: #9333ea;
+}
+
+/* Pattern group count indicator */
+.pattern-group-indicator {
+    position: absolute;
+    left: -32px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #9333ea; /* Purple accent */
+    color: white;
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: bold;
+    white-space: nowrap;
+    cursor: help;
+    z-index: 1;
+}
+
+.pattern-group-indicator:hover {
+    background: #7c3aed;
+    transform: translateY(-50%) scale(1.05);
+}
+
+/* Data attribute selector for pattern sources */
+[data-pattern-source] {
+    position: relative;
+}
+
+/* Visual connection for pattern groups */
+[data-pattern-group]::before {
+    content: '';
+    position: absolute;
+    left: -3px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: #9333ea;
+}
+
 /* Keyboard Shortcuts Help */
 .review-shortcuts-help {
     padding: 12px;
