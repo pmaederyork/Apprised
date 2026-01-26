@@ -82,11 +82,17 @@ const GDrive = {
                     el.removeAttribute('class');
                 });
 
-                // Step 2: Strip ALL inline styles from inner elements
+                // Step 2: Strip inline styles from inner elements, but PRESERVE font-family
                 heading.querySelectorAll('[style]').forEach(el => {
                     // Don't touch the heading itself yet, only inner elements
                     if (el !== heading) {
+                        // Preserve font-family before clearing styles
+                        const fontFamily = el.style.fontFamily;
                         el.removeAttribute('style');
+                        // Restore font-family if it existed
+                        if (fontFamily) {
+                            el.style.fontFamily = fontFamily;
+                        }
                     }
                 });
 
@@ -136,6 +142,7 @@ const GDrive = {
                 heading.style.fontWeight = '';
                 heading.style.fontStyle = '';
                 heading.style.textDecoration = '';
+                heading.style.fontFamily = '';
 
                 heading.style.padding = '';
                 heading.style.paddingTop = '';
