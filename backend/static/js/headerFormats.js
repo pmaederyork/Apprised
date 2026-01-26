@@ -12,6 +12,12 @@
  */
 
 const HeaderFormats = {
+    t: {
+        fontSize: '20pt',
+        bold: true,
+        italic: false,
+        underline: false
+    },
     h1: {
         fontSize: '16pt',
         bold: true,

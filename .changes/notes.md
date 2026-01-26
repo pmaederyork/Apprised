@@ -6,10 +6,10 @@ Have cluade run through doc editing senerios:
 
 
 Merge:
-Switch to main branch: git checkout main
-Pull latest from remote: git pull origin main (ensure main is up to date)
-Merge feature branch: git merge [Branchname]
-Push merged changes: git push origin main
+git checkout main
+git pull origin main
+git merge [Branchname]
+git push origin main
 
 Delete Branches:
 git branch --merged main | grep -v "main" | xargs git branch -d

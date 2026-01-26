@@ -813,7 +813,7 @@ const Documents = {
         if (!this.squireEditor) return;
 
         // Validate format value
-        if (!['p', 'h1', 'h2', 'h3'].includes(format)) {
+        if (!['p', 't', 'h1', 'h2', 'h3'].includes(format)) {
             console.warn('Invalid format:', format);
             return;
         }
@@ -829,7 +829,9 @@ const Documents = {
 
                 blocks.forEach((block) => {
                     // Create new element with target tag
-                    const newElement = document.createElement(format.toUpperCase());
+                    // Title ('t') uses H1 tag but with different font-size
+                    const tagName = format === 't' ? 'H1' : format.toUpperCase();
+                    const newElement = document.createElement(tagName);
 
                     // Copy all attributes (preserve styles, classes, etc.)
                     Array.from(block.attributes).forEach(attr => {
@@ -1249,7 +1251,17 @@ const Documents = {
             const currentBlock = pathSegments.find(seg => blockTypes.includes(seg)) || 'P';
 
             if (currentBlock === 'H1') {
-                formatSelect.value = 'h1';
+                // Check font-size to distinguish Title (20pt) vs H1 (16pt)
+                const selection = this.squireEditor.getSelection();
+                const block = selection?.startContainer?.nodeType === Node.ELEMENT_NODE
+                    ? selection.startContainer.closest('h1')
+                    : selection?.startContainer?.parentElement?.closest('h1');
+                const fontSize = block?.style?.fontSize;
+                if (fontSize === '20pt') {
+                    formatSelect.value = 't';
+                } else {
+                    formatSelect.value = 'h1';
+                }
             } else if (currentBlock === 'H2') {
                 formatSelect.value = 'h2';
             } else if (currentBlock === 'H3') {
