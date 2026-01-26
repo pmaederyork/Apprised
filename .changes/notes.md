@@ -1,3 +1,5 @@
+/ide to see changes
+
 Have cluade run through doc editing senerios:
 - fix "remove all empty lines"
 - Convervt all "-" to lists

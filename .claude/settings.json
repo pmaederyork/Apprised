@@ -9,13 +9,11 @@
       "Bash(cp:*)",
       "Bash(find:*)",
       "Bash(rg:*)",
-      "WebFetch(domain:docs.anthropic.com)",
       "Bash(python3:*)",
       "Bash(grep:*)",
       "Bash(ls:*)",
       "Bash(rm:*)",
-      "WebSearch(**)",
-      "WebFetch(**)",
+      "WebFetch(domain:*)",
       "mcp__browserbase"
     ],
     "deny": []
