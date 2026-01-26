@@ -191,110 +191,95 @@ const ClaudeChanges = {
     /**
      * Reconstruct document from original HTML by applying accepted changes
      * This creates a clean document without wrapper divs
+     * @param {string} originalHTML - The original document HTML
+     * @param {Array} acceptedChanges - Array of accepted change objects
+     * @param {Object} options - Options for reconstruction
+     * @param {boolean} options.skipOnFailure - If true (default), skip failed resolutions instead of blocking
+     * @returns {string} Reconstructed HTML
      */
-    reconstructDocument(originalHTML, acceptedChanges) {
+    reconstructDocument(originalHTML, acceptedChanges, options = {}) {
+        const { skipOnFailure = true } = options;
+        const skipped = [];
+        const applied = [];
+
         console.log(`🔧 Reconstruction: Applying ${acceptedChanges.length} accepted change(s)`);
 
         // Create temporary container with original clean HTML
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = originalHTML;
 
-        // Apply each accepted change in order
+        // Apply each accepted change in order using hybrid resolution
         acceptedChanges.forEach(change => {
             if (change.type === 'delete') {
-                // Try to use cached signature first, fallback to findNodeByContent
-                let nodeToDelete = null;
-                if (change._cachedSignature) {
-                    nodeToDelete = this.findNodeBySignature(tempDiv, change._cachedSignature);
-                }
+                // Use hybrid resolution
+                const resolution = this.resolveChangeTarget(tempDiv, change);
 
-                if (!nodeToDelete) {
-                    nodeToDelete = Documents.findNodeByContent(tempDiv, change.originalContent);
-                }
-
-                if (nodeToDelete) {
-                    nodeToDelete.remove();
+                if (resolution.node) {
+                    resolution.node.remove();
+                    applied.push({ change, method: resolution.method });
+                    console.log(`✅ DELETE resolved via ${resolution.method}: ${change.id}`);
                 } else {
                     const preview = change.originalContent?.substring(0, 100) || 'unknown';
-                    console.error(`❌ DELETE: Could not find content to delete: "${preview}..."`);
+                    if (skipOnFailure) {
+                        console.warn(`⚠️ DELETE skipped (not found): "${preview}..."`);
+                        skipped.push({ change, reason: 'target not found' });
+                    } else {
+                        console.error(`❌ DELETE failed: Could not find content to delete: "${preview}..."`);
+                    }
                 }
             } else if (change.type === 'add') {
-                // Find anchor and insert new content
-                if (change.insertAfter) {
-                    // Try to use cached signature first, fallback to findNodeByContent
-                    let anchorNode = null;
-                    if (change._cachedSignature && change._cachedSignature.anchorType === 'insertAfter') {
-                        anchorNode = this.findNodeBySignature(tempDiv, change._cachedSignature);
-                    }
-                    if (!anchorNode) {
-                        anchorNode = Documents.findNodeByContent(tempDiv, change.insertAfter);
-                    }
+                // Use hybrid resolution for anchor
+                const resolution = this.resolveChangeTarget(tempDiv, change);
 
-                    if (anchorNode) {
-                        const newElement = document.createElement('div');
-                        newElement.innerHTML = change.newContent;
-                        // Insert all new content after anchor (using DocumentFragment to preserve order)
-                        const fragment = document.createDocumentFragment();
-                        while (newElement.firstChild) {
-                            fragment.appendChild(newElement.firstChild);
-                        }
-                        anchorNode.after(fragment);
-                    } else {
-                        console.error('❌ ANCHOR NOT FOUND for insertAfter:', change.insertAfter);
-                        console.error('⚠️  Content will be appended to END (this is likely incorrect)');
-                        console.error('💡 Tip: Anchor must be complete HTML element, not text fragment');
-                        // Append to end if anchor not found
-                        tempDiv.innerHTML += change.newContent;
-                    }
-                } else if (change.insertBefore) {
-                    // Try to use cached signature first, fallback to findNodeByContent
-                    let anchorNode = null;
-                    if (change._cachedSignature && change._cachedSignature.anchorType === 'insertBefore') {
-                        anchorNode = this.findNodeBySignature(tempDiv, change._cachedSignature);
-                    }
-                    if (!anchorNode) {
-                        anchorNode = Documents.findNodeByContent(tempDiv, change.insertBefore);
-                    }
-
-                    if (anchorNode) {
-                        const newElement = document.createElement('div');
-                        newElement.innerHTML = change.newContent;
-                        // Insert all new content before anchor (using DocumentFragment to preserve order)
-                        const fragment = document.createDocumentFragment();
-                        while (newElement.firstChild) {
-                            fragment.appendChild(newElement.firstChild);
-                        }
-                        anchorNode.before(fragment);
-                    } else {
-                        console.error('❌ ANCHOR NOT FOUND for insertBefore:', change.insertBefore);
-                        console.error('⚠️  Content will be prepended to BEGINNING (this is likely incorrect)');
-                        console.error('💡 Tip: Anchor must be complete HTML element, not text fragment');
-                        // Prepend to beginning if anchor not found
-                        tempDiv.innerHTML = change.newContent + tempDiv.innerHTML;
-                    }
-                }
-            } else if (change.type === 'modify') {
-                // Try to use cached signature first, fallback to findNodeByContent
-                let nodeToModify = null;
-                if (change._cachedSignature) {
-                    nodeToModify = this.findNodeBySignature(tempDiv, change._cachedSignature);
-                }
-                if (!nodeToModify) {
-                    nodeToModify = Documents.findNodeByContent(tempDiv, change.originalContent);
-                }
-
-                if (nodeToModify) {
+                if (resolution.node) {
                     const newElement = document.createElement('div');
                     newElement.innerHTML = change.newContent;
-                    // Replace with all new content
                     const fragment = document.createDocumentFragment();
                     while (newElement.firstChild) {
                         fragment.appendChild(newElement.firstChild);
                     }
-                    nodeToModify.replaceWith(fragment);
+
+                    // Insert based on anchor type
+                    if (change.insertAfter) {
+                        resolution.node.after(fragment);
+                    } else if (change.insertBefore) {
+                        resolution.node.before(fragment);
+                    }
+                    applied.push({ change, method: resolution.method });
+                    console.log(`✅ ADD resolved via ${resolution.method}: ${change.id}`);
+                } else {
+                    const anchorPreview = (change.insertAfter || change.insertBefore || '').substring(0, 50);
+                    if (skipOnFailure) {
+                        console.warn(`⚠️ ADD skipped (anchor not found): "${anchorPreview}..."`);
+                        skipped.push({ change, reason: 'anchor not found' });
+                    } else {
+                        console.error(`❌ ADD failed: Anchor not found: "${anchorPreview}..."`);
+                        // Fallback to end of document only if not skipping
+                        tempDiv.innerHTML += change.newContent;
+                    }
+                }
+            } else if (change.type === 'modify') {
+                // Use hybrid resolution
+                const resolution = this.resolveChangeTarget(tempDiv, change);
+
+                if (resolution.node) {
+                    const newElement = document.createElement('div');
+                    newElement.innerHTML = change.newContent;
+                    const fragment = document.createDocumentFragment();
+                    while (newElement.firstChild) {
+                        fragment.appendChild(newElement.firstChild);
+                    }
+                    resolution.node.replaceWith(fragment);
+                    applied.push({ change, method: resolution.method });
+                    console.log(`✅ MODIFY resolved via ${resolution.method}: ${change.id}`);
                 } else {
                     const preview = change.originalContent?.substring(0, 100) || 'unknown';
-                    console.error(`❌ MODIFY: Could not find content to modify: "${preview}..."`);
+                    if (skipOnFailure) {
+                        console.warn(`⚠️ MODIFY skipped (not found): "${preview}..."`);
+                        skipped.push({ change, reason: 'target not found' });
+                    } else {
+                        console.error(`❌ MODIFY failed: Could not find content to modify: "${preview}..."`);
+                    }
                 }
             }
         });
@@ -303,6 +288,16 @@ const ClaudeChanges = {
         acceptedChanges.forEach(change => {
             delete change._cachedSignature;
         });
+
+        // Log summary
+        if (skipped.length > 0) {
+            console.warn(`📋 Reconstruction summary: ${applied.length} applied, ${skipped.length} skipped`);
+            skipped.forEach(({ change, reason }) => {
+                console.warn(`  - Change ${change.id} (${change.type}): ${reason}`);
+            });
+        } else {
+            console.log(`📋 Reconstruction complete: ${applied.length} changes applied successfully`);
+        }
 
         return tempDiv.innerHTML;
     },
