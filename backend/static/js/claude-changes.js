@@ -308,6 +308,34 @@ const ClaudeChanges = {
     },
 
     /**
+     * Batch apply changes with single DOM update
+     * Uses DocumentFragment for optimal performance
+     * @param {string} originalHTML - The original clean document HTML
+     * @param {Array} changesToApply - Changes to apply (will be marked as accepted)
+     * @returns {string} The resulting HTML after all changes applied
+     */
+    batchApplyChanges(originalHTML, changesToApply) {
+        console.log(`Batch applying ${changesToApply.length} change(s)`);
+        const startTime = performance.now();
+
+        // Mark all changes as accepted first
+        changesToApply.forEach(change => {
+            change.status = 'accepted';
+        });
+
+        // Get all accepted changes (including previously accepted + newly accepted)
+        const allAccepted = this.changes.filter(c => c.status === 'accepted');
+
+        // Use reconstructDocument with all accepted changes
+        const resultHTML = this.reconstructDocument(this.originalDocumentHTML, allAccepted);
+
+        const elapsed = performance.now() - startTime;
+        console.log(`Batch apply completed in ${elapsed.toFixed(2)}ms`);
+
+        return resultHTML;
+    },
+
+    /**
      * Navigate to next change
      */
     nextChange() {
