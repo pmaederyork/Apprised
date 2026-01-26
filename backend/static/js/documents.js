@@ -266,6 +266,11 @@ const Documents = {
 
             this.squireEditor.setHTML(document.content || '');
 
+            // Assign stable element IDs for change tracking
+            if (typeof ElementIds !== 'undefined') {
+                ElementIds.assignIds(this.squireEditor.getRoot());
+            }
+
             // Defer cursor positioning and font detection until next event loop tick
             // This ensures Squire has finished loading content and cursor is in styled content
             setTimeout(() => {
@@ -1844,6 +1849,11 @@ const Documents = {
         if (!changes || changes.length === 0) {
             console.warn('No changes to apply');
             return;
+        }
+
+        // Ensure all elements have IDs before processing changes
+        if (typeof ElementIds !== 'undefined' && this.squireEditor) {
+            ElementIds.ensureIds(this.squireEditor.getRoot());
         }
 
         // Mark all changes as pending
