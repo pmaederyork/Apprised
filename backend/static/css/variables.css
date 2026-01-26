@@ -40,6 +40,7 @@
   --color-text-primary: var(--gray-900);
   --color-text-secondary: var(--gray-700);
   --color-text-tertiary: var(--gray-500);
+  --color-text: var(--gray-900);
   --color-border: var(--gray-200);
   --color-bg-subtle: var(--gray-100);
   --color-bg-input: var(--gray-50);
@@ -91,6 +92,20 @@
   --color-green-teal: #059669;        /* Teal green variant */
   --color-green-dark-teal: #065f46;   /* Dark teal green variant */
   --color-gray-medium: #9ca3af;       /* Medium gray for disabled text */
+
+  /* ===== Pattern/Accent Colors ===== */
+  --color-purple-accent: #9333ea;     /* Purple accent for pattern groups */
+  --color-purple-hover: #7c3aed;      /* Purple hover state */
+
+  /* ===== Brand Colors (Google Drive) ===== */
+  --color-gdrive: #4285f4;            /* Google Drive blue */
+  --color-gdrive-hover: #357ae8;      /* Google Drive hover */
+  --color-gdrive-syncing-text: #4285f4;
+  --color-gdrive-syncing-bg: #e8f0fe;
+  --color-gdrive-synced-text: #34a853;
+  --color-gdrive-synced-bg: #e6f4ea;
+  --color-gdrive-error-text: #ea4335;
+  --color-gdrive-error-bg: #fce8e6;
 
   /* ===== Typography System ===== */
   /* Font Family */
@@ -152,15 +167,16 @@
 
 /* ===== Dark Theme ===== */
 [data-theme="dark"] {
-  /* Text Colors */
-  --color-text-primary: var(--gray-200);        /* Light gray for primary text */
-  --color-text-secondary: var(--gray-400);      /* Medium gray for secondary text */
-  --color-text-tertiary: var(--gray-500);       /* Darker gray for tertiary text */
+  /* Text Colors - Brighter for dark mode readability */
+  --color-text-primary: #ffffff;                /* White for primary text */
+  --color-text-secondary: #e5e5e5;              /* Near-white for secondary text */
+  --color-text-tertiary: #a3a3a3;               /* Light gray for tertiary text */
+  --color-text: #ffffff;                        /* General text color */
 
   /* Border & Background Colors */
   --color-border: var(--gray-700);              /* Dark border */
   --color-bg-subtle: var(--gray-800);           /* Dark background for subtle areas */
-  --color-bg-input: var(--gray-900);            /* Dark input background */
+  --color-bg-input: var(--gray-800);            /* Dark input background */
   --color-bg-white: var(--gray-900);            /* Dark panel background */
   --color-bg-off-white: var(--gray-800);        /* Slightly lighter dark background */
   --color-bg-disabled: var(--gray-700);         /* Muted dark for disabled elements */
@@ -173,6 +189,11 @@
   --color-sidebar-hover: var(--gray-800);       /* Dark sidebar hover */
   --color-sidebar-border: var(--gray-700);      /* Dark sidebar border */
 
+  /* Active sidebar item - needs contrast in dark mode */
+  --primary-50: rgba(59, 130, 246, 0.15);       /* Dark mode active item bg */
+  --primary-200: rgba(59, 130, 246, 0.3);        /* Dark mode border for active items */
+  --primary-700: var(--primary-400);             /* Lighter blue for text on dark */
+
   /* Shadow System - Lighter shadows for dark mode */
   --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
@@ -184,4 +205,10 @@
   /* Focus Rings */
   --ring-primary: 0 0 0 3px rgba(37, 99, 235, 0.3);
   --ring-offset: 0 0 0 2px var(--gray-900);
+
+  /* Gray scale adjustments for dark mode - inverted for contrast */
+  --gray-100: #374151;
+  --gray-200: #4b5563;
+  --gray-600: #d1d5db;
+  --color-gray-medium: #9ca3af;
 }

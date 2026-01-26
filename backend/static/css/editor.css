@@ -21,26 +21,27 @@
     justify-content: space-between;
 }
 
-.editor-title {
+input.editor-title {
     font-size: var(--text-base);
     font-weight: 500;
     height: 36px;
     line-height: 36px;
     border: none;
-    background: none;
+    background: transparent !important;
     outline: none;
     cursor: text;
+    color: var(--color-text-primary);
 }
 
-.editor-title:hover {
-    background: var(--color-bg-off-white);
+input.editor-title:hover {
+    background: var(--color-bg-subtle) !important;
     border-radius: 4px;
     padding: 4px 8px;
     margin: -4px -8px;
 }
 
-.editor-title:focus {
-    background: var(--color-bg-white);
+input.editor-title:focus {
+    background: var(--color-bg-input) !important;
     border: 1px solid var(--color-primary);
     border-radius: 4px;
     padding: 4px 8px;
@@ -74,12 +75,18 @@
     resize: none;
     outline: none;
     background: var(--color-bg-input);
+    color: var(--color-text-primary);
     transition: border-color 0.2s ease;
 }
 
 .system-prompt-textarea:focus {
     border-color: var(--color-primary);
     background: var(--color-bg-white);
+}
+
+.system-prompt-textarea::placeholder {
+    color: var(--color-text-tertiary);
+    opacity: 1;
 }
 
 /* Document editor styles */
@@ -109,6 +116,7 @@
     resize: none;
     outline: none;
     background: var(--color-bg-input);
+    color: var(--color-text-primary);
     transition: border-color 0.2s ease;
     overflow-y: auto;
     box-sizing: border-box;
@@ -120,9 +128,15 @@
     background: var(--color-bg-white);
 }
 
+/* Force white text in dark mode for document content, regardless of inline styles */
+[data-theme="dark"] .document-textarea,
+[data-theme="dark"] .document-textarea * {
+    color: var(--color-text-primary) !important;
+}
+
 .document-textarea:empty:before {
     content: attr(data-placeholder);
-    color: var(--color-gray-medium);
+    color: var(--color-text-tertiary);
     font-style: italic;
     pointer-events: none;
 }
@@ -161,14 +175,14 @@
 
 /* Active state for formatting buttons - indicates current cursor formatting */
 .markdown-btn.format-active {
-    background: #3b82f6;
+    background: var(--color-primary);
     color: white;
-    border-color: #3b82f6;
+    border-color: var(--color-primary);
 }
 
 .markdown-btn.format-active:hover {
-    background: #2563eb;
-    border-color: #2563eb;
+    background: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
 }
 
 /* Format Dropdown */
@@ -200,7 +214,7 @@
 
 .format-dropdown:disabled {
     background: var(--color-bg-off-white);
-    color: #a8a29e;
+    color: var(--color-text-tertiary);
     border-color: var(--color-border);
     cursor: not-allowed;
 }

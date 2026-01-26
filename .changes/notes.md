@@ -13,3 +13,9 @@ Push merged changes: git push origin main
 
 Delete Branches:
 git branch --merged main | grep -v "main" | xargs git branch -d
+
+const root = Documents.squireEditor.getRoot();
+  Array.from(root.children).forEach((el, i) => {
+    const empty = el.textContent.trim() === '' ? '🔴' : '✅';
+    console.log(`${i}: ${empty} [${el.dataset.editId?.slice(0,8) || 'NO-ID'}] ${el.outerHTML}`);
+  });

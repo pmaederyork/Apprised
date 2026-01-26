@@ -203,7 +203,7 @@
                 <button id="fileBtn" title="Attach files">📎</button>
                 <button id="sendBtn">↗</button>
             </div>
-            <div class="input-hint" style="font-size: 11px; color: #6b7280; text-align: center; margin-top: 4px;">
+            <div class="input-hint">
                 Press Ctrl+C to interrupt streaming response
             </div>
         </div>
@@ -258,9 +258,9 @@
                     <a id="openInDriveBtn" class="open-in-drive-btn" href="#" target="_blank" style="display: none; margin-right: 8px;" title="Open in Google Drive">
                         <img src="/static/assets/gdrive_icon.webp" alt="Open in Drive" style="width: 28px; height: 28px;">
                     </a>
-                    <button class="editor-btn" id="saveToDriveBtn" style="background: #4285F4; color: white; border: none;" title="Save to Google Drive">Save</button>
-                    <button class="editor-btn" id="documentSyncBtn" style="background: #0F9D58; color: white; border: none;">Pull</button>
-                    <button class="editor-btn" id="closeDocumentBtn" style="background: #6b7280; color: white; border: none;">Close</button>
+                    <button class="editor-btn save-drive" id="saveToDriveBtn" title="Save to Google Drive">Save</button>
+                    <button class="editor-btn pull-drive" id="documentSyncBtn">Pull</button>
+                    <button class="editor-btn close-document" id="closeDocumentBtn">Close</button>
                 </div>
             </div>
             <div class="markdown-toolbar" id="markdownToolbar">
@@ -416,15 +416,12 @@
                     <div class="settings-section appearance-settings-section">
                         <h4 class="settings-section-title">Appearance</h4>
                         <div class="settings-section-content">
-                            <label for="themeSelect">Theme:</label>
+                            <label for="themeSelect">Theme</label>
                             <select id="themeSelect" class="theme-select">
                                 <option value="light">Light</option>
                                 <option value="dark">Dark</option>
                                 <option value="auto">System</option>
                             </select>
-                            <div class="theme-help-text">
-                                System will automatically match your device's theme preference.
-                            </div>
                         </div>
                     </div>
 

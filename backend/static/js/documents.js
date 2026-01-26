@@ -269,6 +269,10 @@ const Documents = {
             // Assign stable element IDs for change tracking
             if (typeof ElementIds !== 'undefined') {
                 ElementIds.assignIds(this.squireEditor.getRoot());
+                // Start mutation observer to assign IDs to new elements created during editing
+                if (ElementIds.startObserving) {
+                    ElementIds.startObserving(this.squireEditor.getRoot());
+                }
             }
 
             // Defer cursor positioning and font detection until next event loop tick
@@ -315,6 +319,11 @@ const Documents = {
 
     // Close the document editor
     closeEditor() {
+        // Stop mutation observer for element IDs
+        if (typeof ElementIds !== 'undefined' && ElementIds.stopObserving) {
+            ElementIds.stopObserving();
+        }
+
         // Check if review mode is active and exit it (rejecting all changes)
         if (typeof ClaudeChanges !== 'undefined' && ClaudeChanges.isInReviewMode()) {
             ClaudeChanges.exitReviewMode(true); // true = revert all pending changes
@@ -1753,6 +1762,9 @@ const Documents = {
         // Remove data-change-id attributes and highlight classes from all elements
         editor.querySelectorAll('[data-change-id]').forEach(el => {
             el.removeAttribute('data-change-id');
+            el.removeAttribute('data-change-index');
+            el.removeAttribute('data-pattern-group');
+            el.removeAttribute('data-pattern-source');
             el.classList.remove(
                 'claude-change-delete',
                 'claude-change-add',
@@ -1760,6 +1772,12 @@ const Documents = {
                 'claude-change-active',
                 'claude-change-pattern'
             );
+        });
+
+        // Also clean up any elements with pattern attributes that might not have data-change-id
+        editor.querySelectorAll('[data-pattern-group], [data-pattern-source]').forEach(el => {
+            el.removeAttribute('data-pattern-group');
+            el.removeAttribute('data-pattern-source');
         });
 
         // Also call ClaudeChanges cleanup for redundancy
@@ -2127,22 +2145,11 @@ const Documents = {
                 }
             }
 
-            // Add change number indicator (or pattern group indicator for first of group)
-            if (change._patternGroup && change._patternGroup.isFirst) {
-                // First element in pattern group - show count indicator
-                const groupIndicator = document.createElement('span');
-                groupIndicator.className = 'pattern-group-indicator';
-                groupIndicator.textContent = `${change._patternGroup.totalMatches}x`;
-                groupIndicator.title = `Pattern: ${change._patternGroup.description} (${change._patternGroup.totalMatches} matches)`;
-                changeElement.appendChild(groupIndicator);
-            } else if (!change._patternGroup) {
-                // Regular (non-pattern) change - show index number
-                const numberIndicator = document.createElement('span');
-                numberIndicator.className = 'claude-change-number';
-                numberIndicator.textContent = (index + 1).toString();
-                changeElement.appendChild(numberIndicator);
-            }
-            // For pattern group members that aren't first, no indicator needed
+            // Add change number indicator - same for all changes including patterns
+            const numberIndicator = document.createElement('span');
+            numberIndicator.className = 'claude-change-number';
+            numberIndicator.textContent = (index + 1).toString();
+            changeElement.appendChild(numberIndicator);
         });
 
         // Update the editor with the marked-up content
@@ -2191,6 +2198,11 @@ const Documents = {
         // Helper: Recursive depth-first search
         const searchNode = (node) => {
             if (!node || node.nodeType !== 1) return null; // Only element nodes
+
+            // Skip nodes inside change wrappers to prevent matching wrapped content
+            // This fixes a bug where multiple similar changes (e.g., empty lines)
+            // would all match the same wrapped content instead of their correct positions
+            if (node.closest('[data-change-id]')) return null;
 
             // Strategy 1: Normalized innerHTML match (handles whitespace)
             if (this.normalizeHTML(node.innerHTML) === normalizedContent) {

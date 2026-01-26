@@ -41,7 +41,7 @@ body {
     display: none;
     text-align: center;
     padding: 20px;
-    color: #718096;
+    color: var(--color-text-tertiary);
 }
 
 .loading.show {

@@ -22,28 +22,29 @@
     gap: 16px;
 }
 
-.chat-title {
+input.chat-title {
     font-size: var(--text-base);
     font-weight: 500;
     height: 36px;
     line-height: 36px;
     border: none;
-    background: none;
+    background: transparent !important;
     outline: none;
     flex: 1;
     cursor: text;
     min-width: 0;
+    color: var(--color-text-primary);
 }
 
-.chat-title:hover {
-    background: var(--color-bg-off-white);
+input.chat-title:hover {
+    background: var(--color-bg-subtle) !important;
     border-radius: 4px;
     padding: 4px 8px;
     margin: -4px -8px;
 }
 
-.chat-title:focus {
-    background: var(--color-bg-white);
+input.chat-title:focus {
+    background: var(--color-bg-input) !important;
     border: 1px solid var(--color-primary);
     border-radius: 4px;
     padding: 4px 8px;
@@ -83,9 +84,9 @@
 }
 
 .message.user .message-bubble {
-    background: var(--gray-100);
+    background: var(--primary-50);
     color: var(--color-text-primary);
-    border: 1px solid var(--gray-200);
+    border: 1px solid var(--primary-200);
     box-shadow: var(--shadow-sm);
 }
 
@@ -278,6 +279,7 @@
     outline: none;
     transition: all 0.15s ease;
     background: var(--color-bg-input);
+    color: var(--color-text-primary);
     resize: none;
     overflow: hidden;
     max-height: 160px;
@@ -289,6 +291,11 @@
     border-color: var(--color-primary);
     background: var(--color-bg-white);
     box-shadow: var(--ring-primary);
+}
+
+#messageInput::placeholder {
+    color: var(--color-text-tertiary);
+    opacity: 1;
 }
 
 .doc-context-indicator {
@@ -355,12 +362,12 @@
 }
 
 .copy-to-document-btn {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+    background: var(--color-bg-subtle);
+    border: 1px solid var(--color-border);
     border-radius: 6px;
     padding: 4px 8px;
     font-size: var(--text-sm);
-    color: #64748b;
+    color: var(--color-text-tertiary);
     cursor: pointer;
     transition: all 0.2s ease;
     font-weight: 500;
@@ -427,7 +434,7 @@
 }
 
 .message-bubble pre {
-    background: #f8f9fa;
+    background: var(--color-bg-subtle);
     border: 1px solid var(--color-border);
     border-radius: 8px;
     padding: 16px;
@@ -452,7 +459,7 @@
 
 .message-bubble em {
     font-style: italic;
-    color: #57534e;
+    color: var(--color-text-secondary);
 }
 
 /* Multi-agent controls */
@@ -595,7 +602,7 @@
 }
 
 .turns-selector {
-    background: var(--color-bg-white);
+    background: var(--color-bg-input);
     border: 1px solid var(--color-border);
     border-radius: 6px;
     padding: 4px 8px;
@@ -680,6 +687,8 @@
     font-size: var(--text-sm);
     outline: none;
     transition: border-color 0.2s ease;
+    background: var(--color-bg-input);
+    color: var(--color-text-primary);
 }
 
 .form-group input[type="text"]:focus,
@@ -721,5 +730,13 @@
 
 .save-btn:hover {
     background: var(--color-primary-hover);
+}
+
+/* Input hint text */
+.input-hint {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    text-align: center;
+    margin-top: 4px;
 }
 

@@ -75,5 +75,55 @@ const ElementIds = {
     countIds(container) {
         if (!container) return 0;
         return container.querySelectorAll('[data-edit-id]').length;
+    },
+
+    /**
+     * Start observing editor for new elements that need IDs
+     * Watches for DOM mutations and assigns IDs to new block elements
+     * @param {Element} editorRoot - The root element of the editor to observe
+     */
+    startObserving(editorRoot) {
+        if (!editorRoot) return;
+
+        // Disconnect existing observer if any
+        if (this._observer) {
+            this._observer.disconnect();
+        }
+
+        this._observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        // Always assign new ID to added block elements
+                        // (Squire clones elements on Enter, copying the old ID)
+                        if (this.BLOCK_TAGS.includes(node.tagName)) {
+                            node.dataset.editId = crypto.randomUUID();
+                        }
+                        // Also check descendants for nested block elements
+                        if (node.querySelectorAll) {
+                            node.querySelectorAll(this.BLOCK_TAGS.join(',')).forEach((el) => {
+                                el.dataset.editId = crypto.randomUUID();
+                            });
+                        }
+                    }
+                });
+            });
+        });
+
+        this._observer.observe(editorRoot, {
+            childList: true,
+            subtree: true
+        });
+    },
+
+    /**
+     * Stop observing editor for new elements
+     * Call when closing/switching documents to clean up
+     */
+    stopObserving() {
+        if (this._observer) {
+            this._observer.disconnect();
+            this._observer = null;
+        }
     }
 };

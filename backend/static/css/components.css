@@ -5,21 +5,37 @@
 input[type="text"], textarea {
     font-family: var(--font-sans);
     transition: all 0.15s ease;
+    color: var(--color-text-primary);
+    background: var(--color-bg-input);
 }
 
 input[type="text"]:focus, textarea:focus {
     outline: none;
     border-color: var(--color-primary);
     box-shadow: var(--ring-primary);
+    background: var(--color-bg-white);
+}
+
+input[type="text"]::placeholder, textarea::placeholder {
+    color: var(--color-text-tertiary);
+    opacity: 1;
 }
 
 select {
     font-family: var(--font-sans);
+    color: var(--color-text-primary);
+    background: var(--color-bg-input);
 }
 
 select:focus {
     outline: none;
     border-color: var(--color-primary);
     box-shadow: var(--ring-primary);
+}
+
+/* Ensure select options work in dark mode */
+select option {
+    background: var(--color-bg-white);
+    color: var(--color-text-primary);
 }
 
