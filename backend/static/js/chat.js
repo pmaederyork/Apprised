@@ -678,7 +678,93 @@ Response: "I'll remove content before main content:
 </change>
 </document_edit>"
 
-The user will review each change with visual highlighting (deletions in red, additions in green, modifications in yellow) and can accept or reject individual changes using keyboard shortcuts or buttons.`;
+The user will review each change with visual highlighting (deletions in red, additions in green, modifications in yellow) and can accept or reject individual changes using keyboard shortcuts or buttons.
+
+═══════════════════════════════════════════════════════════════════════════
+ELEMENT IDENTIFICATION (ADVANCED)
+═══════════════════════════════════════════════════════════════════════════
+
+Block elements in the document have unique data-edit-id attributes (e.g., data-edit-id="e-abc123").
+These IDs enable precise element targeting that survives content matching failures.
+
+📍 USING targetId FOR DELETE/MODIFY OPERATIONS:
+   When you can see a data-edit-id in the document HTML, use targetId for reliable targeting:
+
+   <change type="delete" targetId="e-abc123">
+   <original>[exact HTML]</original>
+   </change>
+
+   <change type="modify" targetId="e-def456">
+   <original>[exact HTML]</original>
+   <new>[replacement HTML]</new>
+   </change>
+
+📍 USING anchorTargetId FOR ADD OPERATIONS:
+   For insertions, use anchorTargetId to identify the anchor element:
+
+   <change type="add" insertAfter="<p>Some text</p>" anchorTargetId="e-ghi789">
+   <new><p>New paragraph here</p></new>
+   </change>
+
+📍 FALLBACK BEHAVIOR:
+   - If targetId is provided, it takes priority for element lookup
+   - If targetId lookup fails, content matching is used as fallback
+   - You can omit targetId entirely - content matching still works
+   - Use targetId when available for maximum reliability
+
+═══════════════════════════════════════════════════════════════════════════
+PATTERN OPERATIONS (BULK CHANGES)
+═══════════════════════════════════════════════════════════════════════════
+
+For cleanup operations affecting multiple similar elements, use pattern-based deletion:
+
+<change type="delete-pattern" pattern="[pattern-name]">
+</change>
+
+📋 AVAILABLE PATTERNS:
+   - empty-paragraphs: Remove <p></p>, <p>&nbsp;</p>, <p><br></p>, whitespace-only paragraphs
+   - empty-lines: Remove elements that are visually blank (empty or whitespace-only)
+   - duplicate-breaks: Consolidate multiple consecutive <br> tags into single breaks
+   - trailing-whitespace: Remove whitespace-only content at the end of the document
+
+📍 WHEN TO USE PATTERNS:
+   - User requests: "clean up empty lines", "remove blank paragraphs", "tidy up the document"
+   - After bulk deletions that may leave empty elements
+   - When multiple similar elements need the same treatment
+
+📍 PATTERNS vs INDIVIDUAL CHANGES:
+   - Use patterns for: "remove all empty lines" (bulk cleanup)
+   - Use individual changes for: "delete the second paragraph" (specific targeting)
+   - Patterns find ALL matches automatically - no need to enumerate each element
+
+═══════════════════════════════════════════════════════════════════════════
+EXAMPLES: ADVANCED TARGETING
+═══════════════════════════════════════════════════════════════════════════
+
+Example 13: MODIFY with targetId
+User: "Change the text in paragraph e-x7k9m2"
+Decompose: MODIFY + TARGET(specific element by ID)
+Document has: <p data-edit-id="e-x7k9m2">Old text here.</p>
+
+Response: "I'll update that paragraph:
+
+<document_edit>
+<change type="modify" targetId="e-x7k9m2">
+<original><p data-edit-id="e-x7k9m2">Old text here.</p></original>
+<new><p data-edit-id="e-x7k9m2">New text here.</p></new>
+</change>
+</document_edit>"
+
+Example 14: Pattern operation for bulk cleanup
+User: "Remove all the empty lines in the document"
+Decompose: DELETE + TARGET(PATTERN "empty lines")
+
+Response: "I'll clean up all empty lines:
+
+<document_edit>
+<change type="delete-pattern" pattern="empty-lines">
+</change>
+</document_edit>"`;
 
                 systemPrompt = systemPrompt ? systemPrompt + documentEditingInstructions : documentEditingInstructions;
             } else if (this.hadDocumentEditingInstructions) {
