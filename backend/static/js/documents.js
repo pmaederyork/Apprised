@@ -384,6 +384,10 @@ const Documents = {
         this.isSaving = true;
         const document = this.documents[this.currentDocumentId];
         if (document && this.squireEditor) {
+            // Ensure element IDs are assigned before saving
+            if (typeof ElementIds !== 'undefined') {
+                ElementIds.ensureIds(this.squireEditor.getRoot());
+            }
             document.content = this.squireEditor.getHTML();
             document.lastModified = Date.now();
             Storage.saveDocuments(this.documents);
@@ -2309,6 +2313,11 @@ const Documents = {
                     // Get the document container for pattern matching
                     const editor = this.squireEditor?.getRoot();
                     if (editor) {
+                        // Ensure element IDs are assigned before pattern matching
+                        if (typeof ElementIds !== 'undefined') {
+                            ElementIds.ensureIds(editor);
+                        }
+
                         // Determine change type from pattern type (e.g., "delete-pattern" -> "delete")
                         const baseType = type.replace('-pattern', '');
 

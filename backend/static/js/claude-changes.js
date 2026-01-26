@@ -19,7 +19,7 @@ const ClaudeChanges = {
         patterns: {
             'empty-paragraphs': {
                 description: 'Paragraphs with no content or only whitespace',
-                selector: 'p',
+                selector: 'p, div',
                 match: (node) => {
                     // Simple check: if textContent is empty, the paragraph is empty
                     // (regardless of how many span/style wrappers it has)

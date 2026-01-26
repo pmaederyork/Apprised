@@ -191,12 +191,17 @@ const Tools = {
         }
 
         const currentDocument = Documents.documents[Documents.currentDocumentId];
-        if (!currentDocument) {
+        if (!currentDocument || !Documents.squireEditor) {
             return null;
         }
 
-        // Create file attachment in same format as Files module
-        const documentContent = currentDocument.content || '';
+        // Ensure element IDs are assigned before getting content
+        if (typeof ElementIds !== 'undefined') {
+            ElementIds.ensureIds(Documents.squireEditor.getRoot());
+        }
+
+        // Get live content from editor (not saved content which might be stale)
+        const documentContent = Documents.squireEditor.getHTML() || '';
         const documentTitle = currentDocument.title || 'Untitled Document';
         const fileName = documentTitle;
         
