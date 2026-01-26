@@ -1922,6 +1922,10 @@ const Documents = {
                 // Try to find and replace the original content
                 const originalNode = this.findNodeByContent(tempDiv, change.originalContent);
                 if (originalNode) {
+                    // Capture stable ID if element has one (for hybrid resolution)
+                    if (originalNode.dataset && originalNode.dataset.editId) {
+                        change.targetId = originalNode.dataset.editId;
+                    }
                     // Cache content signature (not DOM reference) for reconstruction
                     change._cachedSignature = {
                         textContent: originalNode.textContent?.trim() || '',
@@ -1947,6 +1951,10 @@ const Documents = {
                 if (change.insertAfter) {
                     const anchorNode = this.findNodeByContent(tempDiv, change.insertAfter);
                     if (anchorNode) {
+                        // Capture stable ID if anchor has one (for hybrid resolution)
+                        if (anchorNode.dataset && anchorNode.dataset.editId) {
+                            change.anchorTargetId = anchorNode.dataset.editId;
+                        }
                         // Cache anchor signature for reconstruction
                         change._cachedSignature = {
                             textContent: anchorNode.textContent?.trim() || '',
@@ -1963,6 +1971,10 @@ const Documents = {
                 } else if (change.insertBefore) {
                     const anchorNode = this.findNodeByContent(tempDiv, change.insertBefore);
                     if (anchorNode) {
+                        // Capture stable ID if anchor has one (for hybrid resolution)
+                        if (anchorNode.dataset && anchorNode.dataset.editId) {
+                            change.anchorTargetId = anchorNode.dataset.editId;
+                        }
                         // Cache anchor signature for reconstruction
                         change._cachedSignature = {
                             textContent: anchorNode.textContent?.trim() || '',
@@ -1991,6 +2003,10 @@ const Documents = {
                 // Try to find and replace the original content
                 const originalNode = this.findNodeByContent(tempDiv, change.originalContent);
                 if (originalNode) {
+                    // Capture stable ID if element has one (for hybrid resolution)
+                    if (originalNode.dataset && originalNode.dataset.editId) {
+                        change.targetId = originalNode.dataset.editId;
+                    }
                     // Cache content signature for reconstruction
                     change._cachedSignature = {
                         textContent: originalNode.textContent?.trim() || '',
