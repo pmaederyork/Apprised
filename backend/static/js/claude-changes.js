@@ -22,10 +22,21 @@ const ClaudeChanges = {
                 selector: 'p',
                 match: (node) => {
                     const text = node.textContent?.trim() || '';
-                    // Check for empty or whitespace-only content
-                    // Also check if innerHTML is just <br> or empty
+                    // No visible text content
+                    if (text !== '') return false;
+
+                    // Check innerHTML - empty, or only contains BR tags, &nbsp;, whitespace
                     const html = node.innerHTML?.trim() || '';
-                    return text === '' || html === '' || html === '<br>' || html === '&nbsp;';
+                    if (html === '') return true;
+
+                    // Remove all BR variants, &nbsp;, and whitespace - if nothing left, it's empty
+                    const stripped = html
+                        .replace(/<br\s*\/?>/gi, '')  // <br>, <br/>, <br />
+                        .replace(/&nbsp;/gi, '')      // &nbsp; entities
+                        .replace(/\u00A0/g, '')       // actual non-breaking spaces
+                        .trim();
+
+                    return stripped === '';
                 }
             },
             'empty-lines': {
@@ -33,8 +44,21 @@ const ClaudeChanges = {
                 selector: 'p, div, h1, h2, h3, h4, h5, h6, li',
                 match: (node) => {
                     const text = node.textContent?.trim() || '';
+                    // No visible text content
+                    if (text !== '') return false;
+
+                    // Check innerHTML - empty, or only contains BR tags, &nbsp;, whitespace
                     const html = node.innerHTML?.trim() || '';
-                    return text === '' || html === '' || html === '<br>' || html === '&nbsp;';
+                    if (html === '') return true;
+
+                    // Remove all BR variants, &nbsp;, and whitespace - if nothing left, it's empty
+                    const stripped = html
+                        .replace(/<br\s*\/?>/gi, '')
+                        .replace(/&nbsp;/gi, '')
+                        .replace(/\u00A0/g, '')
+                        .trim();
+
+                    return stripped === '';
                 }
             },
             'duplicate-breaks': {
