@@ -20,6 +20,13 @@ const Documents = {
     // Loading state to prevent premature font detection
     _loadingDocument: false,
 
+    // Default formatting for new documents
+    DEFAULT_FORMATTING: {
+        fontFamily: "'Times New Roman', Times, serif",
+        fontSize: '11pt',
+        lineHeight: '1.15'
+    },
+
     // Initialize document system
     init() {
         // Prevent multiple initialization to avoid duplicate event listeners
@@ -227,10 +234,11 @@ const Documents = {
     // Create a new document
     createNew() {
         this.currentDocumentId = Storage.generateDocumentId();
+        const defaultStyle = `font-family: ${this.DEFAULT_FORMATTING.fontFamily}; font-size: ${this.DEFAULT_FORMATTING.fontSize}; line-height: ${this.DEFAULT_FORMATTING.lineHeight};`;
         const newDocument = {
             id: this.currentDocumentId,
             title: 'New Document.html',
-            content: '<p>New Document</p><p><br></p>',
+            content: `<p style="${defaultStyle}">New Document</p><p style="${defaultStyle}"><br></p>`,
             createdAt: Date.now(),
             lastModified: Date.now()
         };
@@ -281,6 +289,12 @@ const Documents = {
                 if (this.squireEditor) {
                     this._loadingDocument = false;
                     this.squireEditor.moveCursorToStart();
+
+                    // Set default formatting for new content typed by user
+                    // This ensures new text inherits defaults rather than browser defaults
+                    this.squireEditor.setFontFace(this.DEFAULT_FORMATTING.fontFamily);
+                    this.squireEditor.setFontSize(this.DEFAULT_FORMATTING.fontSize);
+
                     // Manually update font displays now that cursor is properly positioned
                     this.updateFontSizeDisplay();
                     this.updateFontFamilyDisplay();
