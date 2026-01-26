@@ -11,16 +11,16 @@ const SETTINGS_CONFIG = {
         validator: (value) => value && value.trim().length > 0 && value.startsWith('sk-ant-') && value.length >= 50,
         storage: 'anthropicApiKey', // Use legacy storage for API key
         required: true
+    },
+    theme: {
+        label: 'Theme',
+        type: 'select',
+        options: ['light', 'dark', 'auto'],
+        section: 'appearance',
+        validator: (value) => ['light', 'dark', 'auto'].includes(value),
+        storage: 'theme',
+        default: 'auto'
     }
-    // Add more settings here as needed:
-    // theme: {
-    //     label: 'Theme',
-    //     type: 'select',
-    //     options: ['light', 'dark', 'auto'],
-    //     section: 'appearance',
-    //     validator: (value) => ['light', 'dark', 'auto'].includes(value),
-    //     storage: 'theme'
-    // }
 };
 
 const Settings = {
@@ -39,7 +39,8 @@ const Settings = {
         saveApiKeyBtnModal: null,
         deleteApiKeyBtn: null,
         apiKeyNotification: null,
-        openSettingsFromNotification: null
+        openSettingsFromNotification: null,
+        themeSelect: null
     },
 
     /**
@@ -48,6 +49,7 @@ const Settings = {
     async init() {
         if (this.initialized) return;
 
+        this.initTheme();
         this.initElements();
         this.bindEvents();
         await this.loadAllSettings();
@@ -73,6 +75,8 @@ const Settings = {
         // Google Drive elements
         this.elements.gdriveStatusContainer = document.getElementById('gdriveStatusContainer');
         this.elements.gdriveConnectBtn = document.getElementById('gdriveConnectBtn');
+        // Theme elements
+        this.elements.themeSelect = document.getElementById('themeSelect');
     },
 
     /**
@@ -121,6 +125,9 @@ const Settings = {
             }
         });
 
+        // Theme change
+        this.elements.themeSelect?.addEventListener('change', (e) => this.setTheme(e.target.value));
+
         // ESC key to close
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -162,6 +169,11 @@ const Settings = {
         } else if (this.elements.apiKeyInput) {
             this.elements.apiKeyInput.value = '';
             this.showStatus('No API key found', 'warning');
+        }
+
+        // Update theme select if it exists
+        if (this.elements.themeSelect) {
+            this.elements.themeSelect.value = this.settings.theme || 'auto';
         }
     },
 
@@ -419,5 +431,45 @@ const Settings = {
             console.error(`Error loading ${key}:`, error);
             return defaultValue;
         }
+    },
+
+    /**
+     * Apply theme to document
+     */
+    applyTheme(theme) {
+        const resolvedTheme = theme === 'auto'
+            ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+            : theme;
+        document.documentElement.dataset.theme = resolvedTheme;
+    },
+
+    /**
+     * Set and persist theme
+     */
+    setTheme(theme) {
+        Storage.saveSetting('theme', theme);
+        this.settings.theme = theme;
+        this.applyTheme(theme);
+    },
+
+    /**
+     * Initialize theme on load
+     */
+    initTheme() {
+        const theme = Storage.getSetting('theme', 'auto');
+        this.settings.theme = theme;
+        this.applyTheme(theme);
+
+        // Update select if it exists
+        if (this.elements.themeSelect) {
+            this.elements.themeSelect.value = theme;
+        }
+
+        // Listen for system preference changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            if (this.settings.theme === 'auto') {
+                this.applyTheme('auto');
+            }
+        });
     }
 };
