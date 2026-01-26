@@ -740,3 +740,14 @@ input.chat-title:focus {
     margin-top: 4px;
 }
 
+/* System notification messages */
+.message.system {
+    color: #78716c;
+    background: #fafaf9;
+}
+
+[data-theme="dark"] .message.system {
+    color: #a8a29e;
+    background: transparent;
+}
+

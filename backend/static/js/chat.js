@@ -963,10 +963,8 @@ The document editor is currently CLOSED. Do not generate <document_edit> tags. I
         messageDiv.style.cssText = `
             text-align: center;
             font-size: 13px;
-            color: #78716c;
             padding: 8px 16px;
             margin: 8px 0;
-            background: #fafaf9;
             border-radius: 6px;
             font-style: italic;
         `;
