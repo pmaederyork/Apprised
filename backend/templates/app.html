@@ -442,11 +442,10 @@
                     <button class="close-settings-btn" id="closeSettingsBtn">×</button>
                 </div>
                 <div class="settings-body">
-                    <!-- Appearance Section -->
+                    <!-- Theme Section -->
                     <div class="settings-section appearance-settings-section">
-                        <h4 class="settings-section-title">Appearance</h4>
+                        <h4 class="settings-section-title">Theme</h4>
                         <div class="settings-section-content">
-                            <label for="themeSelect">Theme</label>
                             <select id="themeSelect" class="theme-select">
                                 <option value="light">Light</option>
                                 <option value="dark">Dark</option>
@@ -455,11 +454,10 @@
                         </div>
                     </div>
 
-                    <!-- API Configuration Section -->
+                    <!-- API Key Section -->
                     <div class="settings-section api-settings-section">
-                        <h4 class="settings-section-title">API Configuration</h4>
+                        <h4 class="settings-section-title">Anthropic API Key</h4>
                         <div class="settings-section-content">
-                            <label for="apiKeyInput">Anthropic API Key:</label>
                             <div class="api-key-input-container">
                                 <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." />
                                 <button class="show-hide-btn" id="showHideBtn" title="Show/Hide API Key">👁️</button>
@@ -474,7 +472,7 @@
 
                     <!-- Google Drive Integration Section -->
                     <div class="settings-section gdrive-settings-section">
-                        <h4 class="settings-section-title">Google Drive Integration</h4>
+                        <h4 class="settings-section-title">Google Drive</h4>
                         <div class="settings-section-content">
                             <div id="gdriveStatusContainer" class="gdrive-status-container">
                                 <span id="gdriveStatusIcon" class="gdrive-status-icon">☁️</span>
@@ -482,18 +480,21 @@
                             </div>
                             <div class="gdrive-actions">
                                 <button id="gdriveConnectBtn" class="gdrive-connect-btn">Enable Drive Access</button>
+                                <button id="gdriveDisconnectBtn" class="gdrive-disconnect-btn" style="display: none;">Disconnect Drive</button>
                             </div>
-                            <div class="gdrive-folder-setting">
-                                <label class="gdrive-folder-label">Default Save Folder</label>
+                        </div>
+                        <h4 class="settings-section-title settings-subsection-title">Default Save Folder</h4>
+                        <div class="settings-section-content">
+                            <div class="gdrive-folder-box">
                                 <div class="gdrive-folder-row">
                                     <span id="gdriveFolderName" class="gdrive-folder-name">None (saves to root)</span>
                                     <button id="gdriveFolderBtn" class="gdrive-folder-btn">Select Folder</button>
                                 </div>
                             </div>
                             <div class="gdrive-help-text">
-                                Connect Google Drive to save and import documents.
-                                Apprised only accesses files you create in the app
-                                or explicitly select via the file picker.
+                                Connect Google Drive to save and import previously created documents.
+                                Apprised only accesses files you create in the app, not your broader
+                                files even though they are visible in the picker.
                             </div>
                         </div>
                     </div>

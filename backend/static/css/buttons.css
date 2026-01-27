@@ -425,6 +425,23 @@
     background: var(--color-gdrive-hover);
 }
 
+.gdrive-disconnect-btn {
+    background: var(--color-error);
+    color: white;
+    border: 1px solid var(--color-error);
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    font-size: var(--text-sm);
+}
+
+.gdrive-disconnect-btn:hover {
+    background: var(--color-error-hover, #c0392b);
+    border-color: var(--color-error-hover, #c0392b);
+}
+
 .gdrive-btn {
     background: var(--color-gdrive) !important;
     color: white !important;

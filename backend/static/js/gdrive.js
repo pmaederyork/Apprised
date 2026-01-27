@@ -232,6 +232,35 @@ const GDrive = {
         }
     },
 
+    // Disconnect Google Drive
+    async disconnect() {
+        if (!confirm('Are you sure you want to disconnect Google Drive? Your local documents will be preserved, but Drive sync will stop.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/drive/disconnect', { method: 'POST' });
+            const data = await response.json();
+
+            if (data.success) {
+                // Update local state
+                this.isConnected = false;
+                Storage.saveGoogleDriveConnected(false);
+                Storage.clearGoogleDriveFolder();
+
+                // Update UI
+                this.updateUI();
+
+                console.log('Google Drive disconnected');
+            } else {
+                alert('Failed to disconnect Google Drive: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Drive disconnect error:', error);
+            alert('Failed to disconnect Google Drive. Please try again.');
+        }
+    },
+
     // Save document to Google Drive (via backend)
     async saveToGoogleDrive(documentId) {
         if (!this.isConnected) {
@@ -702,6 +731,7 @@ const GDrive = {
         const statusText = UI.elements.gdriveStatusText;
         const statusIcon = UI.elements.gdriveStatusIcon;
         const connectBtn = UI.elements.gdriveConnectBtn;
+        const disconnectBtn = UI.elements.gdriveDisconnectBtn;
         const saveToDriveBtn = UI.elements.saveToDriveBtn;
         const importFromDriveBtn = UI.elements.importFromDriveBtn;
         const folderBtn = UI.elements.gdriveFolderBtn;
@@ -711,6 +741,7 @@ const GDrive = {
             if (statusText) statusText.textContent = 'Connected';
             if (statusIcon) statusIcon.textContent = '✓';
             if (connectBtn) connectBtn.textContent = 'Reconnect Drive Access';
+            if (disconnectBtn) disconnectBtn.style.display = 'inline-block';
             if (saveToDriveBtn) saveToDriveBtn.disabled = false;
             if (importFromDriveBtn) importFromDriveBtn.disabled = false;
             if (folderBtn) folderBtn.disabled = false;
@@ -718,6 +749,7 @@ const GDrive = {
             if (statusText) statusText.textContent = 'Not connected';
             if (statusIcon) statusIcon.textContent = '☁️';
             if (connectBtn) connectBtn.textContent = 'Enable Drive Access';
+            if (disconnectBtn) disconnectBtn.style.display = 'none';
             if (saveToDriveBtn) saveToDriveBtn.disabled = true;
             if (importFromDriveBtn) importFromDriveBtn.disabled = true;
             if (folderBtn) folderBtn.disabled = true;

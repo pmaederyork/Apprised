@@ -28,13 +28,59 @@ const Auth = {
         this.hasApiKey = !!apiKey;
 
         if (!this.hasApiKey) {
-            this.showApiKeySetup();
-            return false;
+            // Check if this is a returning user (has existing data)
+            const isReturningUser = this.checkForExistingData();
+
+            if (isReturningUser) {
+                // Returning user - show main app with API key notification
+                this.showMainApp();
+                return true; // Let app initialize, Settings will show notification
+            } else {
+                // First-time user - show setup overlay
+                this.showApiKeySetup();
+                return false;
+            }
         }
 
         // User is fully authenticated and has API key
         this.showMainApp();
         return true;
+    },
+
+    /**
+     * Check if user has existing data (returning user)
+     */
+    checkForExistingData() {
+        try {
+            // Check for existing chats
+            const chats = localStorage.getItem('chats');
+            if (chats && Object.keys(JSON.parse(chats)).length > 0) {
+                return true;
+            }
+
+            // Check for existing documents
+            const documents = localStorage.getItem('documents');
+            if (documents && Object.keys(JSON.parse(documents)).length > 0) {
+                return true;
+            }
+
+            // Check for existing system prompts
+            const prompts = localStorage.getItem('systemPrompts');
+            if (prompts && Object.keys(JSON.parse(prompts)).length > 0) {
+                return true;
+            }
+
+            // Check for saved settings (indicates prior usage)
+            const appSettings = localStorage.getItem('appSettings');
+            if (appSettings && Object.keys(JSON.parse(appSettings)).length > 0) {
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            console.error('Error checking for existing data:', error);
+            return false;
+        }
     },
 
     /**

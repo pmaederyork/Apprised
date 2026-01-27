@@ -86,6 +86,7 @@ const UI = {
         gdriveStatusIcon: document.getElementById('gdriveStatusIcon'),
         gdriveStatusText: document.getElementById('gdriveStatusText'),
         gdriveConnectBtn: document.getElementById('gdriveConnectBtn'),
+        gdriveDisconnectBtn: document.getElementById('gdriveDisconnectBtn'),
         saveToDriveBtn: document.getElementById('saveToDriveBtn'),
         importFromDriveBtn: document.getElementById('importFromDriveBtn'),
         driveSyncIndicator: document.getElementById('driveSyncIndicator'),

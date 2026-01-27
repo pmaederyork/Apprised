@@ -769,6 +769,56 @@ def drive_status():
         logging.error(f"Drive status error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+@app.route('/drive/disconnect', methods=['POST'])
+@login_required
+def drive_disconnect():
+    """Disconnect Google Drive by revoking token and updating JWT"""
+    try:
+        # Get current user data from JWT
+        auth_token = request.cookies.get('auth_token')
+        if not auth_token:
+            return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+        payload = decode_jwt_token(auth_token)
+        if not payload:
+            return jsonify({'success': False, 'error': 'Invalid token'}), 401
+
+        # Try to revoke the Google token (best effort)
+        google_token = payload.get('google_token')
+        if google_token and google_token.get('access_token'):
+            try:
+                revoke_url = f"https://oauth2.googleapis.com/revoke?token={google_token['access_token']}"
+                requests.post(revoke_url)
+                logging.info("Google token revoked successfully")
+            except Exception as e:
+                logging.warning(f"Failed to revoke Google token: {e}")
+
+        # Remove google_token from payload to disconnect Drive
+        if 'google_token' in payload:
+            del payload['google_token']
+
+        # Create new JWT without Drive access
+        new_jwt = jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
+
+        response_data = {'success': True}
+        resp = make_response(jsonify(response_data))
+        resp.set_cookie(
+            'auth_token',
+            new_jwt,
+            max_age=7*24*60*60,
+            httponly=True,
+            secure=request.is_secure,
+            samesite='Lax'
+        )
+
+        logging.info("Google Drive disconnected successfully")
+        return resp
+
+    except Exception as e:
+        logging.error(f"Drive disconnect error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # Health check endpoint
 @app.route('/health')
 def health():

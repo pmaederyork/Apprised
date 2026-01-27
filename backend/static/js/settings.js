@@ -125,6 +125,14 @@ const Settings = {
             }
         });
 
+        // Google Drive disconnect
+        this.elements.gdriveDisconnectBtn = document.getElementById('gdriveDisconnectBtn');
+        this.elements.gdriveDisconnectBtn?.addEventListener('click', () => {
+            if (typeof GDrive !== 'undefined') {
+                GDrive.disconnect();
+            }
+        });
+
         // Google Drive folder picker
         this.elements.gdriveFolderBtn = document.getElementById('gdriveFolderBtn');
         this.elements.gdriveFolderBtn?.addEventListener('click', () => {
