@@ -464,7 +464,7 @@ const Settings = {
      * Initialize theme on load
      */
     initTheme() {
-        const theme = Storage.getSetting('theme', 'auto');
+        const theme = Storage.getSetting('theme', 'dark');
         this.settings.theme = theme;
         this.applyTheme(theme);
 
