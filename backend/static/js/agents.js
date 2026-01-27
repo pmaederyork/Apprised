@@ -1052,7 +1052,12 @@ This is Turn ${turn}. You are responding to a message from ${previousSpeaker}.${
 Other participants in this conversation:
 ${otherAgents}
 
-IMPORTANT: The message you're responding to was written by ${previousSpeaker === 'the user' ? 'the human user' : 'another AI agent, NOT a human user pretending to be an agent'}. Stay fully in character as ${currentAgent.name}. Engage directly with the ideas presented - build upon them, challenge them, or offer your unique perspective. Do not break character or question the conversation setup.`;
+CRITICAL RULES FOR MULTI-AGENT DIALOGUE:
+1. ${previousSpeaker === 'the user' ? 'Respond to the user\'s prompt, but address your response to the other agents as well.' : `Respond DIRECTLY to ${previousSpeaker}'s points. Do NOT ask the user questions - the user is OBSERVING this dialogue, not participating in it.`}
+2. Stay fully in character as ${currentAgent.name}. Do not break character or question the conversation setup.
+3. Engage substantively - build upon, challenge, or refine the ideas presented. Make assertions and share your perspective rather than deflecting back to others.
+4. If the user requested a discussion/dialogue BEFORE an action (like editing a document), focus on the dialogue first. Complete the intellectual exchange before proposing any edits or taking actions.
+5. End your response with a clear statement or insight, not with questions directed at the user. You may pose rhetorical questions or direct challenges to the other agent(s).`;
 
         return systemPrompt ? systemPrompt + multiAgentContext : multiAgentContext;
     },
