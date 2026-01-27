@@ -255,11 +255,6 @@
                 <input type="text" class="editor-title" id="documentTitle" placeholder="Document Name" />
                 <span id="driveSyncIndicator" class="drive-sync-indicator" style="display: none; margin-left: 8px;"></span>
                 <div class="editor-actions">
-                    <label class="auto-accept-toggle" title="Auto-accept Claude's edits">
-                        <input type="checkbox" id="autoAcceptEditsToggle">
-                        <span class="toggle-slider"></span>
-                        <span class="toggle-label">Auto</span>
-                    </label>
                     <a id="openInDriveBtn" class="open-in-drive-btn" href="#" target="_blank" style="display: none; margin-right: 8px;" title="Open in Google Drive">
                         <img src="/static/assets/gdrive_icon.webp" alt="Open in Drive" style="width: 28px; height: 28px;">
                     </a>
@@ -360,6 +355,12 @@
                         </div>
                     </div>
                 </div>
+                <span class="toolbar-separator"></span>
+                <label class="auto-accept-toggle" title="Auto-accept Claude's edits">
+                    <input type="checkbox" id="autoAcceptEditsToggle">
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-label">Accept All</span>
+                </label>
 
             </div>
             <div class="editor-content">
