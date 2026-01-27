@@ -1106,7 +1106,9 @@ RULES:
 4. For document edits: add content efficiently without simulating discussion.
 5. End with a statement, not questions.`;
 
-        return systemPrompt ? systemPrompt + multiAgentContext : multiAgentContext;
+        // Prepend multi-agent context so it comes FIRST, before all other instructions
+        // This is critical because these instructions must take priority regardless of document state
+        return systemPrompt ? multiAgentContext + '\n\n' + systemPrompt : multiAgentContext;
     },
 
     /**
