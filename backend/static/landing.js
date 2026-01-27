@@ -115,11 +115,11 @@ class ParallaxController {
             nebula: document.querySelector('.nebula')
         };
 
-        // Strong parallax speeds for dramatic depth effect
+        // Parallax speeds - far stars slower, mid stars faster for depth
         this.speeds = {
-            starsFar: 0.15,
+            starsFar: 0.08,
             starsMid: 0.35,
-            nebula: 0.25
+            nebula: 0.2
         };
 
         this.init();
