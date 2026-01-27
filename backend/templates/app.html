@@ -5,7 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Apprised Chat</title>
     <link rel="icon" type="image/png" href="/static/icons/apprised.png">
-    
+
+    <!-- Apply theme immediately to prevent flash -->
+    <script>
+        (function() {
+            try {
+                const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+                let theme = settings.theme || 'dark';
+                if (theme === 'auto') {
+                    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                document.documentElement.dataset.theme = theme;
+            } catch (e) {
+                document.documentElement.dataset.theme = 'dark';
+            }
+        })();
+    </script>
+
     <!-- CSS Files -->
     <link rel="stylesheet" href="/static/css/variables.css">
     <link rel="stylesheet" href="/static/css/main.css">
