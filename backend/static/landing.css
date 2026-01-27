@@ -182,12 +182,12 @@ body {
 nav {
     display: flex;
     align-items: center;
-    gap: 2rem;
+    gap: 1rem;
 }
 
-.cta-header {
-    padding: 0.625rem 1.25rem;
-    font-size: 0.9375rem;
+.cta-button.cta-header {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
 }
 
 /* Hero Section */
@@ -196,7 +196,7 @@ nav {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 6rem 2rem 5rem;
+    padding: 4.5rem 2rem 1rem;
     background: transparent;
     position: relative;
 }
@@ -251,10 +251,10 @@ nav {
 
 .hero-subtitle {
     font-size: 1.125rem;
-    line-height: 1.7;
+    line-height: 2;
     color: var(--text-secondary);
-    margin-bottom: 2.5rem;
-    max-width: 700px;
+    margin-bottom: 1.5rem;
+    max-width: 800px;
     margin-left: auto;
     margin-right: auto;
 }
@@ -301,6 +301,18 @@ nav {
     border-color: var(--cosmic-purple-light);
     transform: translateY(-2px);
     box-shadow: 0 0 20px var(--cosmic-purple-glow);
+}
+
+.cta-github {
+    background: #2d2d2d;
+    color: white;
+    border: none;
+    padding: 0.625rem;
+}
+
+.cta-github:hover {
+    background: #3d3d3d;
+    transform: translateY(-2px);
 }
 
 .cta-large {
@@ -386,7 +398,7 @@ nav {
 
 /* Showcase Section */
 .showcase {
-    padding: 2rem 2rem 4rem;
+    padding: 0 2rem 4rem;
     background: transparent;
     position: relative;
 }
@@ -402,11 +414,15 @@ nav {
 }
 
 .showcase-image img {
-    width: 100%;
+    width: 80%;
     height: auto;
     border-radius: 12px;
     border: 2px solid var(--cosmic-purple-light);
     box-shadow: 0 0 60px rgba(124, 58, 237, 0.3), 0 0 120px rgba(124, 58, 237, 0.15), 0 25px 50px rgba(0, 0, 0, 0.5);
+}
+
+.showcase-image {
+    text-align: center;
 }
 
 /* CTA Section */
@@ -416,16 +432,6 @@ nav {
     position: relative;
 }
 
-.cta-section::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(ellipse at center, rgba(76, 29, 149, 0.15) 0%, transparent 70%);
-    pointer-events: none;
-}
 
 .cta-content {
     max-width: 700px;
