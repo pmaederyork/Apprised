@@ -254,14 +254,25 @@ const GDrive = {
                 ? doc.title.slice(0, -5)
                 : doc.title;
 
+            // Build request body - include parentFolderId only for new files
+            const requestBody = {
+                title: driveTitle,
+                content: doc.content,
+                driveFileId: doc.driveFileId || null
+            };
+
+            // Only add parentFolderId for new files (not updates)
+            if (!doc.driveFileId) {
+                const defaultFolderId = this.getDefaultFolderId();
+                if (defaultFolderId) {
+                    requestBody.parentFolderId = defaultFolderId;
+                }
+            }
+
             const response = await fetch('/drive/save', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    title: driveTitle,
-                    content: doc.content,
-                    driveFileId: doc.driveFileId || null
-                })
+                body: JSON.stringify(requestBody)
             });
 
             const data = await response.json();
@@ -693,6 +704,8 @@ const GDrive = {
         const connectBtn = UI.elements.gdriveConnectBtn;
         const saveToDriveBtn = UI.elements.saveToDriveBtn;
         const importFromDriveBtn = UI.elements.importFromDriveBtn;
+        const folderBtn = UI.elements.gdriveFolderBtn;
+        const folderName = UI.elements.gdriveFolderName;
 
         if (this.isConnected) {
             if (statusText) statusText.textContent = 'Connected';
@@ -700,12 +713,80 @@ const GDrive = {
             if (connectBtn) connectBtn.textContent = 'Reconnect Drive Access';
             if (saveToDriveBtn) saveToDriveBtn.disabled = false;
             if (importFromDriveBtn) importFromDriveBtn.disabled = false;
+            if (folderBtn) folderBtn.disabled = false;
         } else {
             if (statusText) statusText.textContent = 'Not connected';
             if (statusIcon) statusIcon.textContent = '☁️';
             if (connectBtn) connectBtn.textContent = 'Enable Drive Access';
             if (saveToDriveBtn) saveToDriveBtn.disabled = true;
             if (importFromDriveBtn) importFromDriveBtn.disabled = true;
+            if (folderBtn) folderBtn.disabled = true;
+        }
+
+        // Update folder name display
+        const folder = Storage.getGoogleDriveFolder();
+        if (folderName) {
+            folderName.textContent = folder ? folder.name : 'None (saves to root)';
+        }
+    },
+
+    // Get the default folder ID for saving new documents
+    getDefaultFolderId() {
+        const folder = Storage.getGoogleDriveFolder();
+        return folder ? folder.id : null;
+    },
+
+    // Open folder picker to select default save folder
+    async pickDefaultFolder() {
+        if (!this.isConnected) {
+            const proceed = confirm('Google Drive is not connected. Would you like to enable Drive access now?');
+            if (proceed) {
+                this.reconnect();
+            }
+            return;
+        }
+
+        if (!this.pickerApiLoaded) {
+            alert('Google Picker is still loading. Please try again in a moment.');
+            return;
+        }
+
+        try {
+            // Get OAuth token from backend for Picker
+            const tokenResponse = await fetch('/drive/picker-token');
+            const tokenData = await tokenResponse.json();
+
+            if (!tokenData.success) {
+                alert('Failed to get Drive access. Please try reconnecting.');
+                return;
+            }
+
+            // Create a folder view
+            const folderView = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+                .setSelectFolderEnabled(true)
+                .setIncludeFolders(true)
+                .setMimeTypes('application/vnd.google-apps.folder');
+
+            // Show Google Picker for folders
+            const picker = new google.picker.PickerBuilder()
+                .addView(folderView)
+                .setOAuthToken(tokenData.accessToken)
+                .setTitle('Select default folder for new documents')
+                .setCallback((data) => {
+                    if (data.action === google.picker.Action.PICKED) {
+                        const folder = data.docs[0];
+                        Storage.saveGoogleDriveFolder(folder.id, folder.name);
+                        this.updateUI();
+                        console.log('Default folder set:', folder.name, folder.id);
+                    }
+                })
+                .build();
+
+            picker.setVisible(true);
+
+        } catch (error) {
+            console.error('Folder picker error:', error);
+            alert('Failed to open folder picker. Please try again.');
         }
     }
 };

@@ -125,6 +125,14 @@ const Settings = {
             }
         });
 
+        // Google Drive folder picker
+        this.elements.gdriveFolderBtn = document.getElementById('gdriveFolderBtn');
+        this.elements.gdriveFolderBtn?.addEventListener('click', () => {
+            if (typeof GDrive !== 'undefined') {
+                GDrive.pickDefaultFolder();
+            }
+        });
+
         // Theme change
         this.elements.themeSelect?.addEventListener('change', (e) => this.setTheme(e.target.value));
 

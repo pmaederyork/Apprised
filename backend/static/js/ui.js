@@ -88,7 +88,9 @@ const UI = {
         importFromDriveBtn: document.getElementById('importFromDriveBtn'),
         driveSyncIndicator: document.getElementById('driveSyncIndicator'),
         openInDriveBtn: document.getElementById('openInDriveBtn'),
-        formatSelect: document.getElementById('formatSelect')
+        formatSelect: document.getElementById('formatSelect'),
+        gdriveFolderBtn: document.getElementById('gdriveFolderBtn'),
+        gdriveFolderName: document.getElementById('gdriveFolderName')
     },
 
     // Helper function to strip document edit XML from chat display

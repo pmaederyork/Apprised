@@ -204,5 +204,24 @@ const Storage = {
             console.error(`Failed to delete setting ${key}:`, error);
             return false;
         }
+    },
+
+    // Google Drive default folder
+    getGoogleDriveFolder() {
+        try {
+            const folder = this.getSetting('googleDriveDefaultFolder', null);
+            return folder && folder.id ? folder : null;
+        } catch (error) {
+            console.warn('Failed to get Google Drive folder setting:', error);
+            return null;
+        }
+    },
+
+    saveGoogleDriveFolder(id, name) {
+        return this.saveSetting('googleDriveDefaultFolder', { id, name });
+    },
+
+    clearGoogleDriveFolder() {
+        return this.deleteSetting('googleDriveDefaultFolder');
     }
 };

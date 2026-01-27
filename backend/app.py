@@ -507,6 +507,7 @@ def drive_save():
         document_title = data.get('title')
         document_content = data.get('content')
         drive_file_id = data.get('driveFileId')  # None for new files
+        parent_folder_id = data.get('parentFolderId')  # Optional folder for new files
 
         # Get OAuth token from JWT (with auto-refresh)
         token, new_jwt = get_google_token_with_auto_refresh()
@@ -519,6 +520,10 @@ def drive_save():
             'name': document_title,
             'mimeType': 'application/vnd.google-apps.document'
         }
+
+        # Add parent folder only for new files (not updates)
+        if parent_folder_id and not drive_file_id:
+            metadata['parents'] = [parent_folder_id]
 
         if drive_file_id:
             # Update existing file
