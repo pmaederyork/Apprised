@@ -188,20 +188,9 @@ nav {
     color: var(--cosmic-purple-light);
 }
 
-.btn-login {
-    padding: 0.625rem 1.5rem;
-    border: 1px solid var(--cosmic-purple-light);
-    border-radius: 8px;
-    text-decoration: none;
-    color: var(--cosmic-purple-light);
-    font-weight: 600;
-    transition: all 0.2s ease;
-    background: transparent;
-}
-
-.btn-login:hover {
-    background: rgba(124, 58, 237, 0.15);
-    box-shadow: 0 0 20px var(--cosmic-purple-glow);
+.cta-header {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.9375rem;
 }
 
 /* Hero Section */
@@ -248,12 +237,19 @@ nav {
 }
 
 .hero-title {
-    font-size: 2.75rem;
+    font-size: 3rem;
     font-weight: 700;
     line-height: 1.2;
     margin-bottom: 1.5rem;
     color: var(--text-primary);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
+}
+
+.hero-highlight {
+    background: linear-gradient(135deg, var(--cosmic-purple-light) 0%, var(--accent-cyan) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .hero-subtitle {
@@ -338,8 +334,8 @@ nav {
 
 .features-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
     margin-top: 3rem;
 }
 
@@ -587,7 +583,7 @@ nav {
     }
 
     .features-grid {
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
