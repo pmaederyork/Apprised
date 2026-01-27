@@ -402,7 +402,7 @@ const GDrive = {
 
             // Show Google Picker
             const picker = new google.picker.PickerBuilder()
-                .addView(google.picker.ViewId.DOCS)
+                .addView(google.picker.ViewId.RECENTLY_PICKED)
                 .setOAuthToken(tokenData.accessToken)
                 .setCallback(async (data) => {
                     if (data.action === google.picker.Action.PICKED) {
@@ -577,7 +577,7 @@ const GDrive = {
 
             // Show Google Picker to select a file
             const picker = new google.picker.PickerBuilder()
-                .addView(google.picker.ViewId.DOCS)
+                .addView(google.picker.ViewId.RECENTLY_PICKED)
                 .setOAuthToken(tokenData.accessToken)
                 .setTitle('Select a file to link')
                 .setCallback(async (data) => {
