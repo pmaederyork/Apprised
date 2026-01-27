@@ -90,7 +90,8 @@ const UI = {
         openInDriveBtn: document.getElementById('openInDriveBtn'),
         formatSelect: document.getElementById('formatSelect'),
         gdriveFolderBtn: document.getElementById('gdriveFolderBtn'),
-        gdriveFolderName: document.getElementById('gdriveFolderName')
+        gdriveFolderName: document.getElementById('gdriveFolderName'),
+        autoAcceptEditsToggle: document.getElementById('autoAcceptEditsToggle')
     },
 
     // Helper function to strip document edit XML from chat display
