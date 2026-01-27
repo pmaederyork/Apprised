@@ -59,6 +59,8 @@ const UI = {
         addAgentBtn: document.getElementById('addAgentBtn'),
         turnsSelector: document.getElementById('turnsSelector'),
         turnsControl: document.querySelector('.turns-control'),
+        // Model selector
+        modelSelect: document.getElementById('modelSelect'),
         // User menu elements
         userProfile: document.getElementById('userProfile'),
         userAvatarFooter: document.getElementById('userAvatarFooter'),

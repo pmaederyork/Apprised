@@ -2341,6 +2341,35 @@ const Documents = {
             numberIndicator.className = 'claude-change-number';
             numberIndicator.textContent = (index + 1).toString();
             changeElement.appendChild(numberIndicator);
+
+            // Add agent attribution if available (multi-agent mode)
+            if (change.agentColor) {
+                // Apply agent color to the left border
+                changeElement.style.borderLeftColor = change.agentColor;
+
+                // Add agent badge with color dot and name
+                const agentBadge = document.createElement('span');
+                agentBadge.className = 'claude-change-agent-badge';
+                const agentName = (change.agentName || 'Agent').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                agentBadge.innerHTML = `<span class="agent-dot" style="background-color: ${change.agentColor}"></span>${agentName}`;
+                agentBadge.title = change.agentName || 'Agent';
+                changeElement.appendChild(agentBadge);
+            }
+
+            // Mark conflicts if present
+            if (change._conflict) {
+                changeElement.classList.add('claude-change-conflict');
+                changeElement.setAttribute('data-conflict-group', change._conflictGroup || '');
+                changeElement.setAttribute('data-conflict-index', change._conflictIndex || 1);
+                changeElement.setAttribute('data-conflict-total', change._conflictTotal || 1);
+
+                // Add conflict indicator
+                const conflictBadge = document.createElement('span');
+                conflictBadge.className = 'claude-change-conflict-badge';
+                conflictBadge.textContent = `Conflict ${change._conflictIndex}/${change._conflictTotal}`;
+                conflictBadge.title = 'Multiple agents proposed different changes for this content';
+                changeElement.appendChild(conflictBadge);
+            }
         });
 
         // Update the editor with the marked-up content

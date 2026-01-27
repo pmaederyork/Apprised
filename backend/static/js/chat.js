@@ -873,21 +873,33 @@ The document editor is currently CLOSED. Do not generate <document_edit> tags. I
                     this.saveMessageToHistory(fullResponse, false, [], agent1);
 
                     // Check if response contains document edits (only if document is open)
+                    let agent1Edits = [];
                     if (Documents && Documents.currentDocumentId) {
+                        console.log(`[Chat] Parsing Agent 1 response for edits...`);
+                        console.log(`[Chat] Response contains <document_edit>: ${fullResponse.includes('<document_edit>')}`);
                         const changes = Documents.parseClaudeEditResponse(fullResponse);
                         if (changes && changes.length > 0) {
-                            // Claude proposed document edits
-                            console.log(`Detected ${changes.length} document edits from Claude`);
-                            Documents.applyClaudeEdits(changes);
-
-                            // Show notification in chat
-                            this.addSystemMessage(`Claude proposed ${changes.length} change${changes.length !== 1 ? 's' : ''} to your document. Review them in the editor.`);
+                            console.log(`[Chat] Detected ${changes.length} document edits from Claude`);
+                            agent1Edits = changes;
+                        } else {
+                            console.log(`[Chat] No document edits found in Agent 1 response`);
                         }
                     }
 
                     // After initial response, check if multi-agent conversation should start
-                    if (typeof Agents !== 'undefined') {
-                        await Agents.orchestrateAgentTurns(message);
+                    const hasMultipleAgents = typeof Agents !== 'undefined' &&
+                        Agents.getCurrentAgents().length > 0;
+
+                    console.log(`[Chat] hasMultipleAgents: ${hasMultipleAgents}, agent1Edits: ${agent1Edits.length}`);
+
+                    if (hasMultipleAgents) {
+                        // Multi-agent mode: pass edits to orchestrator for collaboration
+                        console.log(`[Chat] Multi-agent mode - passing ${agent1Edits.length} edits to orchestrator`);
+                        await Agents.orchestrateAgentTurns(message, agent1Edits);
+                    } else if (agent1Edits.length > 0) {
+                        // Single agent mode: apply edits immediately
+                        Documents.applyClaudeEdits(agent1Edits);
+                        this.addSystemMessage(`Claude proposed ${agent1Edits.length} change${agent1Edits.length !== 1 ? 's' : ''} to your document. Review them in the editor.`);
                     }
                 }
             }

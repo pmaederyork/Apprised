@@ -38,15 +38,19 @@ const API = {
             'X-API-Key': apiKey
         };
 
+        // Get selected model
+        const model = Storage.getSetting('model', 'claude-sonnet-4-5-20250929');
+
         const response = await fetch('/chat', {
             method: 'POST',
             headers: headers,
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 message: messageContent,
                 history: history.slice(-10), // Send last 10 messages for context (text only)
                 systemPrompt: systemPrompt,
                 tools: tools.length > 0 ? tools : undefined,
-                files: files.length > 0 ? files : undefined
+                files: files.length > 0 ? files : undefined,
+                model: model
             }),
             signal: this.currentAbortController.signal
         });

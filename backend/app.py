@@ -393,6 +393,7 @@ def chat():
     system_prompt = data.get('systemPrompt', '')
     tools = data.get('tools', [])
     files = data.get('files', [])
+    model = data.get('model', 'claude-sonnet-4-5-20250929')
     
     if not question:
         return jsonify({'error': 'No message provided'}), 400
@@ -457,7 +458,7 @@ def chat():
             try:
                 # Prepare API call parameters
                 api_params = {
-                    "model": "claude-sonnet-4-5-20250929",
+                    "model": model,
                     "max_tokens": 20000,
                     "messages": messages
                 }

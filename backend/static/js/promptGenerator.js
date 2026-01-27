@@ -149,6 +149,9 @@ Then on a new line, write the complete system prompt.`;
 
         const userMessage = `Create a system prompt for an AI agent with this description:\n\n"${description}"`;;
 
+        // Get selected model
+        const model = Storage.getSetting('model', 'claude-sonnet-4-5-20250929');
+
         // Call the /chat endpoint
         const response = await fetch('/chat', {
             method: 'POST',
@@ -161,7 +164,8 @@ Then on a new line, write the complete system prompt.`;
                 history: [],
                 systemPrompt: generationSystemPrompt,
                 tools: undefined,
-                files: undefined
+                files: undefined,
+                model: model
             })
         });
 

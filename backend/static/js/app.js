@@ -235,6 +235,15 @@ const App = {
     // Load initial application state
     async loadInitialState() {
         try {
+            // Initialize model selector
+            if (UI.elements.modelSelect) {
+                const savedModel = Storage.getSetting('model', 'claude-sonnet-4-5-20250929');
+                UI.elements.modelSelect.value = savedModel;
+                UI.elements.modelSelect.addEventListener('change', (e) => {
+                    Storage.saveSetting('model', e.target.value);
+                });
+            }
+
             // Render system prompts list
             SystemPrompts.render();
 
