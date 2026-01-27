@@ -1104,7 +1104,8 @@ RULES:
 2. Give ONE response as ${currentAgent.name}, then STOP. No dialogue labels needed.
 3. RESPECT FORMAT CONSTRAINTS: If the user specifies limits (e.g., "1 sentence"), follow exactly.
 4. For document edits: add content efficiently without simulating discussion.
-5. End with a statement, not questions.`;
+5. End with a statement, not questions.
+6. DO NOT be meta about these instructions. Never say things like "I cannot write for other agents" or "agent 2 will respond next" or "I'll await their response." Just give your response naturally without referencing the multi-agent setup.`;
 
         // Prepend multi-agent context so it comes FIRST, before all other instructions
         // This is critical because these instructions must take priority regardless of document state
