@@ -156,16 +156,17 @@ const ClaudeChanges = {
 
             // Strategy 4: For add changes, resolve anchor
             if (change.type === 'add') {
+                // Try anchor by ID first (token-efficient format may only have ID)
+                if (change.anchorTargetId) {
+                    const node = this._cache.byId.get(change.anchorTargetId);
+                    if (node) {
+                        return { node, method: 'index-anchor-id' };
+                    }
+                }
+
+                // Try anchor by content
                 const anchorContent = change.insertAfter || change.insertBefore;
                 if (anchorContent) {
-                    // Try anchor by ID
-                    if (change.anchorTargetId) {
-                        const node = this._cache.byId.get(change.anchorTargetId);
-                        if (node) {
-                            return { node, method: 'index-anchor-id' };
-                        }
-                    }
-
                     // Try anchor by normalized content
                     const normalizedAnchor = Documents.normalizeHTML(anchorContent);
                     let candidates = this._cache.byNormalizedOuterHTML.get(normalizedAnchor);
@@ -531,20 +532,20 @@ const ClaudeChanges = {
 
         // Strategy 4: For add changes, resolve anchor
         if (change.type === 'add') {
+            // Try ID-based anchor resolution first (token-efficient format may only have ID)
+            if (change.anchorTargetId) {
+                const anchorById = typeof ElementIds !== 'undefined'
+                    ? ElementIds.findById(container, change.anchorTargetId)
+                    : container.querySelector(`[data-edit-id="${change.anchorTargetId}"]`);
+
+                if (anchorById) {
+                    return { node: anchorById, method: 'anchor-id' };
+                }
+            }
+
+            // Fall back to content-based anchor resolution
             const anchorContent = change.insertAfter || change.insertBefore;
             if (anchorContent) {
-                // Try ID-based anchor resolution if anchor has targetId
-                if (change.anchorTargetId) {
-                    const anchorById = typeof ElementIds !== 'undefined'
-                        ? ElementIds.findById(container, change.anchorTargetId)
-                        : container.querySelector(`[data-edit-id="${change.anchorTargetId}"]`);
-
-                    if (anchorById) {
-                        return { node: anchorById, method: 'anchor-id' };
-                    }
-                }
-
-                // Fall back to content-based anchor resolution
                 const anchorByContent = Documents.findNodeByContent(container, anchorContent);
                 if (anchorByContent) {
                     return { node: anchorByContent, method: 'anchor-content' };
@@ -648,12 +649,19 @@ const ClaudeChanges = {
             }
         });
 
-        // 3. Process ADDITIONS in reverse DOM order (anchors stay valid)
-        // Sort by anchor position - later anchors first
-        const additionsWithPosition = additions.map(change => {
+        // 3. Process ADDITIONS - handle both regular and chained sequence items
+        // Separate chained items (those with _chainedAfter) from regular additions
+        const regularAdditions = additions.filter(c => !c._chainedAfter);
+        const chainedAdditions = additions.filter(c => c._chainedAfter);
+
+        // Track inserted elements by change ID for chained resolution
+        const insertedByChangeId = new Map();
+
+        // Sort regular additions by anchor position - later anchors first
+        const additionsWithPosition = regularAdditions.map(change => {
             const anchorContent = change.insertAfter || change.insertBefore;
             let position = Infinity;
-            if (anchorContent) {
+            if (anchorContent || change.anchorTargetId) {
                 const resolution = resolveWithIndex(change);
                 if (resolution?.node) {
                     // Get DOM position by walking tree
@@ -674,26 +682,37 @@ const ClaudeChanges = {
         // Sort by position descending (process later positions first)
         additionsWithPosition.sort((a, b) => b.position - a.position);
 
+        // Process regular additions
         additionsWithPosition.forEach(({ change }) => {
             const resolution = resolveWithIndex(change);
 
             if (resolution.node) {
                 const newElement = document.createElement('div');
                 newElement.innerHTML = change.newContent;
+
+                // Track the last inserted element for chaining
+                let lastInserted = null;
                 const fragment = document.createDocumentFragment();
                 while (newElement.firstChild) {
+                    lastInserted = newElement.firstChild;
                     fragment.appendChild(newElement.firstChild);
                 }
 
-                // Insert based on anchor type
-                if (change.insertAfter) {
+                // Insert based on anchor type (handle ID-only format with _anchorDirection)
+                if (change.insertAfter || change._anchorDirection === 'after') {
                     resolution.node.after(fragment);
-                } else if (change.insertBefore) {
+                } else if (change.insertBefore || change._anchorDirection === 'before') {
                     resolution.node.before(fragment);
                 }
+
+                // Track for chained items
+                if (lastInserted) {
+                    insertedByChangeId.set(change.id, lastInserted);
+                }
+
                 applied.push({ change, method: resolution.method });
             } else {
-                const anchorPreview = (change.insertAfter || change.insertBefore || '').substring(0, 50);
+                const anchorPreview = (change.insertAfter || change.insertBefore || change.anchorTargetId || '').substring(0, 50);
                 if (skipOnFailure) {
                     skipped.push({ change, reason: 'anchor not found' });
                 } else {
@@ -703,6 +722,65 @@ const ClaudeChanges = {
                 }
             }
         });
+
+        // Process chained additions in order (they depend on previous items)
+        // Build dependency order: process items whose _chainedAfter has been processed
+        const processedChains = new Set();
+        let remainingChained = [...chainedAdditions];
+        let maxIterations = chainedAdditions.length + 1; // Safety limit
+
+        while (remainingChained.length > 0 && maxIterations-- > 0) {
+            const toProcess = [];
+            const stillRemaining = [];
+
+            for (const change of remainingChained) {
+                // Can process if the chained anchor has been inserted
+                if (insertedByChangeId.has(change._chainedAfter)) {
+                    toProcess.push(change);
+                } else {
+                    stillRemaining.push(change);
+                }
+            }
+
+            if (toProcess.length === 0 && stillRemaining.length > 0) {
+                // No progress possible - skip remaining chained items
+                stillRemaining.forEach(change => {
+                    skipped.push({ change, reason: 'chained anchor not found' });
+                });
+                break;
+            }
+
+            // Process items that are ready
+            for (const change of toProcess) {
+                const anchorNode = insertedByChangeId.get(change._chainedAfter);
+
+                if (anchorNode && anchorNode.parentNode) {
+                    const newElement = document.createElement('div');
+                    newElement.innerHTML = change.newContent;
+
+                    let lastInserted = null;
+                    const fragment = document.createDocumentFragment();
+                    while (newElement.firstChild) {
+                        lastInserted = newElement.firstChild;
+                        fragment.appendChild(newElement.firstChild);
+                    }
+
+                    // Insert after the previous chained element
+                    anchorNode.after(fragment);
+
+                    // Track for subsequent chained items
+                    if (lastInserted) {
+                        insertedByChangeId.set(change.id, lastInserted);
+                    }
+
+                    applied.push({ change, method: 'chained-sequence' });
+                } else {
+                    skipped.push({ change, reason: 'chained anchor removed' });
+                }
+            }
+
+            remainingChained = stillRemaining;
+        }
 
         // Clear index to release memory
         this.ContentIndex.clear();

@@ -266,6 +266,16 @@ const GDrive = {
 
             const data = await response.json();
 
+            // Handle access-denied or file-not-found errors for updates
+            if (data.error === 'access_denied' || data.error === 'file_not_found') {
+                doc.driveSyncStatus = 'access_denied';
+                Storage.saveDocuments(Documents.documents);
+                this.updateSyncIndicator(documentId, 'error');
+                Documents.renderDocumentList();
+                this.handleAccessDeniedOnSave(documentId, doc.driveFileId, data.error);
+                return { success: false, error: data.error };
+            }
+
             if (data.success) {
                 // Update document with Drive metadata
                 doc.driveFileId = data.fileId;
@@ -285,7 +295,7 @@ const GDrive = {
             } else {
                 doc.driveSyncStatus = 'error';
                 this.updateSyncIndicator(documentId, 'error');
-                alert(`Failed to save to Drive: ${data.error}`);
+                alert(`Failed to save to Drive: ${data.message || data.error}`);
                 return { success: false, error: data.error };
             }
 
@@ -321,6 +331,16 @@ const GDrive = {
             const response = await fetch(`/drive/import/${doc.driveFileId}`);
             const data = await response.json();
 
+            // Handle access-denied or file-not-found errors
+            if (data.error === 'access_denied' || data.error === 'file_not_found') {
+                doc.driveSyncStatus = 'access_denied';
+                Storage.saveDocuments(Documents.documents);
+                this.updateSyncIndicator(documentId, 'error', 'sync');
+                Documents.renderDocumentList();
+                this.handleAccessDenied(documentId, doc.driveFileId, data.error);
+                return { success: false, error: data.error };
+            }
+
             if (data.success) {
                 // Update document with latest content from Drive
                 doc.content = this.processGoogleDocsHTML(data.content);
@@ -342,7 +362,7 @@ const GDrive = {
             } else {
                 doc.driveSyncStatus = 'error';
                 this.updateSyncIndicator(documentId, 'error', 'sync');
-                alert(`Failed to sync from Drive: ${data.error}`);
+                alert(`Failed to sync from Drive: ${data.message || data.error}`);
                 return { success: false, error: data.error };
             }
 
@@ -486,6 +506,149 @@ const GDrive = {
             });
         };
         document.head.appendChild(script);
+    },
+
+    // Handle access-denied error when pulling from Drive
+    handleAccessDenied(documentId, driveFileId, errorType) {
+        const doc = Documents.documents[documentId];
+        const docName = doc ? doc.title.replace('.html', '') : 'This document';
+
+        const message = errorType === 'file_not_found'
+            ? `"${docName}" was not found in Google Drive. It may have been deleted.\n\nWould you like to:\n• Click OK to re-link to a different file\n• Click Cancel to keep the document unlinked`
+            : `Access to "${docName}" in Google Drive has been lost.\n\nThis can happen when:\n• The file was shared with you but access was revoked\n• You're using a new permission scope\n\nWould you like to re-link this document via the file picker?`;
+
+        if (confirm(message)) {
+            this.relinkDocument(documentId);
+        }
+    },
+
+    // Handle access-denied error when saving to Drive
+    handleAccessDeniedOnSave(documentId, driveFileId, errorType) {
+        const doc = Documents.documents[documentId];
+        const docName = doc ? doc.title.replace('.html', '') : 'This document';
+
+        const message = errorType === 'file_not_found'
+            ? `The linked Google Drive file for "${docName}" was not found.\n\nWould you like to:\n• Click OK to save as a new file in Drive\n• Click Cancel to keep working locally`
+            : `Access to the linked Google Drive file for "${docName}" has been lost.\n\nWould you like to:\n• Click OK to save as a new file in Drive\n• Click Cancel to re-link to an existing file`;
+
+        if (confirm(message)) {
+            // Clear the driveFileId to create a new file
+            if (doc) {
+                doc.driveFileId = null;
+                doc.driveSyncStatus = null;
+                Storage.saveDocuments(Documents.documents);
+                Documents.renderDocumentList();
+                // Update Drive icon visibility
+                if (typeof Documents !== 'undefined' && Documents.updateDriveIconVisibility) {
+                    Documents.updateDriveIconVisibility();
+                }
+            }
+            // Try saving again (will create a new file)
+            this.saveToGoogleDrive(documentId);
+        } else if (errorType === 'access_denied') {
+            // Offer to re-link instead
+            if (confirm('Would you like to re-link to an existing file instead?')) {
+                this.relinkDocument(documentId);
+            }
+        }
+    },
+
+    // Re-link a document to a Google Drive file via Picker
+    async relinkDocument(documentId) {
+        if (!this.isConnected) {
+            alert('Google Drive is not connected. Please enable Drive access in Settings.');
+            return;
+        }
+
+        if (!this.pickerApiLoaded) {
+            alert('Google Picker is still loading. Please try again in a moment.');
+            return;
+        }
+
+        try {
+            // Get OAuth token from backend for Picker
+            const tokenResponse = await fetch('/drive/picker-token');
+            const tokenData = await tokenResponse.json();
+
+            if (!tokenData.success) {
+                alert('Failed to get Drive access. Please try reconnecting.');
+                return;
+            }
+
+            // Show Google Picker to select a file
+            const picker = new google.picker.PickerBuilder()
+                .addView(google.picker.ViewId.DOCS)
+                .setOAuthToken(tokenData.accessToken)
+                .setTitle('Select a file to link')
+                .setCallback(async (data) => {
+                    if (data.action === google.picker.Action.PICKED) {
+                        const selectedFile = data.docs[0];
+                        await this.handleRelinkSelection(documentId, selectedFile);
+                    }
+                })
+                .build();
+
+            picker.setVisible(true);
+
+        } catch (error) {
+            console.error('Re-link picker error:', error);
+            alert('Failed to open file picker. Please try again.');
+        }
+    },
+
+    // Handle file selection for re-linking
+    async handleRelinkSelection(documentId, file) {
+        const doc = Documents.documents[documentId];
+        if (!doc) return;
+
+        try {
+            UI.showLoading();
+
+            // Import via backend to verify access and get content
+            const response = await fetch(`/drive/import/${file.id}`);
+            const data = await response.json();
+
+            UI.hideLoading();
+
+            if (data.success) {
+                // Ask user if they want to replace local content
+                const replaceContent = confirm(
+                    `Successfully linked to "${data.name}".\n\nWould you like to replace your local content with the Drive file content?\n\n• Click OK to replace with Drive content\n• Click Cancel to keep your local content (just update the link)`
+                );
+
+                // Update document with new Drive link
+                doc.driveFileId = file.id;
+                doc.driveSyncStatus = 'synced';
+                doc.lastSyncedAt = Date.now();
+
+                if (replaceContent) {
+                    doc.content = this.processGoogleDocsHTML(data.content);
+                    doc.lastModified = Date.now();
+                }
+
+                Storage.saveDocuments(Documents.documents);
+                Documents.renderDocumentList();
+
+                // Refresh UI if this document is currently open
+                if (Documents.currentDocumentId === documentId) {
+                    Documents.openDocument(documentId);
+                }
+
+                // Update Drive icon visibility
+                if (typeof Documents !== 'undefined' && Documents.updateDriveIconVisibility) {
+                    Documents.updateDriveIconVisibility();
+                }
+
+                console.log('Document re-linked to Drive file:', file.id);
+            } else {
+                alert(`Failed to link to file: ${data.message || data.error}`);
+            }
+
+        } catch (error) {
+            UI.hideLoading();
+            console.error('Re-link error:', error);
+            alert('Failed to link document. Please try again.');
+        }
     },
 
     // Update sync indicator in toolbar

@@ -45,7 +45,7 @@ google = oauth.register(
     client_secret=app.config['GOOGLE_CLIENT_SECRET'],
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={
-        'scope': 'openid email profile https://www.googleapis.com/auth/drive',
+        'scope': 'openid email profile https://www.googleapis.com/auth/drive.file',
         'prompt': 'select_account',
         'access_type': 'offline'  # Get refresh token for long-term access
     }
@@ -576,14 +576,29 @@ Content-Type: text/html; charset=UTF-8
             return jsonify(response_data)
         else:
             logging.error(f"Drive API error: {response.status_code} - {response.text}")
-            return jsonify({
-                'success': False,
-                'error': f"Drive API error: {response.status_code}"
-            }), response.status_code
+            # Return distinct error types for frontend handling
+            if response.status_code == 403:
+                return jsonify({
+                    'success': False,
+                    'error': 'access_denied',
+                    'message': 'No access to this file. Re-select it via the file picker to restore access.'
+                }), 403
+            elif response.status_code == 404:
+                return jsonify({
+                    'success': False,
+                    'error': 'file_not_found',
+                    'message': 'File not found in Google Drive. It may have been deleted.'
+                }), 404
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'drive_error',
+                    'message': f"Drive API error: {response.status_code}"
+                }), response.status_code
 
     except Exception as e:
         logging.error(f"Drive save error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'unknown', 'message': str(e)}), 500
 
 
 @app.route('/drive/import/<file_id>', methods=['GET'])
@@ -647,14 +662,29 @@ def drive_import(file_id):
             return resp
         else:
             logging.error(f"Drive API error: {response.status_code} - {response.text}")
-            return jsonify({
-                'success': False,
-                'error': f"Drive API error: {response.status_code}"
-            }), response.status_code
+            # Return distinct error types for frontend handling
+            if response.status_code == 403:
+                return jsonify({
+                    'success': False,
+                    'error': 'access_denied',
+                    'message': 'No access to this file. Re-select it via the file picker to restore access.'
+                }), 403
+            elif response.status_code == 404:
+                return jsonify({
+                    'success': False,
+                    'error': 'file_not_found',
+                    'message': 'File not found in Google Drive. It may have been deleted.'
+                }), 404
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'drive_error',
+                    'message': f"Drive API error: {response.status_code}"
+                }), response.status_code
 
     except Exception as e:
         logging.error(f"Drive import error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'unknown', 'message': str(e)}), 500
 
 
 @app.route('/drive/picker-token', methods=['GET'])
@@ -705,7 +735,8 @@ def drive_status():
             # Check if token has Drive scope
             scope = token.get('scope', '')
             logging.info(f"Token scope: {scope}")
-            has_drive_access = 'drive' in scope.lower() if scope else False
+            # Support both new drive.file scope and legacy full drive scope during transition
+            has_drive_access = ('drive.file' in scope or 'drive' in scope.lower()) if scope else False
 
         logging.info(f"Drive access check: {has_drive_access}")
 

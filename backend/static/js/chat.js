@@ -699,18 +699,58 @@ These IDs enable precise element targeting that survives content matching failur
    <new>[replacement HTML]</new>
    </change>
 
-📍 USING anchorTargetId FOR ADD OPERATIONS:
-   For insertions, use anchorTargetId to identify the anchor element:
+📍 TOKEN-EFFICIENT ANCHORING (PREFERRED):
+   Use ID-based anchors instead of repeating full HTML content to save tokens:
 
-   <change type="add" insertAfter="<p>Some text</p>" anchorTargetId="e-ghi789">
-   <new><p>New paragraph here</p></new>
+   <!-- Instead of this (verbose): -->
+   <change type="add" insertAfter="<p>This is a very long paragraph with lots of content...</p>">
+   <new><p>New paragraph</p></new>
    </change>
+
+   <!-- Use this (token-efficient): -->
+   <change type="add" insertAfter-id="e-abc123">
+   <new><p>New paragraph</p></new>
+   </change>
+
+   The insertAfter-id and insertBefore-id attributes reference the data-edit-id of the anchor element.
 
 📍 FALLBACK BEHAVIOR:
    - If targetId is provided, it takes priority for element lookup
    - If targetId lookup fails, content matching is used as fallback
    - You can omit targetId entirely - content matching still works
    - Use targetId when available for maximum reliability
+
+═══════════════════════════════════════════════════════════════════════════
+BULK INSERTIONS (add-sequence)
+═══════════════════════════════════════════════════════════════════════════
+
+When adding MULTIPLE consecutive elements (e.g., pasting many paragraphs), use add-sequence
+to dramatically reduce token usage. This groups all insertions under ONE anchor:
+
+<!-- Instead of N separate changes (token-heavy): -->
+<change type="add" insertAfter="<p>Long anchor text...</p>"><new><p>Item 1</p></new></change>
+<change type="add" insertAfter="<p>Item 1</p>"><new><p>Item 2</p></new></change>
+<change type="add" insertAfter="<p>Item 2</p>"><new><p>Item 3</p></new></change>
+
+<!-- Use ONE sequence change (token-efficient): -->
+<change type="add-sequence" insertAfter-id="e-abc123">
+<items>
+<item><p>Item 1</p></item>
+<item><p>Item 2</p></item>
+<item><p>Item 3</p></item>
+</items>
+</change>
+
+📍 WHEN TO USE add-sequence:
+   - User pastes multiple paragraphs and asks to add them
+   - Adding a list of items, numbered points, or sections
+   - Any operation that adds 3+ consecutive elements
+
+📍 STRUCTURE:
+   - Use insertAfter-id or insertBefore-id to specify the anchor
+   - Wrap items in <items>...</items>
+   - Each item goes in <item>...</item>
+   - Items are inserted in order, each after the previous
 
 ═══════════════════════════════════════════════════════════════════════════
 PATTERN OPERATIONS (BULK CHANGES)
@@ -763,6 +803,38 @@ Response: "I'll clean up all empty lines:
 
 <document_edit>
 <change type="delete-pattern" pattern="empty-lines">
+</change>
+</document_edit>"
+
+Example 15: Bulk insertion with add-sequence
+User: [pastes 5 paragraphs] "Add these after the introduction"
+Decompose: ADD + TARGET(multiple items) + LOCATION("after introduction")
+Document has: <h2 data-edit-id="e-intro1">Introduction</h2>
+
+Response: "I'll add those paragraphs:
+
+<document_edit>
+<change type="add-sequence" insertAfter-id="e-intro1">
+<items>
+<item><p>First paragraph content...</p></item>
+<item><p>Second paragraph content...</p></item>
+<item><p>Third paragraph content...</p></item>
+<item><p>Fourth paragraph content...</p></item>
+<item><p>Fifth paragraph content...</p></item>
+</items>
+</change>
+</document_edit>"
+
+Example 16: Token-efficient single add with ID anchor
+User: "Add a note after that paragraph"
+Decompose: ADD + LOCATION("after [paragraph with id e-p3x2]")
+Document has: <p data-edit-id="e-p3x2">Some paragraph content.</p>
+
+Response: "I'll add a note:
+
+<document_edit>
+<change type="add" insertAfter-id="e-p3x2">
+<new><p><em>Note: Additional context here.</em></p></new>
 </change>
 </document_edit>"`;
 

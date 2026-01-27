@@ -9,6 +9,7 @@ Apprised is a feature-rich web application for conversing with Claude AI. It ext
 **Key Highlights:**
 - 🤖 **Multi-Agent System**: Assign multiple AI agents with different personalities to a single conversation
 - 📝 **Document Collaboration**: Rich text editor with AI-assisted editing and change review
+- ☁️ **Google Drive Integration**: Save and import documents with privacy-focused `drive.file` scope
 - 🔧 **Smart Tools**: Web search, automatic document context, and screenshare capabilities
 - ⚡ **Advanced Workflows**: Multi-turn reasoning, copy-to-document shortcuts, and smart paste handling
 - 🔐 **Privacy First**: All data stored locally with optional API key encryption
@@ -47,6 +48,11 @@ Apprised is a feature-rich web application for conversing with Claude AI. It ext
 
 ### Tools & Integrations
 
+- **Google Drive**: Save documents to and import from Google Drive
+  - Uses narrow `drive.file` scope for privacy (only accesses files you create or explicitly select)
+  - Two-way sync with Pull button to fetch latest changes
+  - Automatic re-linking when access is lost (e.g., after scope changes)
+  - Visual indicators for sync status and broken links
 - **Web Search**: Enable Claude to search the web for up-to-date information during conversations
 - **Doc Context (Auto)**: Automatically includes open document content in chat messages for contextual AI assistance
 - **File Upload**: Attach multiple files and images to messages via attachment button (📎) or drag-and-drop
@@ -155,6 +161,12 @@ Apprised is a feature-rich web application for conversing with Claude AI. It ext
    - Accept (Enter) or reject (Delete) individual changes
    - Use `Ctrl+A` to accept all or `Ctrl+R` to reject all
 
+4. **Google Drive sync**
+   - Click "Save" button to save document to Google Drive
+   - Click "Pull" to fetch latest changes from Drive
+   - Import existing Drive documents via the Google Drive icon in sidebar
+   - If access is lost, click the ⚠️ warning icon to re-link via file picker
+
 ### File-Enhanced Conversations
 
 1. Click 📎 attachment button or paste images directly
@@ -222,7 +234,7 @@ Apprised/
 │       │   ├── editor-changes.css # AI change review panel
 │       │   ├── components.css     # Reusable component styles
 │       │   └── buttons.css        # Button styles & states
-│       ├── js/               # JavaScript modules (16 files)
+│       ├── js/               # JavaScript modules (17 files)
 │       │   ├── app.js             # Application initialization
 │       │   ├── ui.js              # DOM references & utilities
 │       │   ├── storage.js         # localStorage wrapper
@@ -238,6 +250,7 @@ Apprised/
 │       │   ├── tools.js           # Tool toggles (web search, etc)
 │       │   ├── screenshare.js     # Screenshot capture
 │       │   ├── settings.js        # API key & settings modal
+│       │   ├── gdrive.js          # Google Drive integration
 │       │   └── crypto-utils.js    # Encryption utilities
 │       └── icons/            # Application icons
 │           └── claude-color.svg
@@ -273,6 +286,7 @@ Apprised/
 - `tools.js` - Tool toggles (web search, doc context, screenshare)
 - `screenshare.js` - Screenshot capture and sharing
 - `settings.js` - API key management and encryption
+- `gdrive.js` - Google Drive save/import with Picker API
 - `crypto-utils.js` - Web Crypto API wrapper for encryption
 
 **Data Flow:**
@@ -342,11 +356,13 @@ Follow the "Clean Tree Process" from CLAUDE.md:
 - Python 3.7+
 - Flask - Web framework
 - Anthropic SDK - Claude API client
+- Authlib - Google OAuth integration
 - Base64 - File encoding
 
 **Frontend:**
 - Vanilla JavaScript (ES6+)
 - Web Crypto API - Encryption
+- Google Picker API - Drive file selection
 - CSS3 with CSS Variables
 - HTML5
 - ContentEditable API - Document editor
@@ -380,6 +396,13 @@ python3 app.py
 
 ## Version History
 
+- **Version**: 3.2
+- **Updated**: January 2025
+- **Recent Updates**:
+  - **Google Drive integration** with privacy-focused `drive.file` scope
+  - Graceful handling of Drive access loss with re-link flow
+  - Visual indicators for Drive sync status
+
 - **Version**: 3.1
 - **Refactored**: December 2024
 - **Major Updates**:
@@ -412,6 +435,7 @@ The modular architecture supports easy addition of:
 - **API Keys**: Never commit API keys to version control
 - **Encryption**: Optional passphrase-based encryption available in settings
 - **Local Storage**: All data stored in browser localStorage (not sent to any server except Anthropic API)
+- **Google Drive**: Uses `drive.file` scope - Apprised can only access files it creates or files you explicitly select via the file picker. It cannot see or access any other files in your Drive.
 - **HTTPS**: Use HTTPS in production for secure API communication
 - **Passphrase**: Use strong passphrases (12+ characters) when enabling encryption
 

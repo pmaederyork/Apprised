@@ -503,6 +503,25 @@ const Documents = {
                 ]
             });
 
+            // Add warning indicator for broken Drive links
+            if (document.driveFileId && document.driveSyncStatus === 'access_denied') {
+                const warningIcon = window.document.createElement('span');
+                warningIcon.className = 'drive-link-warning';
+                warningIcon.textContent = '⚠️';
+                warningIcon.title = 'Drive access lost - click to re-link';
+                warningIcon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (typeof GDrive !== 'undefined') {
+                        GDrive.relinkDocument(document.id);
+                    }
+                });
+                // Insert warning icon at the beginning of the item content
+                const contentDiv = documentItem.querySelector('.document-item-content');
+                if (contentDiv) {
+                    contentDiv.insertBefore(warningIcon, contentDiv.firstChild);
+                }
+            }
+
             // Make document draggable for chat attachment
             documentItem.draggable = true;
             documentItem.setAttribute('data-document-id', document.id);
@@ -2050,11 +2069,22 @@ const Documents = {
             return this.findNodeByContent(tempDiv, content);
         };
 
+        // Track change elements for sequence chaining
+        const changeElementsById = new Map();
+
         // Apply each change with visual markers
         changes.forEach((change, index) => {
             const changeElement = document.createElement('div');
             changeElement.setAttribute('data-change-id', change.id);
             changeElement.setAttribute('data-change-index', index);
+
+            // Track for sequence chaining
+            changeElementsById.set(change.id, changeElement);
+
+            // Add sequence group attribute if this is part of a sequence
+            if (change._sequenceGroup) {
+                changeElement.setAttribute('data-sequence-group', 'true');
+            }
 
             // Add pattern source attribute if this is a pattern-based change
             if (change._patternGroup) {
@@ -2113,8 +2143,53 @@ const Documents = {
                 }
                 changeElement.innerHTML = change.newContent || '';
 
+                // Handle chained sequence items (insert after previous change in sequence)
+                if (change._chainedAfter) {
+                    const prevChangeElement = changeElementsById.get(change._chainedAfter);
+                    if (prevChangeElement && prevChangeElement.parentNode) {
+                        // Insert after the previous change element in the sequence
+                        prevChangeElement.after(changeElement);
+                        // Mark as chained for signature reconstruction
+                        if (!change._cachedSignature) {
+                            change._cachedSignature = {
+                                anchorType: 'chainedAfter',
+                                chainedAfter: change._chainedAfter
+                            };
+                        }
+                    } else {
+                        console.warn('❌ ADD preview: Could not find chained anchor:', change._chainedAfter);
+                        tempDiv.appendChild(changeElement);
+                    }
+                }
+                // Handle ID-only anchor (token-efficient format with _anchorDirection)
+                else if (change._anchorDirection && change.anchorTargetId) {
+                    const anchorNode = findNodeWithIndex(null, change.anchorTargetId);
+                    if (anchorNode) {
+                        // Cache anchor signature for reconstruction
+                        if (!change._cachedSignature) {
+                            change._cachedSignature = {
+                                textContent: anchorNode.textContent?.trim() || '',
+                                tagName: anchorNode.tagName?.toLowerCase() || '',
+                                innerHTML: anchorNode.innerHTML || '',
+                                outerHTML: anchorNode.outerHTML || '',
+                                anchorType: change._anchorDirection === 'after' ? 'insertAfter' : 'insertBefore'
+                            };
+                        }
+                        if (change._anchorDirection === 'after') {
+                            anchorNode.after(changeElement);
+                        } else {
+                            anchorNode.before(changeElement);
+                        }
+                    } else {
+                        console.warn('❌ ADD preview: Could not find ID-only anchor:', change.anchorTargetId);
+                        if (!change._cachedSignature) {
+                            change._cachedSignature = null;
+                        }
+                        tempDiv.appendChild(changeElement);
+                    }
+                }
                 // Insert at appropriate position using indexed anchor lookup
-                if (change.insertAfter) {
+                else if (change.insertAfter) {
                     const anchorNode = findNodeWithIndex(change.insertAfter, change.anchorTargetId);
                     if (anchorNode) {
                         // Capture stable ID if anchor has one (for hybrid resolution)
@@ -2567,6 +2642,68 @@ const Documents = {
                 continue;
             }
 
+            // Handle add-sequence type (bulk insertions)
+            if (type === 'add-sequence') {
+                // Parse ID-based anchors (token-efficient format)
+                const insertAfterIdMatch = attributeString.match(/insertAfter-id="([^"]+)"/);
+                const insertBeforeIdMatch = attributeString.match(/insertBefore-id="([^"]+)"/);
+                const anchorTargetId = insertAfterIdMatch?.[1] || insertBeforeIdMatch?.[1];
+                // Track anchor direction for ID-only format
+                const anchorDirection = insertAfterIdMatch ? 'after' : (insertBeforeIdMatch ? 'before' : null);
+
+                // Also support full HTML anchors as fallback
+                const insertAfterMatch = attributeString.match(/insertAfter="(.*?)"(?=\s|>|$)/s);
+                const insertBeforeMatch = attributeString.match(/insertBefore="(.*?)"(?=\s|>|$)/s);
+                const insertAfter = insertAfterMatch ? insertAfterMatch[1] : undefined;
+                const insertBefore = insertBeforeMatch ? insertBeforeMatch[1] : undefined;
+
+                // Parse items from sequence
+                const itemsMatch = content.match(/<items>(.*?)<\/items>/s);
+                if (itemsMatch) {
+                    const itemsContent = itemsMatch[1];
+                    const itemRegex = /<item>(.*?)<\/item>/gs;
+                    let itemMatch;
+                    let isFirstItem = true;
+                    let previousChangeId = null;
+
+                    while ((itemMatch = itemRegex.exec(itemsContent)) !== null) {
+                        const itemContent = itemMatch[1].trim();
+                        const changeId = Storage.generateChangeId();
+
+                        const change = {
+                            id: changeId,
+                            type: 'add',
+                            newContent: itemContent,
+                            status: 'pending',
+                            _sequenceGroup: true // Mark as part of a sequence
+                        };
+
+                        if (isFirstItem) {
+                            // First item uses the original anchor
+                            change.insertAfter = insertAfter;
+                            change.insertBefore = insertBefore;
+                            change.anchorTargetId = anchorTargetId;
+                            // For ID-only format, track the direction
+                            if (anchorDirection && !insertAfter && !insertBefore) {
+                                change._anchorDirection = anchorDirection;
+                            }
+                            isFirstItem = false;
+                        } else {
+                            // Subsequent items chain to previous item
+                            change._chainedAfter = previousChangeId;
+                        }
+
+                        previousChangeId = changeId;
+                        changes.push(change);
+                    }
+                }
+                continue;
+            }
+
+            // Parse ID-based anchors (token-efficient format)
+            const insertAfterIdMatch = attributeString.match(/insertAfter-id="([^"]+)"/);
+            const insertBeforeIdMatch = attributeString.match(/insertBefore-id="([^"]+)"/);
+
             // For insertAfter/insertBefore, handle nested quotes in HTML content
             // Use positive lookahead to check for space, >, or end-of-string after closing quote
             const insertAfterMatch = attributeString.match(/insertAfter="(.*?)"(?=\s|>|$)/s);
@@ -2574,6 +2711,19 @@ const Documents = {
 
             const insertAfter = insertAfterMatch ? insertAfterMatch[1] : undefined;
             const insertBefore = insertBeforeMatch ? insertBeforeMatch[1] : undefined;
+
+            // Extract targetId if provided (for delete/modify operations)
+            const targetIdMatch = attributeString.match(/targetId="([^"]+)"/);
+            const targetId = targetIdMatch ? targetIdMatch[1] : undefined;
+
+            // Use ID-based anchor if provided, otherwise fall back to content-based
+            const anchorTargetId = insertAfterIdMatch?.[1] || insertBeforeIdMatch?.[1];
+
+            // Track anchor direction for ID-only format (when no content-based anchor)
+            let anchorDirection = undefined;
+            if (anchorTargetId && !insertAfter && !insertBefore) {
+                anchorDirection = insertAfterIdMatch ? 'after' : 'before';
+            }
 
             const originalMatch = content.match(/<original>(.*?)<\/original>/s);
             const newMatch = content.match(/<new>(.*?)<\/new>/s);
@@ -2583,6 +2733,9 @@ const Documents = {
                 type: type,
                 insertAfter: insertAfter || undefined,
                 insertBefore: insertBefore || undefined,
+                anchorTargetId: anchorTargetId || undefined,
+                _anchorDirection: anchorDirection,
+                targetId: targetId || undefined,
                 originalContent: originalMatch ? originalMatch[1].trim() : null,
                 newContent: newMatch ? newMatch[1].trim() : null,
                 status: 'pending'
