@@ -578,6 +578,9 @@ const Agents = {
                         const systemPrompts = Storage.getSystemPrompts();
                         let agentSystemPrompt = systemPrompts[agent.systemPromptId]?.content || '';
 
+                        // Inject multi-agent conversation context
+                        agentSystemPrompt = this.appendMultiAgentContext(agentSystemPrompt, agent, agents, turn, i);
+
                         // If document is open, add document context for this agent
                         let filesData = [];
                         if (this.isCollaborating && Documents && Documents.currentDocumentId) {
@@ -996,6 +999,62 @@ IMPORTANT:
 - Keep edits focused and purposeful`;
 
         return systemPrompt ? systemPrompt + documentEditingInstructions : documentEditingInstructions;
+    },
+
+    /**
+     * Append multi-agent conversation context to an agent's system prompt
+     * Helps agents understand they're in a collaborative discussion with other AI agents
+     */
+    appendMultiAgentContext(systemPrompt, currentAgent, allAgents, turn, agentIndex) {
+        // Only add context if there are multiple agents
+        if (allAgents.length < 2) {
+            return systemPrompt;
+        }
+
+        // Build list of other participants
+        const otherAgents = allAgents
+            .filter((a, idx) => idx !== agentIndex)
+            .map(a => `- ${a.name}`)
+            .join('\n');
+
+        // Determine who sent the previous message and conversation context
+        let previousSpeaker = 'the user';
+        let isNewUserRound = false;
+
+        if (turn === 1 && agentIndex === 0) {
+            // First agent, first turn - responding directly to user
+            previousSpeaker = 'the user';
+            isNewUserRound = true;
+        } else if (turn === 1) {
+            // Other agents on turn 1 - user just started this round
+            previousSpeaker = allAgents[agentIndex - 1].name;
+            isNewUserRound = true;
+        } else if (agentIndex > 0) {
+            // Not first agent in later turns
+            previousSpeaker = allAgents[agentIndex - 1].name;
+        } else {
+            // First agent in turn 2+ - previous was last agent of previous turn
+            previousSpeaker = allAgents[allAgents.length - 1].name;
+        }
+
+        // Build context about user involvement
+        let userContext = '';
+        if (isNewUserRound) {
+            userContext = `\nThe user has just sent a new message that started this round of discussion. ${allAgents[0].name} responded to the user first.`;
+        }
+
+        const multiAgentContext = `
+
+MULTI-AGENT CONVERSATION:
+You are "${currentAgent.name}" in a collaborative discussion with other AI agents.
+This is Turn ${turn}. You are responding to a message from ${previousSpeaker}.${userContext}
+
+Other participants in this conversation:
+${otherAgents}
+
+IMPORTANT: The message you're responding to was written by ${previousSpeaker === 'the user' ? 'the human user' : 'another AI agent, NOT a human user pretending to be an agent'}. Stay fully in character as ${currentAgent.name}. Engage directly with the ideas presented - build upon them, challenge them, or offer your unique perspective. Do not break character or question the conversation setup.`;
+
+        return systemPrompt ? systemPrompt + multiAgentContext : multiAgentContext;
     },
 
     /**

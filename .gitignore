@@ -60,4 +60,5 @@ build/
 .changes/
 .claude/
 .planning/
+.playwright-mcp/
 SQUIRE_API.md

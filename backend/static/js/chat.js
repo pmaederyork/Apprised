@@ -329,6 +329,20 @@ const Chat = {
                 systemPromptId: activeSystemPromptId,
                 color: '#ea580c'  // Orange - Agent 1 color
             };
+
+            // Inject multi-agent context for Agent 1's initial response
+            if (typeof Agents !== 'undefined' && Agents.appendMultiAgentContext) {
+                // Build full agents list for context
+                const allAgents = [agent1];
+                const addedAgents = currentChat.agents.map((agent, index) => ({
+                    ...agent,
+                    color: Agents.AGENT_COLORS[(1 + index) % Agents.AGENT_COLORS.length]
+                }));
+                allAgents.push(...addedAgents);
+
+                // Append context: Agent 1, Turn 1, Index 0 (responding to user)
+                systemPrompt = Agents.appendMultiAgentContext(systemPrompt, agent1, allAgents, 1, 0);
+            }
         }
 
         // Create streaming message bubble with agent badge if in multi-agent mode
