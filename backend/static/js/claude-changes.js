@@ -568,7 +568,7 @@ const ClaudeChanges = {
      * This creates a clean document without wrapper divs
      *
      * OPTIMIZED: Uses ContentIndex for O(1) lookups instead of O(M) recursive searches.
-     * Groups changes by type and processes additions in reverse order for stable anchors.
+     * Groups changes by type and processes additions in document order (top to bottom).
      *
      * @param {string} originalHTML - The original document HTML
      * @param {Array} acceptedChanges - Array of accepted change objects
@@ -689,8 +689,9 @@ const ClaudeChanges = {
         // Track inserted elements by change ID for chained resolution
         const insertedByChangeId = new Map();
 
-        // Sort regular additions by anchor position - later anchors first
+        // Sort regular additions by anchor position - earlier anchors first (top to bottom)
         // Use pre-resolved anchors to get positions (anchors were resolved before modifications)
+        // Since we pre-resolve to actual DOM nodes, the order shouldn't affect correctness
         const additionsWithPosition = regularAdditions.map(change => {
             let position = Infinity;
             const preResolved = preResolvedAnchors.get(change.id);
@@ -709,8 +710,8 @@ const ClaudeChanges = {
             return { change, position };
         });
 
-        // Sort by position descending (process later positions first)
-        additionsWithPosition.sort((a, b) => b.position - a.position);
+        // Sort by position ascending (process earlier positions first - top to bottom for better UX)
+        additionsWithPosition.sort((a, b) => a.position - b.position);
 
         // Process regular additions using pre-resolved anchors
         additionsWithPosition.forEach(({ change }) => {
