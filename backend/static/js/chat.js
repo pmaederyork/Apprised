@@ -350,8 +350,14 @@ const Chat = {
                 }));
                 allAgents.push(...addedAgents);
 
+                console.log(`[Chat] Injecting multi-agent context for Agent 1. Total agents: ${allAgents.length}`);
+                console.log(`[Chat] Agents:`, allAgents.map(a => a.name));
+
                 // Append context: Agent 1, Turn 1, Index 0 (responding to user)
                 systemPrompt = Agents.appendMultiAgentContext(systemPrompt, agent1, allAgents, 1, 0);
+                console.log(`[Chat] System prompt after injection (first 200 chars):`, systemPrompt?.substring(0, 200));
+            } else {
+                console.log(`[Chat] Multi-agent context NOT injected. Agents defined: ${typeof Agents !== 'undefined'}, method exists: ${Agents?.appendMultiAgentContext ? 'yes' : 'no'}`);
             }
         }
 

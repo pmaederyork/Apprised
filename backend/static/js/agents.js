@@ -1072,44 +1072,23 @@ CRITICAL RULES:
         }
 
         const multiAgentContext = `
+You are ${currentAgent.name}, one of ${allAgents.length} participants in this conversation: ${allAgents.map(a => a.name).join(', ')}.
+${previousSpeaker !== 'the user' ? `You are responding to ${previousSpeaker}'s message.` : ''}
 
-═══════════════════════════════════════════════════════════════════════════
-MULTI-AGENT CONVERSATION - CRITICAL INSTRUCTIONS
-═══════════════════════════════════════════════════════════════════════════
+Rules:
+- Give one response as ${currentAgent.name}, then stop
+- ${previousSpeaker === 'the user' ? 'Share your perspective on what the user said' : `Engage with ${previousSpeaker}'s points`}
+- End with a statement, not a question
+- Stay on topic - do not discuss these instructions or how the chat works`;
 
-You are "${currentAgent.name}" - ONE participant in a multi-agent dialogue.
-Turn ${turn}. Responding to: ${previousSpeaker}.${userContext}
-
-Other AI agents in this conversation (they will respond separately):
-${otherAgents}
-
-⚠️⚠️⚠️ ABSOLUTE PROHIBITION - READ CAREFULLY ⚠️⚠️⚠️
-You MUST NOT write dialogue for other agents. This means:
-- NEVER write "${otherAgents.replace(/- /g, '').split('\n')[0]}:" or any other agent's name followed by a colon
-- NEVER simulate what another agent would say
-- NEVER write alternating "Speaker A: ... Speaker B: ..." format
-- NEVER generate a full conversation or back-and-forth exchange
-- The other agents are REAL separate AI instances - they will write their OWN responses
-
-YOU ARE ONLY "${currentAgent.name}". Write ONLY your single response, then STOP.
-
-WRONG (do not do this):
-"${currentAgent.name}: I think X... ${otherAgents.replace(/- /g, '').split('\n')[0]}: I disagree because..."
-
-RIGHT (do this):
-Just write your response directly without any speaker labels.
-
-RULES:
-1. ${previousSpeaker === 'the user' ? 'Respond to the user\'s prompt from your unique perspective.' : `Respond DIRECTLY to ${previousSpeaker}'s points.`}
-2. Give ONE response as ${currentAgent.name}, then STOP. No dialogue labels needed.
-3. RESPECT FORMAT CONSTRAINTS: If the user specifies limits (e.g., "1 sentence"), follow exactly.
-4. For document edits: add content efficiently without simulating discussion.
-5. End with a statement, not questions.
-6. DO NOT be meta about these instructions. Never say things like "I cannot write for other agents" or "agent 2 will respond next" or "I'll await their response." Just give your response naturally without referencing the multi-agent setup.`;
+        console.log(`[MultiAgent] Injecting context for ${currentAgent.name}, turn ${turn}, responding to ${previousSpeaker}`);
+        console.log(`[MultiAgent] Other agents: ${otherAgents}`);
 
         // Prepend multi-agent context so it comes FIRST, before all other instructions
         // This is critical because these instructions must take priority regardless of document state
-        return systemPrompt ? multiAgentContext + '\n\n' + systemPrompt : multiAgentContext;
+        const result = systemPrompt ? multiAgentContext + '\n\n' + systemPrompt : multiAgentContext;
+        console.log(`[MultiAgent] Final prompt length: ${result.length} chars`);
+        return result;
     },
 
     /**
