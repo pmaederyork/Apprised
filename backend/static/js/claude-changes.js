@@ -10,6 +10,217 @@ const ClaudeChanges = {
     originalDocumentHTML: null, // Cache of clean document HTML before wrappers
 
     /**
+     * Content Index System
+     * Pre-builds lookup maps for O(1) node resolution instead of O(M) recursive searches.
+     * Call build() once before batch operations, then use findNode() for each change.
+     */
+    ContentIndex: {
+        _cache: null,
+        _container: null,
+        _usedNodes: null,
+
+        /**
+         * Build index for a container (call once before batch operations)
+         * Single TreeWalker pass builds all lookup maps
+         * @param {Element} container - DOM container to index
+         * @returns {Object} The built cache for inspection/debugging
+         */
+        build(container) {
+            const startTime = performance.now();
+            this._container = container;
+            this._usedNodes = new Set();
+            this._cache = {
+                byId: new Map(),
+                byNormalizedInnerHTML: new Map(),
+                byNormalizedOuterHTML: new Map(),
+                byTagAndText: new Map(),
+                byTextContent: new Map()
+            };
+
+            // Single pass using TreeWalker for efficiency
+            const walker = document.createTreeWalker(
+                container,
+                NodeFilter.SHOW_ELEMENT,
+                null
+            );
+
+            let nodeCount = 0;
+            while (walker.nextNode()) {
+                const node = walker.currentNode;
+                nodeCount++;
+
+                // Skip nodes inside change wrappers (they're visual overlays, not real content)
+                if (node.closest('[data-change-id]')) continue;
+
+                // Index by edit-id (O(1) lookup)
+                if (node.dataset?.editId) {
+                    this._cache.byId.set(node.dataset.editId, node);
+                }
+
+                // Index by normalized innerHTML
+                const normalizedInner = Documents.normalizeHTML(node.innerHTML);
+                if (normalizedInner) {
+                    this._addToMapArray(this._cache.byNormalizedInnerHTML, normalizedInner, node);
+                }
+
+                // Index by normalized outerHTML
+                const normalizedOuter = Documents.normalizeHTML(node.outerHTML);
+                if (normalizedOuter) {
+                    this._addToMapArray(this._cache.byNormalizedOuterHTML, normalizedOuter, node);
+                }
+
+                // Index by tag + text (for signature matching)
+                const textContent = (node.textContent?.trim() || '').toLowerCase();
+                const tagName = node.tagName?.toLowerCase() || '';
+                if (tagName) {
+                    const tagTextKey = `${tagName}:${textContent}`;
+                    this._addToMapArray(this._cache.byTagAndText, tagTextKey, node);
+
+                    // Also index by text content alone for broader matching
+                    if (textContent.length > 10) {
+                        this._addToMapArray(this._cache.byTextContent, textContent, node);
+                    }
+                }
+            }
+
+            const elapsed = performance.now() - startTime;
+            console.log(`📇 ContentIndex built: ${nodeCount} nodes indexed in ${elapsed.toFixed(2)}ms`);
+            return this._cache;
+        },
+
+        /**
+         * Helper to add node to a Map<string, Node[]>
+         */
+        _addToMapArray(map, key, node) {
+            if (!map.has(key)) {
+                map.set(key, []);
+            }
+            map.get(key).push(node);
+        },
+
+        /**
+         * Find node using indexed lookup (O(1) per strategy)
+         * @param {Object} change - Change object with targetId, _cachedSignature, originalContent
+         * @returns {Object|null} { node: Element, method: string } or null
+         */
+        findNode(change) {
+            if (!this._cache) return null;
+
+            // Strategy 1: By edit-id (exact, highest confidence)
+            if (change.targetId) {
+                const node = this._cache.byId.get(change.targetId);
+                if (node && !this._usedNodes.has(node)) {
+                    return { node, method: 'index-id' };
+                }
+            }
+
+            // Strategy 2: By cached signature (tag + text content)
+            if (change._cachedSignature) {
+                const sig = change._cachedSignature;
+                const tagTextKey = `${sig.tagName}:${(sig.textContent || '').toLowerCase()}`;
+                const candidates = this._cache.byTagAndText.get(tagTextKey);
+                if (candidates) {
+                    // Find first unused candidate
+                    for (const node of candidates) {
+                        if (!this._usedNodes.has(node)) {
+                            return { node, method: 'index-signature' };
+                        }
+                    }
+                }
+            }
+
+            // Strategy 3: By normalized content (innerHTML)
+            if (change.originalContent) {
+                const normalizedContent = Documents.normalizeHTML(change.originalContent);
+
+                // Try innerHTML match
+                let candidates = this._cache.byNormalizedInnerHTML.get(normalizedContent);
+                if (candidates) {
+                    for (const node of candidates) {
+                        if (!this._usedNodes.has(node)) {
+                            return { node, method: 'index-content-inner' };
+                        }
+                    }
+                }
+
+                // Try outerHTML match
+                candidates = this._cache.byNormalizedOuterHTML.get(normalizedContent);
+                if (candidates) {
+                    for (const node of candidates) {
+                        if (!this._usedNodes.has(node)) {
+                            return { node, method: 'index-content-outer' };
+                        }
+                    }
+                }
+            }
+
+            // Strategy 4: For add changes, resolve anchor
+            if (change.type === 'add') {
+                const anchorContent = change.insertAfter || change.insertBefore;
+                if (anchorContent) {
+                    // Try anchor by ID
+                    if (change.anchorTargetId) {
+                        const node = this._cache.byId.get(change.anchorTargetId);
+                        if (node) {
+                            return { node, method: 'index-anchor-id' };
+                        }
+                    }
+
+                    // Try anchor by normalized content
+                    const normalizedAnchor = Documents.normalizeHTML(anchorContent);
+                    let candidates = this._cache.byNormalizedOuterHTML.get(normalizedAnchor);
+                    if (candidates && candidates.length > 0) {
+                        return { node: candidates[0], method: 'index-anchor-content' };
+                    }
+
+                    candidates = this._cache.byNormalizedInnerHTML.get(normalizedAnchor);
+                    if (candidates && candidates.length > 0) {
+                        return { node: candidates[0], method: 'index-anchor-content' };
+                    }
+                }
+            }
+
+            return null;
+        },
+
+        /**
+         * Mark a node as used (prevents re-matching same node for multiple changes)
+         * @param {Element} node - The node to mark
+         */
+        markUsed(node) {
+            if (this._usedNodes) {
+                this._usedNodes.add(node);
+            }
+        },
+
+        /**
+         * Remove node from index (call after deletion)
+         * @param {Element} node - The node being removed
+         */
+        removeNode(node) {
+            if (!this._cache || !node) return;
+
+            // Remove from byId
+            if (node.dataset?.editId) {
+                this._cache.byId.delete(node.dataset.editId);
+            }
+
+            // For array-based maps, we just mark as used
+            // (actual removal is expensive and unnecessary since we check usedNodes)
+            this._usedNodes.add(node);
+        },
+
+        /**
+         * Clear the index and release memory
+         */
+        clear() {
+            this._cache = null;
+            this._container = null;
+            this._usedNodes = null;
+        }
+    },
+
+    /**
      * Pattern Matcher System
      * Enables client-side pattern matching for bulk operations.
      * Claude specifies a pattern type, client finds ALL matching elements.
@@ -354,6 +565,10 @@ const ClaudeChanges = {
     /**
      * Reconstruct document from original HTML by applying accepted changes
      * This creates a clean document without wrapper divs
+     *
+     * OPTIMIZED: Uses ContentIndex for O(1) lookups instead of O(M) recursive searches.
+     * Groups changes by type and processes additions in reverse order for stable anchors.
+     *
      * @param {string} originalHTML - The original document HTML
      * @param {Array} acceptedChanges - Array of accepted change objects
      * @param {Object} options - Options for reconstruction
@@ -364,6 +579,7 @@ const ClaudeChanges = {
         const { skipOnFailure = true } = options;
         const skipped = [];
         const applied = [];
+        const startTime = performance.now();
 
         console.log(`🔧 Reconstruction: Applying ${acceptedChanges.length} accepted change(s)`);
 
@@ -371,95 +587,141 @@ const ClaudeChanges = {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = originalHTML;
 
-        // Apply each accepted change in order using hybrid resolution
-        acceptedChanges.forEach(change => {
-            if (change.type === 'delete') {
-                // Use hybrid resolution
-                const resolution = this.resolveChangeTarget(tempDiv, change);
+        // BUILD INDEX ONCE - O(M) single pass
+        this.ContentIndex.build(tempDiv);
 
-                if (resolution.node) {
-                    resolution.node.remove();
-                    applied.push({ change, method: resolution.method });
-                    console.log(`✅ DELETE resolved via ${resolution.method}: ${change.id}`);
+        // Group changes by type for optimal processing order
+        const deletions = acceptedChanges.filter(c => c.type === 'delete');
+        const modifications = acceptedChanges.filter(c => c.type === 'modify');
+        const additions = acceptedChanges.filter(c => c.type === 'add');
+
+        // Helper to resolve with index first, then fallback
+        const resolveWithIndex = (change) => {
+            // Try indexed lookup first (O(1))
+            let resolution = this.ContentIndex.findNode(change);
+            if (resolution?.node) {
+                return resolution;
+            }
+            // Fallback to original resolution (O(M) but rarely needed)
+            return this.resolveChangeTarget(tempDiv, change);
+        };
+
+        // 1. Process DELETIONS first (shrinks DOM, doesn't shift positions)
+        deletions.forEach(change => {
+            const resolution = resolveWithIndex(change);
+
+            if (resolution.node) {
+                this.ContentIndex.removeNode(resolution.node);
+                resolution.node.remove();
+                applied.push({ change, method: resolution.method });
+            } else {
+                const preview = change.originalContent?.substring(0, 100) || 'unknown';
+                if (skipOnFailure) {
+                    skipped.push({ change, reason: 'target not found' });
                 } else {
-                    const preview = change.originalContent?.substring(0, 100) || 'unknown';
-                    if (skipOnFailure) {
-                        console.warn(`⚠️ DELETE skipped (not found): "${preview}..."`);
-                        skipped.push({ change, reason: 'target not found' });
-                    } else {
-                        console.error(`❌ DELETE failed: Could not find content to delete: "${preview}..."`);
-                    }
-                }
-            } else if (change.type === 'add') {
-                // Use hybrid resolution for anchor
-                const resolution = this.resolveChangeTarget(tempDiv, change);
-
-                if (resolution.node) {
-                    const newElement = document.createElement('div');
-                    newElement.innerHTML = change.newContent;
-                    const fragment = document.createDocumentFragment();
-                    while (newElement.firstChild) {
-                        fragment.appendChild(newElement.firstChild);
-                    }
-
-                    // Insert based on anchor type
-                    if (change.insertAfter) {
-                        resolution.node.after(fragment);
-                    } else if (change.insertBefore) {
-                        resolution.node.before(fragment);
-                    }
-                    applied.push({ change, method: resolution.method });
-                    console.log(`✅ ADD resolved via ${resolution.method}: ${change.id}`);
-                } else {
-                    const anchorPreview = (change.insertAfter || change.insertBefore || '').substring(0, 50);
-                    if (skipOnFailure) {
-                        console.warn(`⚠️ ADD skipped (anchor not found): "${anchorPreview}..."`);
-                        skipped.push({ change, reason: 'anchor not found' });
-                    } else {
-                        console.error(`❌ ADD failed: Anchor not found: "${anchorPreview}..."`);
-                        // Fallback to end of document only if not skipping
-                        tempDiv.innerHTML += change.newContent;
-                    }
-                }
-            } else if (change.type === 'modify') {
-                // Use hybrid resolution
-                const resolution = this.resolveChangeTarget(tempDiv, change);
-
-                if (resolution.node) {
-                    const newElement = document.createElement('div');
-                    newElement.innerHTML = change.newContent;
-                    const fragment = document.createDocumentFragment();
-                    while (newElement.firstChild) {
-                        fragment.appendChild(newElement.firstChild);
-                    }
-                    resolution.node.replaceWith(fragment);
-                    applied.push({ change, method: resolution.method });
-                    console.log(`✅ MODIFY resolved via ${resolution.method}: ${change.id}`);
-                } else {
-                    const preview = change.originalContent?.substring(0, 100) || 'unknown';
-                    if (skipOnFailure) {
-                        console.warn(`⚠️ MODIFY skipped (not found): "${preview}..."`);
-                        skipped.push({ change, reason: 'target not found' });
-                    } else {
-                        console.error(`❌ MODIFY failed: Could not find content to modify: "${preview}..."`);
-                    }
+                    console.error(`❌ DELETE failed: Could not find content to delete: "${preview}..."`);
                 }
             }
         });
 
-        // Clear cache after reconstruction
+        // 2. Process MODIFICATIONS (in-place replacement, positions unchanged)
+        modifications.forEach(change => {
+            const resolution = resolveWithIndex(change);
+
+            if (resolution.node) {
+                const newElement = document.createElement('div');
+                newElement.innerHTML = change.newContent;
+                const fragment = document.createDocumentFragment();
+                while (newElement.firstChild) {
+                    fragment.appendChild(newElement.firstChild);
+                }
+                this.ContentIndex.removeNode(resolution.node);
+                resolution.node.replaceWith(fragment);
+                applied.push({ change, method: resolution.method });
+            } else {
+                const preview = change.originalContent?.substring(0, 100) || 'unknown';
+                if (skipOnFailure) {
+                    skipped.push({ change, reason: 'target not found' });
+                } else {
+                    console.error(`❌ MODIFY failed: Could not find content to modify: "${preview}..."`);
+                }
+            }
+        });
+
+        // 3. Process ADDITIONS in reverse DOM order (anchors stay valid)
+        // Sort by anchor position - later anchors first
+        const additionsWithPosition = additions.map(change => {
+            const anchorContent = change.insertAfter || change.insertBefore;
+            let position = Infinity;
+            if (anchorContent) {
+                const resolution = resolveWithIndex(change);
+                if (resolution?.node) {
+                    // Get DOM position by walking tree
+                    const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_ELEMENT, null);
+                    let idx = 0;
+                    while (walker.nextNode()) {
+                        if (walker.currentNode === resolution.node) {
+                            position = idx;
+                            break;
+                        }
+                        idx++;
+                    }
+                }
+            }
+            return { change, position };
+        });
+
+        // Sort by position descending (process later positions first)
+        additionsWithPosition.sort((a, b) => b.position - a.position);
+
+        additionsWithPosition.forEach(({ change }) => {
+            const resolution = resolveWithIndex(change);
+
+            if (resolution.node) {
+                const newElement = document.createElement('div');
+                newElement.innerHTML = change.newContent;
+                const fragment = document.createDocumentFragment();
+                while (newElement.firstChild) {
+                    fragment.appendChild(newElement.firstChild);
+                }
+
+                // Insert based on anchor type
+                if (change.insertAfter) {
+                    resolution.node.after(fragment);
+                } else if (change.insertBefore) {
+                    resolution.node.before(fragment);
+                }
+                applied.push({ change, method: resolution.method });
+            } else {
+                const anchorPreview = (change.insertAfter || change.insertBefore || '').substring(0, 50);
+                if (skipOnFailure) {
+                    skipped.push({ change, reason: 'anchor not found' });
+                } else {
+                    console.error(`❌ ADD failed: Anchor not found: "${anchorPreview}..."`);
+                    // Fallback to end of document only if not skipping
+                    tempDiv.innerHTML += change.newContent;
+                }
+            }
+        });
+
+        // Clear index to release memory
+        this.ContentIndex.clear();
+
+        // Clear signature cache after reconstruction
         acceptedChanges.forEach(change => {
             delete change._cachedSignature;
         });
 
+        const elapsed = performance.now() - startTime;
+
         // Log summary
         if (skipped.length > 0) {
-            console.warn(`📋 Reconstruction summary: ${applied.length} applied, ${skipped.length} skipped`);
+            console.warn(`📋 Reconstruction: ${applied.length} applied, ${skipped.length} skipped in ${elapsed.toFixed(2)}ms`);
             skipped.forEach(({ change, reason }) => {
                 console.warn(`  - Change ${change.id} (${change.type}): ${reason}`);
             });
         } else {
-            console.log(`📋 Reconstruction complete: ${applied.length} changes applied successfully`);
+            console.log(`📋 Reconstruction complete: ${applied.length} changes in ${elapsed.toFixed(2)}ms`);
         }
 
         return tempDiv.innerHTML;

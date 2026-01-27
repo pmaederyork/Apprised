@@ -20,6 +20,11 @@ const Documents = {
     // Loading state to prevent premature font detection
     _loadingDocument: false,
 
+    // Normalization cache for O(1) repeated lookups
+    // Prevents redundant regex operations during batch change processing
+    _normalizedCache: new Map(),
+    _normalizedCacheMaxSize: 2000,
+
     // Default formatting for new documents
     DEFAULT_FORMATTING: {
         fontFamily: "'Times New Roman', Times, serif",
@@ -1976,9 +1981,14 @@ const Documents = {
     /**
      * Render changes in the document with visual highlighting
      * Supports pattern-based changes with grouped indicators
+     *
+     * OPTIMIZED: Uses buildContentIndex for O(1) lookups instead of O(M) recursive searches.
+     * Reduces complexity from O(N × M) to O(M + N) for N changes on M-node documents.
      */
     renderChangesInDocument(changes) {
         if (!this.squireEditor) return;
+
+        const startTime = performance.now();
 
         // Save undo state before making changes
         this.squireEditor.saveUndoState();
@@ -1997,6 +2007,48 @@ const Documents = {
         // Create a temporary container to work with
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = currentHTML;
+
+        // BUILD CONTENT INDEX ONCE - O(M) single pass
+        const contentIndex = this.buildContentIndex(tempDiv);
+
+        // Helper to find node using index with fallback
+        const findNodeWithIndex = (content, targetId) => {
+            // Strategy 1: By targetId (O(1))
+            if (targetId) {
+                const node = contentIndex.byId.get(targetId);
+                if (node && !contentIndex.isUsed(node)) {
+                    return node;
+                }
+            }
+
+            // Strategy 2: By normalized content (O(1))
+            if (content) {
+                const normalizedContent = this.normalizeHTML(content);
+
+                // Try innerHTML match
+                let candidates = contentIndex.byNormalizedInnerHTML.get(normalizedContent);
+                if (candidates) {
+                    for (const node of candidates) {
+                        if (!contentIndex.isUsed(node)) {
+                            return node;
+                        }
+                    }
+                }
+
+                // Try outerHTML match
+                candidates = contentIndex.byNormalizedOuterHTML.get(normalizedContent);
+                if (candidates) {
+                    for (const node of candidates) {
+                        if (!contentIndex.isUsed(node)) {
+                            return node;
+                        }
+                    }
+                }
+            }
+
+            // Strategy 3: Fallback to recursive search (rarely needed)
+            return this.findNodeByContent(tempDiv, content);
+        };
 
         // Apply each change with visual markers
         changes.forEach((change, index) => {
@@ -2023,24 +2075,14 @@ const Documents = {
                 deleteContent = deleteContent.replace(/\s*data-edit-id="[^"]*"/g, '');
                 changeElement.innerHTML = deleteContent;
 
-                // Try to find the original content
-                let originalNode = null;
-
-                // Strategy 1: Use targetId if available (most reliable, especially for pattern changes)
-                if (change.targetId) {
-                    originalNode = tempDiv.querySelector(`[data-edit-id="${change.targetId}"]`);
-                }
-
-                // Strategy 2: Fall back to content matching
-                if (!originalNode) {
-                    originalNode = this.findNodeByContent(tempDiv, change.originalContent);
-                    // Capture stable ID if element has one (for hybrid resolution)
-                    if (originalNode && originalNode.dataset && originalNode.dataset.editId) {
-                        change.targetId = originalNode.dataset.editId;
-                    }
-                }
+                // Find the original content using indexed lookup
+                const originalNode = findNodeWithIndex(change.originalContent, change.targetId);
 
                 if (originalNode) {
+                    // Capture stable ID if element has one (for hybrid resolution)
+                    if (!change.targetId && originalNode.dataset?.editId) {
+                        change.targetId = originalNode.dataset.editId;
+                    }
                     // Cache content signature (not DOM reference) for reconstruction
                     // Only if not already cached by PatternMatcher
                     if (!change._cachedSignature) {
@@ -2051,6 +2093,7 @@ const Documents = {
                             outerHTML: originalNode.outerHTML || ''
                         };
                     }
+                    contentIndex.markUsed(originalNode);
                     originalNode.replaceWith(changeElement);
                 } else {
                     // DELETE: Don't render preview if content not found
@@ -2070,9 +2113,9 @@ const Documents = {
                 }
                 changeElement.innerHTML = change.newContent || '';
 
-                // Insert at appropriate position using content anchoring
+                // Insert at appropriate position using indexed anchor lookup
                 if (change.insertAfter) {
-                    const anchorNode = this.findNodeByContent(tempDiv, change.insertAfter);
+                    const anchorNode = findNodeWithIndex(change.insertAfter, change.anchorTargetId);
                     if (anchorNode) {
                         // Capture stable ID if anchor has one (for hybrid resolution)
                         if (anchorNode.dataset && anchorNode.dataset.editId) {
@@ -2096,7 +2139,7 @@ const Documents = {
                         tempDiv.appendChild(changeElement);
                     }
                 } else if (change.insertBefore) {
-                    const anchorNode = this.findNodeByContent(tempDiv, change.insertBefore);
+                    const anchorNode = findNodeWithIndex(change.insertBefore, change.anchorTargetId);
                     if (anchorNode) {
                         // Capture stable ID if anchor has one (for hybrid resolution)
                         if (anchorNode.dataset && anchorNode.dataset.editId) {
@@ -2136,24 +2179,14 @@ const Documents = {
                 }
                 changeElement.innerHTML = change.newContent || '';
 
-                // Try to find the original content
-                let originalNode = null;
-
-                // Strategy 1: Use targetId if available (most reliable)
-                if (change.targetId) {
-                    originalNode = tempDiv.querySelector(`[data-edit-id="${change.targetId}"]`);
-                }
-
-                // Strategy 2: Fall back to content matching
-                if (!originalNode) {
-                    originalNode = this.findNodeByContent(tempDiv, change.originalContent);
-                    // Capture stable ID if element has one (for hybrid resolution)
-                    if (originalNode && originalNode.dataset && originalNode.dataset.editId) {
-                        change.targetId = originalNode.dataset.editId;
-                    }
-                }
+                // Find the original content using indexed lookup
+                const originalNode = findNodeWithIndex(change.originalContent, change.targetId);
 
                 if (originalNode) {
+                    // Capture stable ID if element has one (for hybrid resolution)
+                    if (!change.targetId && originalNode.dataset?.editId) {
+                        change.targetId = originalNode.dataset.editId;
+                    }
                     // Cache content signature for reconstruction
                     if (!change._cachedSignature) {
                         change._cachedSignature = {
@@ -2163,6 +2196,7 @@ const Documents = {
                             outerHTML: originalNode.outerHTML || ''
                         };
                     }
+                    contentIndex.markUsed(originalNode);
                     originalNode.replaceWith(changeElement);
                 } else {
                     // If can't find exact match, append to end
@@ -2189,17 +2223,27 @@ const Documents = {
         while (tempDiv.firstChild) {
             editor.appendChild(tempDiv.firstChild);
         }
+
+        const elapsed = performance.now() - startTime;
+        console.log(`🎨 Rendered ${changes.length} changes in ${elapsed.toFixed(2)}ms`);
     },
 
     /**
      * Normalize HTML string for comparison (removes whitespace variations)
+     * Uses LRU cache to avoid redundant regex operations during batch processing.
      * @param {string} html - HTML content to normalize
      * @param {boolean} stripAttributes - If true, removes all HTML attributes
      */
     normalizeHTML(html, stripAttributes = false) {
         if (!html) return '';
 
-        // Trim whitespace, collapse multiple spaces, remove newlines
+        // Check cache first (O(1) lookup)
+        const cacheKey = `${stripAttributes ? '1' : '0'}:${html}`;
+        if (this._normalizedCache.has(cacheKey)) {
+            return this._normalizedCache.get(cacheKey);
+        }
+
+        // Compute normalization
         let normalized = html
             .trim()
             .replace(/\s+/g, ' ')
@@ -2211,7 +2255,140 @@ const Documents = {
             normalized = normalized.replace(/<(\w+)[^>]*>/g, '<$1>');
         }
 
-        return normalized.toLowerCase();
+        normalized = normalized.toLowerCase();
+
+        // Cache with LRU eviction
+        if (this._normalizedCache.size >= this._normalizedCacheMaxSize) {
+            // Delete oldest entry (first key in Map iteration order)
+            const firstKey = this._normalizedCache.keys().next().value;
+            this._normalizedCache.delete(firstKey);
+        }
+        this._normalizedCache.set(cacheKey, normalized);
+
+        return normalized;
+    },
+
+    /**
+     * Clear normalization cache (call when document changes significantly)
+     */
+    clearNormalizationCache() {
+        this._normalizedCache.clear();
+    },
+
+    /**
+     * Build content index for O(1) node lookups during change rendering
+     * Single TreeWalker pass creates all lookup maps
+     * @param {Element} container - DOM container to index
+     * @returns {Object} Index with byId, byNormalizedContent maps and utility methods
+     */
+    buildContentIndex(container) {
+        const startTime = performance.now();
+        const index = {
+            byId: new Map(),
+            byNormalizedInnerHTML: new Map(),
+            byNormalizedOuterHTML: new Map(),
+            usedNodes: new Set(),
+
+            // Mark node as matched (prevents double-matching)
+            markUsed(node) {
+                this.usedNodes.add(node);
+            },
+
+            // Check if node was already matched
+            isUsed(node) {
+                return this.usedNodes.has(node);
+            }
+        };
+
+        // Helper to add node to array-based map
+        const addToMapArray = (map, key, node) => {
+            if (!map.has(key)) {
+                map.set(key, []);
+            }
+            map.get(key).push(node);
+        };
+
+        // Single TreeWalker pass
+        const walker = document.createTreeWalker(
+            container,
+            NodeFilter.SHOW_ELEMENT,
+            null
+        );
+
+        let nodeCount = 0;
+        while (walker.nextNode()) {
+            const node = walker.currentNode;
+            nodeCount++;
+
+            // Skip nodes inside change wrappers
+            if (node.closest('[data-change-id]')) continue;
+
+            // Index by edit-id
+            if (node.dataset?.editId) {
+                index.byId.set(node.dataset.editId, node);
+            }
+
+            // Index by normalized innerHTML
+            const normalizedInner = this.normalizeHTML(node.innerHTML);
+            if (normalizedInner) {
+                addToMapArray(index.byNormalizedInnerHTML, normalizedInner, node);
+            }
+
+            // Index by normalized outerHTML
+            const normalizedOuter = this.normalizeHTML(node.outerHTML);
+            if (normalizedOuter) {
+                addToMapArray(index.byNormalizedOuterHTML, normalizedOuter, node);
+            }
+        }
+
+        const elapsed = performance.now() - startTime;
+        console.log(`📇 Documents index built: ${nodeCount} nodes in ${elapsed.toFixed(2)}ms`);
+        return index;
+    },
+
+    /**
+     * Find node using pre-built index (O(1) lookup)
+     * @param {Object} index - Index from buildContentIndex
+     * @param {Object} change - Change object with targetId, originalContent
+     * @param {Element} container - Container for fallback search
+     * @returns {Element|null} Found node or null
+     */
+    findNodeUsingIndex(index, change, container) {
+        // Strategy 1: By targetId (exact)
+        if (change.targetId) {
+            const node = index.byId.get(change.targetId);
+            if (node && !index.isUsed(node)) {
+                return node;
+            }
+        }
+
+        // Strategy 2: By normalized content
+        if (change.originalContent) {
+            const normalizedContent = this.normalizeHTML(change.originalContent);
+
+            // Try innerHTML match
+            let candidates = index.byNormalizedInnerHTML.get(normalizedContent);
+            if (candidates) {
+                for (const node of candidates) {
+                    if (!index.isUsed(node)) {
+                        return node;
+                    }
+                }
+            }
+
+            // Try outerHTML match
+            candidates = index.byNormalizedOuterHTML.get(normalizedContent);
+            if (candidates) {
+                for (const node of candidates) {
+                    if (!index.isUsed(node)) {
+                        return node;
+                    }
+                }
+            }
+        }
+
+        // Strategy 3: Fallback to recursive search (rarely needed)
+        return this.findNodeByContent(container, change.originalContent);
     },
 
     /**
