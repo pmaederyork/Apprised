@@ -55,3 +55,9 @@ node_modules/
 # Build outputs
 dist/
 build/
+
+# Development/planning files
+.changes/
+.claude/
+.planning/
+SQUIRE_API.md

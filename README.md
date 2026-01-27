@@ -450,7 +450,7 @@ For development guidelines and architectural patterns, see `CLAUDE.md` which con
 
 ## License
 
-[Your license here]
+MIT License
 
 ## Support
 
