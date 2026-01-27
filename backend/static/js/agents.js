@@ -789,10 +789,7 @@ const Agents = {
         // Find added elements (in final but not in original)
         finalById.forEach((finalEl, id) => {
             if (!originalById.has(id)) {
-                // New element - find anchor
-                const prevSibling = finalEl.previousElementSibling;
-                const nextSibling = finalEl.nextElementSibling;
-
+                // New element - find anchor by walking through siblings
                 const change = {
                     id: changeId(),
                     type: 'add',
@@ -800,13 +797,41 @@ const Agents = {
                     status: 'pending'
                 };
 
-                // Try to anchor to a known element
-                if (prevSibling && prevSibling.dataset?.editId && originalById.has(prevSibling.dataset.editId)) {
-                    change.insertAfter = originalById.get(prevSibling.dataset.editId).outerHTML;
-                    change.anchorTargetId = prevSibling.dataset.editId;
-                } else if (nextSibling && nextSibling.dataset?.editId && originalById.has(nextSibling.dataset.editId)) {
-                    change.insertBefore = originalById.get(nextSibling.dataset.editId).outerHTML;
-                    change.anchorTargetId = nextSibling.dataset.editId;
+                // Walk backwards through siblings to find one in the original document
+                let prevSibling = finalEl.previousElementSibling;
+                while (prevSibling) {
+                    if (prevSibling.dataset?.editId && originalById.has(prevSibling.dataset.editId)) {
+                        change.insertAfter = originalById.get(prevSibling.dataset.editId).outerHTML;
+                        change.anchorTargetId = prevSibling.dataset.editId;
+                        break;
+                    }
+                    prevSibling = prevSibling.previousElementSibling;
+                }
+
+                // If no previous anchor found, try walking forward
+                if (!change.insertAfter) {
+                    let nextSibling = finalEl.nextElementSibling;
+                    while (nextSibling) {
+                        if (nextSibling.dataset?.editId && originalById.has(nextSibling.dataset.editId)) {
+                            change.insertBefore = originalById.get(nextSibling.dataset.editId).outerHTML;
+                            change.anchorTargetId = nextSibling.dataset.editId;
+                            break;
+                        }
+                        nextSibling = nextSibling.nextElementSibling;
+                    }
+                }
+
+                // If still no anchor (all content is new), anchor to first or last original element
+                if (!change.insertAfter && !change.insertBefore && originalById.size > 0) {
+                    // Get all original elements in DOM order
+                    const originalIds = Array.from(originalById.keys());
+                    if (originalIds.length > 0) {
+                        // Use last original element as insertAfter anchor
+                        const lastOriginalId = originalIds[originalIds.length - 1];
+                        const lastOriginalEl = originalById.get(lastOriginalId);
+                        change.insertAfter = lastOriginalEl.outerHTML;
+                        change.anchorTargetId = lastOriginalId;
+                    }
                 }
 
                 changes.push(change);
@@ -824,10 +849,18 @@ const Agents = {
      */
     addCollaborativeAttribution(changes) {
         // For collaborative mode, use a blended color and note all contributors
-        const contributingAgents = this.collaborationLog.map(entry => ({
-            name: entry.agentName,
-            color: entry.agentColor
-        }));
+        // Deduplicate agents by name (an agent may contribute multiple times across turns)
+        const seenNames = new Set();
+        const contributingAgents = [];
+        for (const entry of this.collaborationLog) {
+            if (!seenNames.has(entry.agentName)) {
+                seenNames.add(entry.agentName);
+                contributingAgents.push({
+                    name: entry.agentName,
+                    color: entry.agentColor
+                });
+            }
+        }
 
         // Use first agent's color as primary, but note it's collaborative
         const primaryAgent = contributingAgents[0] || { name: 'Agents', color: '#8b5cf6' };
@@ -953,50 +986,45 @@ const Agents = {
      * Enables the agent to propose document edits using the same format as Agent 1
      */
     appendDocumentEditingInstructions(systemPrompt, agent) {
-        // Build collaboration context summary
-        let collaborationContext = '';
-        if (this.collaborationLog.length > 0) {
-            collaborationContext = `
-
-PREVIOUS EDITS (already applied to the document you're seeing):
-${this.collaborationLog.map(entry => `- ${entry.agentName}: ${entry.summary}`).join('\n')}
-
-Build upon these changes. The document you see already includes them.`;
-        }
-
         const documentEditingInstructions = `
 
-DOCUMENT EDITING CAPABILITY:
-You are collaborating with other agents to edit a document. The document HTML is provided as a file attachment.
-${this.collaborationLog.length > 0 ? 'Previous agents have already made edits which are reflected in the document.' : 'You are the first to edit this document.'}
-${collaborationContext}
+DOCUMENT EDITING - SCRATCHPAD SYSTEM:
+You are collaborating with other agents. The attached file "[SCRATCHPAD]" shows the WORKING STATE, not the final document.
+
+CRITICAL - READ THIS:
+- The scratchpad contains PROPOSED changes from previous agents
+- The USER HAS NOT SEEN these changes yet - they are pending review
+- Do NOT say "I see the document has..." or act like changes are committed
+- Just add your own edits to build on the scratchpad
+- All changes will be presented to the user together at the end
+${this.collaborationLog.length > 0 ? `
+Previous agents proposed (in scratchpad, NOT yet shown to user):
+${this.collaborationLog.map(entry => `- ${entry.agentName}: ${entry.summary}`).join('\n')}` : ''}
 
 EDIT FORMAT:
-Wrap all edits in a single <document_edit> block. Use these change types:
+Wrap all edits in a single <document_edit> block.
 
-1. ADD content:
-   <change type="add" insertAfter="<element>..." OR insertBefore="<element>...">
-   <new>[new HTML content]</new>
+⚠️ ALWAYS USE data-edit-id FOR TARGETING - DO NOT use content matching with style attributes!
+
+1. ADD content (use insertAfter-id or insertBefore-id):
+   <change type="add" insertAfter-id="[data-edit-id value]">
+   <new>[new HTML - do NOT include style attributes]</new>
    </change>
 
-2. DELETE content:
-   <change type="delete">
-   <original>[exact HTML to remove]</original>
+2. MODIFY content (use targetId):
+   <change type="modify" targetId="[data-edit-id value]">
+   <new>[replacement HTML - do NOT include style attributes]</new>
    </change>
 
-3. MODIFY content:
-   <change type="modify">
-   <original>[exact original HTML]</original>
-   <new>[replacement HTML]</new>
-   </change>
+3. DELETE content (use targetId):
+   <change type="delete" targetId="[data-edit-id value]"></change>
 
-IMPORTANT:
-- Match the EXACT HTML from the current document (including tags and attributes like data-edit-id)
-- Use data-edit-id attributes for precise targeting when available:
-  <change type="modify" targetId="e-abc123">...</change>
-  <change type="add" insertAfter-id="e-abc123">...</change>
-- Build upon previous agents' work - improve, refine, or add to their changes
-- Keep edits focused and purposeful`;
+CRITICAL RULES:
+- ALWAYS use data-edit-id for targeting (targetId, insertAfter-id, insertBefore-id)
+- NEVER include style="..." attributes in your HTML - the editor handles styling
+- Keep new content simple: <p>text</p>, <h2>heading</h2>, etc.
+- Add headings BEFORE their content (heading first, then paragraph)
+- If adding at the very end, use the last element's data-edit-id with insertAfter-id`;
 
         return systemPrompt ? systemPrompt + documentEditingInstructions : documentEditingInstructions;
     },
@@ -1045,19 +1073,38 @@ IMPORTANT:
 
         const multiAgentContext = `
 
-MULTI-AGENT CONVERSATION:
-You are "${currentAgent.name}" in a collaborative discussion with other AI agents.
-This is Turn ${turn}. You are responding to a message from ${previousSpeaker}.${userContext}
+═══════════════════════════════════════════════════════════════════════════
+MULTI-AGENT CONVERSATION - CRITICAL INSTRUCTIONS
+═══════════════════════════════════════════════════════════════════════════
 
-Other participants in this conversation:
+You are "${currentAgent.name}" - ONE participant in a multi-agent dialogue.
+Turn ${turn}. Responding to: ${previousSpeaker}.${userContext}
+
+Other AI agents in this conversation (they will respond separately):
 ${otherAgents}
 
-CRITICAL RULES FOR MULTI-AGENT DIALOGUE:
-1. ${previousSpeaker === 'the user' ? 'Respond to the user\'s prompt, but address your response to the other agents as well.' : `Respond DIRECTLY to ${previousSpeaker}'s points. Do NOT ask the user questions - the user is OBSERVING this dialogue, not participating in it.`}
-2. Stay fully in character as ${currentAgent.name}. Do not break character or question the conversation setup.
-3. Engage substantively - build upon, challenge, or refine the ideas presented. Make assertions and share your perspective rather than deflecting back to others.
-4. If the user requested a discussion/dialogue BEFORE an action (like editing a document), focus on the dialogue first. Complete the intellectual exchange before proposing any edits or taking actions.
-5. End your response with a clear statement or insight, not with questions directed at the user. You may pose rhetorical questions or direct challenges to the other agent(s).`;
+⚠️⚠️⚠️ ABSOLUTE PROHIBITION - READ CAREFULLY ⚠️⚠️⚠️
+You MUST NOT write dialogue for other agents. This means:
+- NEVER write "${otherAgents.replace(/- /g, '').split('\n')[0]}:" or any other agent's name followed by a colon
+- NEVER simulate what another agent would say
+- NEVER write alternating "Speaker A: ... Speaker B: ..." format
+- NEVER generate a full conversation or back-and-forth exchange
+- The other agents are REAL separate AI instances - they will write their OWN responses
+
+YOU ARE ONLY "${currentAgent.name}". Write ONLY your single response, then STOP.
+
+WRONG (do not do this):
+"${currentAgent.name}: I think X... ${otherAgents.replace(/- /g, '').split('\n')[0]}: I disagree because..."
+
+RIGHT (do this):
+Just write your response directly without any speaker labels.
+
+RULES:
+1. ${previousSpeaker === 'the user' ? 'Respond to the user\'s prompt from your unique perspective.' : `Respond DIRECTLY to ${previousSpeaker}'s points.`}
+2. Give ONE response as ${currentAgent.name}, then STOP. No dialogue labels needed.
+3. RESPECT FORMAT CONSTRAINTS: If the user specifies limits (e.g., "1 sentence"), follow exactly.
+4. For document edits: add content efficiently without simulating discussion.
+5. End with a statement, not questions.`;
 
         return systemPrompt ? systemPrompt + multiAgentContext : multiAgentContext;
     },
@@ -1090,11 +1137,13 @@ CRITICAL RULES FOR MULTI-AGENT DIALOGUE:
         const documentTitle = currentDocument.title || 'Untitled Document';
         const base64Content = btoa(unescape(encodeURIComponent(htmlWithIds)));
 
-        console.log(`getWorkingDocumentAsFile: Returning ${htmlWithIds.length} bytes for "${documentTitle}"`);
+        // Name it as scratchpad so agents understand it's not the final document
+        const scratchpadName = `[SCRATCHPAD] ${documentTitle}`;
+        console.log(`getWorkingDocumentAsFile: Returning ${htmlWithIds.length} bytes for "${scratchpadName}"`);
 
         return {
             id: `doc_context_working_${currentDocument.id}`,
-            name: documentTitle,
+            name: scratchpadName,
             type: 'text/html',
             size: htmlWithIds.length,
             data: `data:text/html;base64,${base64Content}`

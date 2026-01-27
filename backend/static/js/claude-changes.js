@@ -592,6 +592,8 @@ const ClaudeChanges = {
         this.ContentIndex.build(tempDiv);
 
         // Group changes by type for optimal processing order
+        // CRITICAL: Order matters! Modifications and additions must happen BEFORE deletions,
+        // otherwise deletions can remove anchors that additions need to reference.
         const deletions = acceptedChanges.filter(c => c.type === 'delete');
         const modifications = acceptedChanges.filter(c => c.type === 'modify');
         const additions = acceptedChanges.filter(c => c.type === 'add');
@@ -607,25 +609,25 @@ const ClaudeChanges = {
             return this.resolveChangeTarget(tempDiv, change);
         };
 
-        // 1. Process DELETIONS first (shrinks DOM, doesn't shift positions)
-        deletions.forEach(change => {
-            const resolution = resolveWithIndex(change);
-
-            if (resolution.node) {
-                this.ContentIndex.removeNode(resolution.node);
-                resolution.node.remove();
-                applied.push({ change, method: resolution.method });
-            } else {
-                const preview = change.originalContent?.substring(0, 100) || 'unknown';
-                if (skipOnFailure) {
-                    skipped.push({ change, reason: 'target not found' });
-                } else {
-                    console.error(`❌ DELETE failed: Could not find content to delete: "${preview}..."`);
+        // PRE-RESOLVE ADD ANCHORS before modifications change the DOM
+        // This is critical because modifications may change content that ADDs use as anchors
+        const preResolvedAnchors = new Map();
+        additions.forEach(change => {
+            if (!change._chainedAfter) { // Only regular additions, not chained
+                const resolution = resolveWithIndex(change);
+                if (resolution?.node) {
+                    preResolvedAnchors.set(change.id, {
+                        node: resolution.node,
+                        method: resolution.method
+                    });
                 }
             }
         });
 
-        // 2. Process MODIFICATIONS (in-place replacement, positions unchanged)
+        // Track node replacements so we can update pre-resolved anchors
+        const nodeReplacements = new Map();
+
+        // 1. Process MODIFICATIONS first (in-place replacement, preserves anchors)
         modifications.forEach(change => {
             const resolution = resolveWithIndex(change);
 
@@ -633,9 +635,22 @@ const ClaudeChanges = {
                 const newElement = document.createElement('div');
                 newElement.innerHTML = change.newContent;
                 const fragment = document.createDocumentFragment();
+                const firstNewChild = newElement.firstChild;
+                let lastNewChild = null;
                 while (newElement.firstChild) {
+                    lastNewChild = newElement.firstChild;
                     fragment.appendChild(newElement.firstChild);
                 }
+
+                // Track the replacement so ADD anchors can be updated
+                // Store both first and last for insertBefore/insertAfter handling
+                if (firstNewChild) {
+                    nodeReplacements.set(resolution.node, {
+                        first: firstNewChild,
+                        last: lastNewChild || firstNewChild
+                    });
+                }
+
                 this.ContentIndex.removeNode(resolution.node);
                 resolution.node.replaceWith(fragment);
                 applied.push({ change, method: resolution.method });
@@ -649,7 +664,24 @@ const ClaudeChanges = {
             }
         });
 
-        // 3. Process ADDITIONS - handle both regular and chained sequence items
+        // Update pre-resolved anchors if they were replaced by modifications
+        for (const [changeId, resolution] of preResolvedAnchors) {
+            const replacement = nodeReplacements.get(resolution.node);
+            if (replacement) {
+                // Get the corresponding ADD change to determine insert direction
+                const addChange = additions.find(c => c.id === changeId);
+                // Use last element for insertAfter, first element for insertBefore
+                const newNode = (addChange?.insertAfter || addChange?._anchorDirection === 'after')
+                    ? replacement.last
+                    : replacement.first;
+                preResolvedAnchors.set(changeId, {
+                    node: newNode,
+                    method: resolution.method + '-updated'
+                });
+            }
+        }
+
+        // 2. Process ADDITIONS - handle both regular and chained sequence items
         // Separate chained items (those with _chainedAfter) from regular additions
         const regularAdditions = additions.filter(c => !c._chainedAfter);
         const chainedAdditions = additions.filter(c => c._chainedAfter);
@@ -658,22 +690,20 @@ const ClaudeChanges = {
         const insertedByChangeId = new Map();
 
         // Sort regular additions by anchor position - later anchors first
+        // Use pre-resolved anchors to get positions (anchors were resolved before modifications)
         const additionsWithPosition = regularAdditions.map(change => {
-            const anchorContent = change.insertAfter || change.insertBefore;
             let position = Infinity;
-            if (anchorContent || change.anchorTargetId) {
-                const resolution = resolveWithIndex(change);
-                if (resolution?.node) {
-                    // Get DOM position by walking tree
-                    const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_ELEMENT, null);
-                    let idx = 0;
-                    while (walker.nextNode()) {
-                        if (walker.currentNode === resolution.node) {
-                            position = idx;
-                            break;
-                        }
-                        idx++;
+            const preResolved = preResolvedAnchors.get(change.id);
+            if (preResolved?.node) {
+                // Get DOM position by walking tree
+                const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_ELEMENT, null);
+                let idx = 0;
+                while (walker.nextNode()) {
+                    if (walker.currentNode === preResolved.node) {
+                        position = idx;
+                        break;
                     }
+                    idx++;
                 }
             }
             return { change, position };
@@ -682,11 +712,12 @@ const ClaudeChanges = {
         // Sort by position descending (process later positions first)
         additionsWithPosition.sort((a, b) => b.position - a.position);
 
-        // Process regular additions
+        // Process regular additions using pre-resolved anchors
         additionsWithPosition.forEach(({ change }) => {
-            const resolution = resolveWithIndex(change);
+            // Use pre-resolved anchor (resolved before modifications changed DOM)
+            const resolution = preResolvedAnchors.get(change.id) || { node: null, method: 'failed' };
 
-            if (resolution.node) {
+            if (resolution.node && resolution.node.parentNode) {
                 const newElement = document.createElement('div');
                 newElement.innerHTML = change.newContent;
 
@@ -782,6 +813,24 @@ const ClaudeChanges = {
             remainingChained = stillRemaining;
         }
 
+        // 3. Process DELETIONS last (after all additions have used their anchors)
+        deletions.forEach(change => {
+            const resolution = resolveWithIndex(change);
+
+            if (resolution.node) {
+                this.ContentIndex.removeNode(resolution.node);
+                resolution.node.remove();
+                applied.push({ change, method: resolution.method });
+            } else {
+                const preview = change.originalContent?.substring(0, 100) || 'unknown';
+                if (skipOnFailure) {
+                    skipped.push({ change, reason: 'target not found' });
+                } else {
+                    console.error(`❌ DELETE failed: Could not find content to delete: "${preview}..."`);
+                }
+            }
+        });
+
         // Clear index to release memory
         this.ContentIndex.clear();
 
@@ -789,6 +838,11 @@ const ClaudeChanges = {
         acceptedChanges.forEach(change => {
             delete change._cachedSignature;
         });
+
+        // Ensure all elements have data-edit-ids for subsequent agent targeting
+        if (typeof ElementIds !== 'undefined') {
+            ElementIds.ensureIds(tempDiv);
+        }
 
         const elapsed = performance.now() - startTime;
 
