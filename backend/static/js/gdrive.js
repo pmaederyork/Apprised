@@ -402,7 +402,7 @@ const GDrive = {
 
             // Show Google Picker
             const picker = new google.picker.PickerBuilder()
-                .addView(google.picker.ViewId.RECENTLY_PICKED)
+                .addView(google.picker.ViewId.DOCS)
                 .setOAuthToken(tokenData.accessToken)
                 .setCallback(async (data) => {
                     if (data.action === google.picker.Action.PICKED) {
