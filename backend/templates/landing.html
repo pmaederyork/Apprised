@@ -18,9 +18,12 @@
                     <span class="logo-text">Apprised</span>
                 </div>
                 <nav>
-                    <a href="#features" class="nav-link">Features</a>
-                    <a href="#showcase" class="nav-link">Showcase</a>
-                    <a href="/auth/login" class="btn-login">Launch App</a>
+                    <a href="/auth/login" class="cta-button cta-primary cta-header">
+                        Launch App
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M3 8H13M13 8L8 3M13 8L8 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </a>
                 </nav>
             </div>
         </header>
@@ -134,7 +137,7 @@
                 </h2>
                 <p class="showcase-subtitle">A clean, intuitive interface for AI conversations and document editing</p>
                 <div class="showcase-image">
-                    <img src="/static/assets/screenshot.png" alt="Apprised interface showing multi-agent conversations, document editor, and change review panel" />
+                    <img src="/static/assets/screenshot1.png" alt="Apprised interface showing multi-agent conversations, document editor, and change review panel" />
                 </div>
             </div>
         </section>
@@ -182,5 +185,14 @@
         </footer>
     </div>
 
+    <!-- Space Background Elements -->
+    <canvas id="starField"></canvas>
+    <div class="parallax-bg">
+        <div class="parallax-layer stars-far"></div>
+        <div class="parallax-layer stars-mid"></div>
+        <div class="parallax-layer nebula"></div>
+    </div>
+
+    <script src="/static/landing.js"></script>
 </body>
 </html>

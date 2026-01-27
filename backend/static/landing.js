@@ -1,21 +1,20 @@
-// Particle Animation System
-class ParticleSystem {
+// Space Theme Star Field System
+class StarField {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         if (!this.canvas) return;
 
         this.ctx = this.canvas.getContext('2d');
-        this.particles = [];
-        this.particleCount = 100;
-        this.connectionDistance = 150;
-        this.mouse = { x: null, y: null, radius: 150 };
+        this.stars = [];
+        this.starCount = 150;
+        this.mouse = { x: null, y: null, radius: 100 };
 
         this.init();
     }
 
     init() {
         this.resizeCanvas();
-        this.createParticles();
+        this.createStars();
         this.animate();
         this.bindEvents();
     }
@@ -25,96 +24,197 @@ class ParticleSystem {
         this.canvas.height = window.innerHeight;
     }
 
-    createParticles() {
-        this.particles = [];
-        for (let i = 0; i < this.particleCount; i++) {
-            this.particles.push({
+    createStars() {
+        this.stars = [];
+        for (let i = 0; i < this.starCount; i++) {
+            const starType = Math.random();
+            let color, size, twinkleSpeed;
+
+            // Variety of star types
+            if (starType < 0.6) {
+                // White stars (most common)
+                color = 'rgba(255, 255, 255,';
+                size = Math.random() * 1.5 + 0.5;
+            } else if (starType < 0.85) {
+                // Blue-white stars
+                color = 'rgba(191, 219, 254,';
+                size = Math.random() * 2 + 0.5;
+            } else {
+                // Warm stars
+                color = 'rgba(254, 243, 199,';
+                size = Math.random() * 2.5 + 1;
+            }
+
+            twinkleSpeed = Math.random() * 0.02 + 0.005;
+            const twinkleOffset = Math.random() * Math.PI * 2;
+
+            this.stars.push({
                 x: Math.random() * this.canvas.width,
                 y: Math.random() * this.canvas.height,
-                vx: (Math.random() - 0.5) * 0.5,
-                vy: (Math.random() - 0.5) * 0.5,
-                radius: Math.random() * 2 + 1
+                baseSize: size,
+                size: size,
+                color: color,
+                twinkleSpeed: twinkleSpeed,
+                twinkleOffset: twinkleOffset,
+                baseOpacity: Math.random() * 0.5 + 0.5,
+                opacity: 1
             });
         }
     }
 
-    drawParticles() {
-        this.particles.forEach(particle => {
+    drawStars(time) {
+        this.stars.forEach(star => {
+            // Static stars - no blinking, just steady glow
+            const opacity = star.baseOpacity;
+            const size = star.baseSize;
+
+            // Draw star with subtle glow
             this.ctx.beginPath();
-            this.ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
-            this.ctx.fillStyle = 'rgba(0, 212, 255, 0.8)';
+
+            // Outer glow
+            const gradient = this.ctx.createRadialGradient(
+                star.x, star.y, 0,
+                star.x, star.y, size * 2
+            );
+            gradient.addColorStop(0, star.color + opacity + ')');
+            gradient.addColorStop(0.5, star.color + (opacity * 0.2) + ')');
+            gradient.addColorStop(1, 'transparent');
+
+            this.ctx.fillStyle = gradient;
+            this.ctx.arc(star.x, star.y, size * 2, 0, Math.PI * 2);
+            this.ctx.fill();
+
+            // Core
+            this.ctx.beginPath();
+            this.ctx.arc(star.x, star.y, size, 0, Math.PI * 2);
+            this.ctx.fillStyle = star.color + opacity + ')';
             this.ctx.fill();
         });
     }
 
-    updateParticles() {
-        this.particles.forEach(particle => {
-            particle.x += particle.vx;
-            particle.y += particle.vy;
-
-            // Bounce off edges
-            if (particle.x < 0 || particle.x > this.canvas.width) particle.vx *= -1;
-            if (particle.y < 0 || particle.y > this.canvas.height) particle.vy *= -1;
-
-            // Mouse interaction
-            if (this.mouse.x !== null && this.mouse.y !== null) {
-                const dx = this.mouse.x - particle.x;
-                const dy = this.mouse.y - particle.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance < this.mouse.radius) {
-                    const angle = Math.atan2(dy, dx);
-                    const force = (this.mouse.radius - distance) / this.mouse.radius;
-                    particle.vx -= Math.cos(angle) * force * 0.2;
-                    particle.vy -= Math.sin(angle) * force * 0.2;
-                }
-            }
-        });
-    }
-
-    connectParticles() {
-        for (let i = 0; i < this.particles.length; i++) {
-            for (let j = i + 1; j < this.particles.length; j++) {
-                const dx = this.particles[i].x - this.particles[j].x;
-                const dy = this.particles[i].y - this.particles[j].y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance < this.connectionDistance) {
-                    const opacity = 1 - (distance / this.connectionDistance);
-                    this.ctx.beginPath();
-                    this.ctx.strokeStyle = `rgba(181, 55, 242, ${opacity * 0.3})`;
-                    this.ctx.lineWidth = 1;
-                    this.ctx.moveTo(this.particles[i].x, this.particles[i].y);
-                    this.ctx.lineTo(this.particles[j].x, this.particles[j].y);
-                    this.ctx.stroke();
-                }
-            }
-        }
-    }
-
-    animate() {
+    animate(time = 0) {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        this.drawParticles();
-        this.connectParticles();
-        this.updateParticles();
-        requestAnimationFrame(() => this.animate());
+        this.drawStars(time);
+        requestAnimationFrame((t) => this.animate(t));
     }
 
     bindEvents() {
         window.addEventListener('resize', () => {
             this.resizeCanvas();
-            this.createParticles();
+            this.createStars();
         });
+    }
+}
 
-        window.addEventListener('mousemove', (e) => {
-            this.mouse.x = e.x;
-            this.mouse.y = e.y;
-        });
+// Parallax Controller
+class ParallaxController {
+    constructor() {
+        this.layers = {
+            starsFar: document.querySelector('.stars-far'),
+            starsMid: document.querySelector('.stars-mid'),
+            nebula: document.querySelector('.nebula')
+        };
 
-        window.addEventListener('mouseleave', () => {
-            this.mouse.x = null;
-            this.mouse.y = null;
+        // Strong parallax speeds for dramatic depth effect
+        this.speeds = {
+            starsFar: 0.15,
+            starsMid: 0.35,
+            nebula: 0.25
+        };
+
+        this.init();
+    }
+
+    init() {
+        if (!this.layers.starsFar) return;
+
+        window.addEventListener('scroll', () => this.onScroll(), { passive: true });
+        this.onScroll();
+    }
+
+    onScroll() {
+        const scrollY = window.pageYOffset;
+
+        Object.keys(this.layers).forEach(key => {
+            if (this.layers[key]) {
+                const speed = this.speeds[key];
+                const yPos = -(scrollY * speed);
+                this.layers[key].style.transform = `translate3d(0, ${yPos}px, 0)`;
+            }
         });
+    }
+}
+
+// Shooting Star Generator
+class ShootingStarGenerator {
+    constructor() {
+        this.container = document.body;
+        this.minInterval = 3000;  // Minimum ms between shooting stars
+        this.maxInterval = 8000; // Maximum ms between shooting stars
+
+        this.init();
+    }
+
+    init() {
+        this.scheduleNext();
+    }
+
+    scheduleNext() {
+        const delay = Math.random() * (this.maxInterval - this.minInterval) + this.minInterval;
+        setTimeout(() => {
+            this.createShootingStar();
+            this.scheduleNext();
+        }, delay);
+    }
+
+    createShootingStar() {
+        const star = document.createElement('div');
+        star.className = 'shooting-star';
+
+        // Random starting position (top portion of screen)
+        const startX = Math.random() * window.innerWidth;
+        const startY = Math.random() * (window.innerHeight * 0.4);
+
+        // Random angle (mostly downward diagonal)
+        const angle = Math.random() * 30 + 15; // 15-45 degrees
+        const distance = Math.random() * 300 + 200;
+
+        // Calculate end position
+        const endX = startX + Math.cos(angle * Math.PI / 180) * distance;
+        const endY = startY + Math.sin(angle * Math.PI / 180) * distance;
+
+        // Style the shooting star
+        star.style.cssText = `
+            position: fixed;
+            left: ${startX}px;
+            top: ${startY}px;
+            width: ${Math.random() * 2 + 1}px;
+            height: ${Math.random() * 2 + 1}px;
+            background: linear-gradient(${angle + 180}deg, #ffffff, transparent);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.6);
+        `;
+
+        this.container.appendChild(star);
+
+        // Animate
+        const duration = Math.random() * 500 + 300;
+
+        star.animate([
+            {
+                transform: 'translate(0, 0) scale(1)',
+                opacity: 1
+            },
+            {
+                transform: `translate(${endX - startX}px, ${endY - startY}px) scale(0)`,
+                opacity: 0
+            }
+        ], {
+            duration: duration,
+            easing: 'linear'
+        }).onfinish = () => star.remove();
     }
 }
 
@@ -135,7 +235,7 @@ function initSmoothScroll() {
 function initScrollAnimations() {
     const observerOptions = {
         threshold: 0.1,
-        rootMargin: '0px 0px -100px 0px'
+        rootMargin: '0px 0px -50px 0px'
     };
 
     const observer = new IntersectionObserver((entries) => {
@@ -151,36 +251,29 @@ function initScrollAnimations() {
     });
 }
 
-// Gradient animation for hero
-function animateGradient() {
-    const hero = document.querySelector('.hero');
-    if (!hero) return;
-
-    let hue = 200;
-    setInterval(() => {
-        hue = (hue + 0.5) % 360;
-        hero.style.setProperty('--gradient-hue', hue);
-    }, 50);
-}
-
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize particle system
-    new ParticleSystem('particleCanvas');
+    // Initialize star field
+    new StarField('starField');
+
+    // Initialize parallax
+    new ParallaxController();
+
+    // Initialize shooting stars
+    new ShootingStarGenerator();
 
     // Initialize other features
     initSmoothScroll();
     initScrollAnimations();
-    animateGradient();
 
-    // Add glow effect to CTA buttons on hover
-    document.querySelectorAll('.cta-button').forEach(button => {
+    // Add cosmic glow effect to CTA buttons on hover
+    document.querySelectorAll('.cta-primary').forEach(button => {
         button.addEventListener('mouseenter', function() {
-            this.style.boxShadow = '0 0 30px rgba(0, 212, 255, 0.6), 0 0 60px rgba(181, 55, 242, 0.4)';
+            this.style.boxShadow = '0 0 40px rgba(124, 58, 237, 0.6), 0 0 80px rgba(124, 58, 237, 0.3)';
         });
 
         button.addEventListener('mouseleave', function() {
-            this.style.boxShadow = '0 0 20px rgba(0, 212, 255, 0.4), 0 0 40px rgba(181, 55, 242, 0.2)';
+            this.style.boxShadow = '0 0 20px rgba(124, 58, 237, 0.4)';
         });
     });
 });
