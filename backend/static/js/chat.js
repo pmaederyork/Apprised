@@ -10,6 +10,16 @@ const Chat = {
     isSending: false,
     hadDocumentEditingInstructions: false,
 
+    /**
+     * Check if multi-agent mode is active (more than one agent configured)
+     */
+    isMultiAgentMode() {
+        if (typeof Agents !== 'undefined' && Agents.getFullAgentsList) {
+            return Agents.getFullAgentsList().length > 1;
+        }
+        return false;
+    },
+
     // Initialize chat system
     init() {
         // Prevent multiple initialization to avoid duplicate event listeners
@@ -487,7 +497,7 @@ CRITICAL RULES
 ✅ Use HTML formatting (not markdown) - this is a rich text editor
 ✅ For MOVE operations: Generate TWO changes (delete + add)
 ✅ For RANGE operations: Generate ONE change per element in the range
-✅ Keep response BRIEF: One sentence in FUTURE tense ("I'll...") + XML
+${this.isMultiAgentMode() ? '✅ Respond naturally - you can discuss the edit briefly before providing the XML' : '✅ Keep response BRIEF: One sentence in FUTURE tense ("I will...") + XML'}
 ✅ DO NOT repeat/describe content - user sees it in review panel
 ✅ DO NOT use emojis
 
