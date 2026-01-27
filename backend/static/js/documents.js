@@ -89,6 +89,11 @@ const Documents = {
         // Restore last open document if it exists
         this.restoreLastOpenDocument();
 
+        // Restore auto-accept toggle state
+        if (UI.elements.autoAcceptEditsToggle) {
+            UI.elements.autoAcceptEditsToggle.checked = Storage.getSetting('autoAcceptEdits', false);
+        }
+
         this.initialized = true;
     },
 
@@ -157,6 +162,13 @@ const Documents = {
             if (typeof GDrive !== 'undefined') {
                 GDrive.importFromGoogleDrive();
             }
+        });
+
+        // Auto-accept toggle
+        UI.elements.autoAcceptEditsToggle?.addEventListener('change', () => {
+            const isEnabled = UI.elements.autoAcceptEditsToggle.checked;
+            Storage.saveSetting('autoAcceptEdits', isEnabled);
+            console.log('Auto-accept edits:', isEnabled ? 'enabled' : 'disabled');
         });
 
         // Squire handles paste events automatically with DOMPurify sanitization
@@ -1967,6 +1979,47 @@ const Documents = {
         if (typeof ElementIds !== 'undefined' && this.squireEditor) {
             ElementIds.ensureIds(this.squireEditor.getRoot());
         }
+
+        // Check if auto-accept is enabled
+        const autoAccept = Storage.getSetting('autoAcceptEdits', false);
+
+        if (autoAccept) {
+            // Auto-accept mode: apply all changes directly without review
+            console.log(`Auto-accepting ${changes.length} Claude edit(s)`);
+
+            // Cache original HTML before changes
+            const editor = this.squireEditor.getRoot();
+            const originalHTML = editor.innerHTML;
+
+            // Mark all changes as accepted
+            changes.forEach(change => {
+                change.status = 'accepted';
+            });
+
+            // Use ClaudeChanges reconstruction to apply all changes
+            const reconstructedHTML = ClaudeChanges.reconstructDocument(originalHTML, changes);
+
+            // Apply to editor
+            this.squireEditor.saveUndoState();
+            editor.innerHTML = reconstructedHTML;
+
+            // Ensure new elements have IDs
+            if (typeof ElementIds !== 'undefined') {
+                ElementIds.ensureIds(editor);
+            }
+
+            // Save document
+            this.saveCurrentDocument();
+
+            // Notify user
+            if (typeof Chat !== 'undefined') {
+                Chat.addSystemMessage(`Auto-accepted ${changes.length} change${changes.length !== 1 ? 's' : ''} from Claude.`);
+            }
+
+            return;
+        }
+
+        // Normal review mode continues below...
 
         // Mark all changes as pending
         changes.forEach(change => {
