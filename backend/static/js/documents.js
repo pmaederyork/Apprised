@@ -3080,12 +3080,39 @@ const Documents = {
             const insertBeforeIdMatch = attributeString.match(/insertBefore-id="([^"]+)"/);
 
             // For insertAfter/insertBefore, handle nested quotes in HTML content
-            // Use positive lookahead to check for space, >, or end-of-string after closing quote
-            const insertAfterMatch = attributeString.match(/insertAfter="(.*?)"(?=\s|>|$)/s);
-            const insertBeforeMatch = attributeString.match(/insertBefore="(.*?)"(?=\s|>|$)/s);
+            // Strategy: Look for the attribute followed by the next attribute name or end of attributes
+            // This handles cases like insertAfter="<h2 style="color: red">..." where inner quotes exist
+            const extractAttribute = (attrStr, attrName) => {
+                const startPattern = new RegExp(`${attrName}="`, 'i');
+                const startMatch = attrStr.match(startPattern);
+                if (!startMatch) return null;
 
-            const insertAfter = insertAfterMatch ? insertAfterMatch[1] : undefined;
-            const insertBefore = insertBeforeMatch ? insertBeforeMatch[1] : undefined;
+                const startIdx = startMatch.index + startMatch[0].length;
+
+                // Find the closing quote by checking what follows each quote character
+                for (let i = startIdx; i < attrStr.length; i++) {
+                    const char = attrStr[i];
+                    const prevChar = i > 0 ? attrStr[i - 1] : '';
+
+                    // Check each quote character to see if it's the attribute's closing quote
+                    if (char === '"' && prevChar !== '\\') {
+                        // Check if this quote is followed by a valid attribute name or end
+                        // This indicates it's the closing quote of our attribute
+                        const remaining = attrStr.substring(i + 1).trimStart();
+                        if (remaining === '' ||
+                            remaining.startsWith('>') ||
+                            /^[a-zA-Z_][a-zA-Z0-9_-]*=/.test(remaining)) {
+                            return attrStr.substring(startIdx, i);
+                        }
+                    }
+                }
+
+                // Fallback: return everything after the opening quote
+                return attrStr.substring(startIdx).replace(/".*$/, '');
+            };
+
+            const insertAfter = extractAttribute(attributeString, 'insertAfter');
+            const insertBefore = extractAttribute(attributeString, 'insertBefore');
 
             // Extract targetId if provided (for delete/modify operations)
             const targetIdMatch = attributeString.match(/targetId="([^"]+)"/);
@@ -3129,6 +3156,106 @@ const Documents = {
             };
 
             changes.push(change);
+        }
+
+        // Resolve cross-ADD anchor dependencies
+        // When Claude uses anchors that reference other ADDs' newContent (either by ID or content),
+        // convert those to _chainedAfter relationships so they work correctly
+        if (changes.length > 1) {
+            // Extract IDs from all ADD newContent
+            const contentIdToChangeId = new Map();
+            // Also extract normalized content signatures for content-based matching
+            const contentSignatureToChangeId = new Map();
+
+            changes.forEach(change => {
+                if (change.type === 'add' && change.newContent) {
+                    // Parse newContent for id and data-edit-id attributes
+                    const idMatches = change.newContent.matchAll(/(?:data-edit-id|id)="([^"]+)"/g);
+                    for (const match of idMatches) {
+                        contentIdToChangeId.set(match[1], change.id);
+                    }
+
+                    // Extract content signatures for content-based anchor matching
+                    // Normalize: lowercase, collapse whitespace, extract key parts
+                    const normalizeForMatch = (html) => {
+                        if (!html) return '';
+                        return html.toLowerCase()
+                            .replace(/\s+/g, ' ')
+                            .replace(/['"]([^'"]*)['"]/g, (m, v) => `"${v.toLowerCase()}"`) // Normalize quotes
+                            .trim();
+                    };
+
+                    // Store the full newContent signature
+                    const fullSig = normalizeForMatch(change.newContent);
+                    if (fullSig) {
+                        contentSignatureToChangeId.set(fullSig, change.id);
+                    }
+
+                    // Also extract and store the opening tag signature (Claude often uses just the opening tag as anchor)
+                    // Match: <tagname ...attributes...> (first tag in content)
+                    const openingTagMatch = change.newContent.match(/^(<[a-z][a-z0-9]*\s+[^>]*>)/i);
+                    if (openingTagMatch) {
+                        const tagSig = normalizeForMatch(openingTagMatch[1]);
+                        if (tagSig && !contentSignatureToChangeId.has(tagSig)) {
+                            contentSignatureToChangeId.set(tagSig, change.id);
+                        }
+                    }
+                }
+            });
+
+            // Check if any ADD anchor references another ADD's content
+            changes.forEach(change => {
+                if (change.type === 'add') {
+                    // Check ID-based anchors
+                    if (change.anchorTargetId) {
+                        const creatorChangeId = contentIdToChangeId.get(change.anchorTargetId);
+                        if (creatorChangeId && creatorChangeId !== change.id) {
+                            const inventedId = change.anchorTargetId;
+                            change._chainedAfter = creatorChangeId;
+                            delete change.anchorTargetId;
+                            delete change._anchorDirection;
+                            console.log(`🔗 Auto-chained ADD ${change.id} after ${creatorChangeId} (ID anchor "${inventedId}" is in newContent)`);
+                            return; // Already chained
+                        }
+                    }
+
+                    // Check content-based anchors
+                    const anchorContent = change.insertAfter || change.insertBefore;
+                    if (anchorContent) {
+                        const normalizeForMatch = (html) => {
+                            if (!html) return '';
+                            return html.toLowerCase()
+                                .replace(/\s+/g, ' ')
+                                .replace(/['"]([^'"]*)['"]/g, (m, v) => `"${v.toLowerCase()}"`)
+                                .trim();
+                        };
+
+                        const anchorSig = normalizeForMatch(anchorContent);
+
+                        // Check if this anchor matches another ADD's content (exact match first)
+                        let creatorChangeId = contentSignatureToChangeId.get(anchorSig);
+
+                        // If no exact match, try substring matching (anchor may be truncated or partial)
+                        if (!creatorChangeId && anchorSig.length > 20) {
+                            for (const [sig, changeId] of contentSignatureToChangeId) {
+                                // Check if anchor is a substring of any newContent, or vice versa
+                                if (sig.includes(anchorSig) || anchorSig.includes(sig)) {
+                                    creatorChangeId = changeId;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (creatorChangeId && creatorChangeId !== change.id) {
+                            const anchorPreview = anchorContent.substring(0, 60);
+                            change._chainedAfter = creatorChangeId;
+                            delete change.insertAfter;
+                            delete change.insertBefore;
+                            console.log(`🔗 Auto-chained ADD ${change.id} after ${creatorChangeId} (content anchor "${anchorPreview}..." is in newContent)`);
+                        }
+                    }
+                }
+            });
         }
 
         return changes.length > 0 ? changes : null;

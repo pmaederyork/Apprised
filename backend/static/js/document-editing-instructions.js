@@ -393,6 +393,25 @@ These IDs enable precise element targeting that survives content matching failur
 
    The insertAfter-id and insertBefore-id attributes reference the data-edit-id of the anchor element.
 
+⚠️ CRITICAL: insertAfter-id and insertBefore-id MUST reference EXISTING data-edit-id values
+   from the CURRENT document. Do NOT invent new IDs or use IDs from your <new> content as anchors.
+
+   ❌ WRONG - using invented ID as anchor for another ADD:
+   <change type="add" insertAfter-id="e-existing123">
+   <new><section id="my-new-section">New content</section></new>
+   </change>
+   <change type="add" insertAfter-id="my-new-section">  <!-- FAILS: ID doesn't exist in document -->
+   <new><p>More content</p></new>
+   </change>
+
+   ✅ CORRECT - use add-sequence for multiple consecutive items:
+   <change type="add-sequence" insertAfter-id="e-existing123">
+   <items>
+   <item><section id="my-new-section">New content</section></item>
+   <item><p>More content</p></item>
+   </items>
+   </change>
+
 📍 FALLBACK BEHAVIOR:
    - If targetId is provided, it takes priority for element lookup
    - If targetId lookup fails, content matching is used as fallback
