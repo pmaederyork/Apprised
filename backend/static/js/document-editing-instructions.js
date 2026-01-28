@@ -50,6 +50,15 @@ LAYER 1: COMMANDS (What action)
         <new>[replacement HTML]</new>
         </change>
 
+🔵 FORMAT - Apply styling without changing content
+   XML: <change type="format" targetId="[element-id]">
+        <original>[element HTML for verification]</original>
+        <style>[format to apply]</style>
+        </change>
+
+   Use FORMAT when you only need to change appearance (bold, font-size, alignment)
+   WITHOUT rewriting the content. More efficient than MODIFY for pure styling.
+
 ═══════════════════════════════════════════════════════════════════════════
 LAYER 2: TARGET SELECTORS (What content)
 ═══════════════════════════════════════════════════════════════════════════
@@ -348,7 +357,7 @@ Response: "I'll remove content before main content:
 </change>
 </document_edit>"
 
-The user will review each change with visual highlighting (deletions in red, additions in green, modifications in yellow) and can accept or reject individual changes using keyboard shortcuts or buttons.
+The user will review each change with visual highlighting (deletions in red, additions in green, modifications in yellow, format changes in purple) and can accept or reject individual changes using keyboard shortcuts or buttons.
 
 ═══════════════════════════════════════════════════════════════════════════
 ELEMENT IDENTIFICATION (ADVANCED)
@@ -448,6 +457,71 @@ For cleanup operations affecting multiple similar elements, use pattern-based de
    - Patterns find ALL matches automatically - no need to enumerate each element
 
 ═══════════════════════════════════════════════════════════════════════════
+FORMATTING OPERATIONS
+═══════════════════════════════════════════════════════════════════════════
+
+For pure styling changes that don't modify content, use FORMAT instead of MODIFY.
+FORMAT is more efficient because it doesn't require regenerating the text.
+
+📋 FORMAT STRUCTURE:
+<change type="format" targetId="[element-id]">
+<original>[element HTML for verification]</original>
+<style>[format to apply]</style>
+</change>
+
+📋 AVAILABLE STYLES:
+   Inline formatting:
+   - <style><b></style>              Apply bold
+   - <style><i></style>              Apply italic
+   - <style><u></style>              Apply underline
+   - <style><s></style>              Apply strikethrough
+
+   Font properties:
+   - <style>font-size: 18px</style>  Set font size
+   - <style>font-family: Georgia</style>  Set font family
+
+   Block styles:
+   - <style>text-align: center</style>  Set alignment (left|right|center|justify)
+   - <style>line-height: 1.5</style>    Set line height
+
+📋 REMOVING FORMATTING:
+   Use <remove> instead of <style> to remove existing formatting:
+   - <remove><b></remove>            Remove bold
+   - <remove><i></remove>            Remove italic
+
+   Remove is additive - removing bold keeps italic intact.
+   You can mix <style> and <remove> in the same change.
+
+📋 MULTIPLE STYLES IN ONE CHANGE:
+   Apply multiple styles as a single accept/reject:
+
+   <change type="format" targetId="e-abc123">
+   <original><p data-edit-id="e-abc123">Heading text</p></original>
+   <style><b></style>
+   <style>font-size: 18px</style>
+   <style>text-align: center</style>
+   </change>
+
+📋 TEXT TARGETING (PARTIAL FORMATTING):
+   Format specific text within an element using the text attribute:
+
+   <change type="format" targetId="e-abc123" text="Important">
+   <original><p data-edit-id="e-abc123">This is an Important note. Important items are highlighted.</p></original>
+   <style><b></style>
+   </change>
+
+   This formats ALL occurrences of "Important" within the element.
+   Omit the text attribute to format the entire element.
+   If text pattern not found, the change is silently skipped (no error).
+
+📍 WHEN TO USE FORMAT vs MODIFY:
+   - Use FORMAT: "Make this bold", "Center this paragraph", "Change font to 18px"
+   - Use MODIFY: "Rewrite this paragraph", "Fix the typo", "Change 'hello' to 'goodbye'"
+
+   FORMAT = styling only (faster, preserves exact content)
+   MODIFY = content changes (rewrites the text)
+
+═══════════════════════════════════════════════════════════════════════════
 EXAMPLES: ADVANCED TARGETING
 ═══════════════════════════════════════════════════════════════════════════
 
@@ -505,6 +579,83 @@ Response: "I'll add a note:
 <document_edit>
 <change type="add" insertAfter-id="e-p3x2">
 <new><p><em>Note: Additional context here.</em></p></new>
+</change>
+</document_edit>"
+
+═══════════════════════════════════════════════════════════════════════════
+EXAMPLES: FORMAT OPERATIONS
+═══════════════════════════════════════════════════════════════════════════
+
+Example 17: FORMAT entire element
+User: "Make the title bold"
+Decompose: FORMAT + TARGET("the title")
+Document has: <h1 data-edit-id="e-title1">My Document Title</h1>
+
+Response: "I'll make the title bold:
+
+<document_edit>
+<change type="format" targetId="e-title1">
+<original><h1 data-edit-id="e-title1">My Document Title</h1></original>
+<style><b></style>
+</change>
+</document_edit>"
+
+Example 18: FORMAT specific text within element
+User: "Bold the word 'Important' in that paragraph"
+Decompose: FORMAT + TARGET(specific text "Important")
+Document has: <p data-edit-id="e-p1">This is an Important notice. Important items need attention.</p>
+
+Response: "I'll bold all occurrences of 'Important':
+
+<document_edit>
+<change type="format" targetId="e-p1" text="Important">
+<original><p data-edit-id="e-p1">This is an Important notice. Important items need attention.</p></original>
+<style><b></style>
+</change>
+</document_edit>"
+
+Example 19: FORMAT with multiple styles
+User: "Make the heading centered, bold, and 24px"
+Decompose: FORMAT + TARGET("the heading") + multiple styles
+Document has: <h2 data-edit-id="e-h2a">Chapter One</h2>
+
+Response: "I'll style the heading:
+
+<document_edit>
+<change type="format" targetId="e-h2a">
+<original><h2 data-edit-id="e-h2a">Chapter One</h2></original>
+<style><b></style>
+<style>font-size: 24px</style>
+<style>text-align: center</style>
+</change>
+</document_edit>"
+
+Example 20: Remove formatting
+User: "Remove the bold from that paragraph"
+Decompose: FORMAT + TARGET("that paragraph") + remove bold
+Document has: <p data-edit-id="e-p2"><b>This text is bold.</b></p>
+
+Response: "I'll remove the bold:
+
+<document_edit>
+<change type="format" targetId="e-p2">
+<original><p data-edit-id="e-p2"><b>This text is bold.</b></p></original>
+<remove><b></remove>
+</change>
+</document_edit>"
+
+Example 21: Replace one formatting with another
+User: "Change the bold text to italic instead"
+Decompose: FORMAT + remove bold + add italic
+Document has: <p data-edit-id="e-p3"><b>Emphasized text</b></p>
+
+Response: "I'll change bold to italic:
+
+<document_edit>
+<change type="format" targetId="e-p3">
+<original><p data-edit-id="e-p3"><b>Emphasized text</b></p></original>
+<remove><b></remove>
+<style><i></style>
 </change>
 </document_edit>"`;
     },
