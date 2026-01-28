@@ -761,13 +761,28 @@ FINAL DOCUMENT:
 ${finalHTML}
 \`\`\`
 
-DECISION LOGIC - How to choose ADD vs MODIFY:
-1. Find each element in FINAL by its data-edit-id
-2. If an element's ID exists in ORIGINAL → check if content changed:
-   - Content SAME → skip (no change needed)
-   - Content DIFFERENT → use MODIFY
-3. If an element has NO data-edit-id OR its ID is NOT in ORIGINAL → this is NEW content, use ADD
-4. If an element from ORIGINAL is missing in FINAL → use DELETE
+DECISION LOGIC - How to choose the correct change type:
+
+For each element, compare ORIGINAL and FINAL documents:
+
+1. ADD - Element is NEW (not in ORIGINAL):
+   - Element has NO data-edit-id attribute, OR
+   - Element's data-edit-id does NOT exist in ORIGINAL
+   → Use ADD with insertAfter-id anchored to nearest preceding ORIGINAL element
+
+2. MODIFY - Element EXISTS in both, TEXT CONTENT changed:
+   - Same data-edit-id in both ORIGINAL and FINAL
+   - The text/innerHTML is DIFFERENT
+   → Use MODIFY with targetId
+
+3. FORMAT - Element EXISTS in both, only STYLING changed:
+   - Same data-edit-id in both ORIGINAL and FINAL
+   - Text content is IDENTICAL but formatting differs (bold, italic, font-size, alignment)
+   → Use FORMAT with targetId and <style> tags
+
+4. DELETE - Element REMOVED (in ORIGINAL but not in FINAL):
+   - data-edit-id exists in ORIGINAL but element is gone from FINAL
+   → Use DELETE with targetId
 
 CRITICAL: Most agent contributions are NEW content (no matching ID in ORIGINAL). Use ADD for these!
 
@@ -775,23 +790,29 @@ ORDERING: Generate changes in DOCUMENT ORDER (top to bottom). Process elements i
 
 ANCHOR RULES:
 - For ADD, anchor to the NEAREST PRECEDING element that has an ID from ORIGINAL
-- For targetId in MODIFY/DELETE, use the element's own ID from ORIGINAL
+- For targetId in MODIFY/DELETE/FORMAT, use the element's own ID from ORIGINAL
 - IDs appearing ONLY in FINAL cannot be used as anchors
 
 OUTPUT FORMAT - produce a <document_edit> block:
 
-ADD (use for NEW content not in ORIGINAL):
+ADD (NEW content not in ORIGINAL):
 <change type="add" insertAfter-id="[ID of preceding element from ORIGINAL]">
 <new>[new content - NO data-edit-id attributes]</new>
 </change>
 
-MODIFY (use ONLY when same ID exists in both, content differs):
+MODIFY (same ID, different text content):
 <change type="modify" targetId="[ID from ORIGINAL]">
 <original>[element from original]</original>
 <new>[element from final]</new>
 </change>
 
-DELETE:
+FORMAT (same ID, same text, different styling):
+<change type="format" targetId="[ID from ORIGINAL]">
+<original>[element from original]</original>
+<style>[formatting to apply, e.g. <b>, font-size: 18px, text-align: center]</style>
+</change>
+
+DELETE (element removed):
 <change type="delete" targetId="[ID from ORIGINAL]">
 <original>[element being removed]</original>
 </change>
