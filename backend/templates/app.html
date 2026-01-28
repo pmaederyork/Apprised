@@ -28,6 +28,8 @@
     <link rel="stylesheet" href="/static/css/mobile-layout.css">
     <link rel="stylesheet" href="/static/css/mobile-drawer.css">
     <link rel="stylesheet" href="/static/css/mobile-touch.css">
+    <link rel="stylesheet" href="/static/css/mobile-sheets.css">
+    <link rel="stylesheet" href="/static/css/mobile-panels.css">
     <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="/static/css/sidebar.css">
     <link rel="stylesheet" href="/static/css/chat.css">
@@ -684,10 +686,52 @@
 
     </div>
 
+    <!-- Bottom sheet container for model selector -->
+    <div class="bottom-sheet" id="modelBottomSheet">
+        <div class="bottom-sheet-handle"></div>
+        <div class="bottom-sheet-header">
+            <h3>Select Model</h3>
+        </div>
+        <div class="bottom-sheet-content" id="modelSheetContent">
+            <!-- Model options populated by JS -->
+        </div>
+    </div>
+
+    <!-- Bottom sheet container for agent selector -->
+    <div class="bottom-sheet" id="agentBottomSheet">
+        <div class="bottom-sheet-handle"></div>
+        <div class="bottom-sheet-header">
+            <h3>Active Agents</h3>
+        </div>
+        <div class="bottom-sheet-content" id="agentSheetContent">
+            <!-- Agent list populated by JS -->
+        </div>
+    </div>
+
+    <!-- Bottom sheet backdrop -->
+    <div class="bottom-sheet-backdrop" id="bottomSheetBackdrop"></div>
+
+    <!-- Full screen modal for system prompts -->
+    <div class="mobile-fullscreen-modal" id="systemPromptModal">
+        <div class="fullscreen-modal-header">
+            <button class="modal-back-btn" id="systemPromptModalBack">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
+            <h3>Edit System Prompt</h3>
+            <button class="modal-save-btn" id="systemPromptModalSave">Save</button>
+        </div>
+        <div class="fullscreen-modal-content" id="systemPromptModalContent">
+            <!-- System prompt editor content -->
+        </div>
+    </div>
+
     <!-- JavaScript Modules -->
     <script src="/static/js/mobile.js"></script>
     <script src="/static/js/mobile-drawer.js"></script>
     <script src="/static/js/mobile-touch.js"></script>
+    <script src="/static/js/mobile-sheets.js"></script>
     <script src="/static/js/auth.js"></script>
     <script src="/static/js/storage.js"></script>
     <script src="/static/js/api.js"></script>
