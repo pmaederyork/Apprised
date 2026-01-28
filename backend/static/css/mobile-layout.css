@@ -1,0 +1,155 @@
+/**
+ * Mobile Layout System
+ * Handles portrait/landscape split views and chat-only mode.
+ * Uses CSS Grid for flexible layout switching.
+ */
+
+/* ===== Chat-only Mode ===== */
+/* Full-screen chat when no document is open */
+body.is-mobile.chat-only-mode .chat-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+body.is-mobile.chat-only-mode .document-editor {
+  display: none;
+}
+
+body.is-mobile.chat-only-mode .system-prompt-editor {
+  display: none;
+}
+
+/* ===== Split View Container ===== */
+/* Grid layout for when document is open */
+body.is-mobile.split-view .app-container {
+  display: grid;
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height - accounts for mobile browser chrome */
+  overflow: hidden;
+}
+
+/* ===== Portrait Split View ===== */
+/* Editor top 60%, chat bottom 40% */
+body.is-mobile.is-portrait.split-view .app-container {
+  grid-template-rows: 60% 40%;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    "editor"
+    "chat";
+}
+
+body.is-mobile.is-portrait.split-view .document-editor {
+  grid-area: editor;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+body.is-mobile.is-portrait.split-view .chat-container {
+  grid-area: chat;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Landscape Split View ===== */
+/* Chat left 50%, editor right 50% */
+body.is-mobile.is-landscape.split-view .app-container {
+  grid-template-rows: 1fr;
+  grid-template-columns: 50% 50%;
+  grid-template-areas: "chat editor";
+}
+
+body.is-mobile.is-landscape.split-view .chat-container {
+  grid-area: chat;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+body.is-mobile.is-landscape.split-view .document-editor {
+  grid-area: editor;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Tablet Layout ===== */
+/* Always use landscape layout (50/50 side-by-side) regardless of orientation */
+body.is-tablet.split-view .app-container {
+  grid-template-rows: 1fr;
+  grid-template-columns: 50% 50%;
+  grid-template-areas: "chat editor";
+}
+
+body.is-tablet.split-view .chat-container {
+  grid-area: chat;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+body.is-tablet.split-view .document-editor {
+  grid-area: editor;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Collapsed Chat State ===== */
+/* Minimizes chat to thin bar for focused editing */
+
+/* Portrait: chat collapses to bottom bar */
+body.is-mobile.is-portrait.split-view.chat-collapsed .app-container {
+  grid-template-rows: calc(100% - var(--mobile-collapsed-chat-height)) var(--mobile-collapsed-chat-height);
+}
+
+body.is-mobile.is-portrait.split-view.chat-collapsed .chat-container {
+  min-height: var(--mobile-collapsed-chat-height);
+  max-height: var(--mobile-collapsed-chat-height);
+}
+
+/* Landscape: chat collapses to left sidebar */
+body.is-mobile.is-landscape.split-view.chat-collapsed .app-container {
+  grid-template-columns: var(--mobile-collapsed-chat-height) calc(100% - var(--mobile-collapsed-chat-height));
+}
+
+body.is-mobile.is-landscape.split-view.chat-collapsed .chat-container {
+  min-width: var(--mobile-collapsed-chat-height);
+  max-width: var(--mobile-collapsed-chat-height);
+}
+
+/* ===== Sidebar Hidden on Mobile ===== */
+/* Sidebar shown via drawer in separate plan */
+body.is-mobile .sidebar {
+  display: none;
+}
+
+/* ===== Smooth Transitions ===== */
+/* Animate layout changes */
+body.is-mobile .app-container {
+  transition: grid-template-rows 300ms ease-out, grid-template-columns 300ms ease-out;
+}
+
+body.is-mobile .chat-container,
+body.is-mobile .document-editor {
+  transition: min-height 300ms ease-out, max-height 300ms ease-out,
+              min-width 300ms ease-out, max-width 300ms ease-out;
+}
+
+/* ===== Desktop Override ===== */
+/* Preserve original layout on desktop */
+@media (min-width: 1025px) {
+  body .app-container {
+    display: flex !important;
+    grid-template-rows: unset !important;
+    grid-template-columns: unset !important;
+  }
+}
