@@ -1,0 +1,277 @@
+/**
+ * Mobile Bottom Sheets and Full-Screen Modals
+ * Native-feeling mobile modal patterns with swipe dismiss.
+ */
+
+/* ===== Bottom Sheet Backdrop ===== */
+.bottom-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 300ms ease;
+    z-index: 1099;
+}
+
+.bottom-sheet-backdrop.visible {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* ===== Bottom Sheet Base ===== */
+.bottom-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 70vh;
+    background: var(--color-bg-white);
+    border-radius: 16px 16px 0 0;
+    transform: translateY(100%);
+    transition: transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
+    will-change: transform;
+    z-index: 1100;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.bottom-sheet.open {
+    transform: translateY(0);
+}
+
+.bottom-sheet.dragging {
+    transition: none;
+}
+
+/* Handle for swipe dismiss */
+.bottom-sheet-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--color-border);
+    border-radius: 2px;
+    margin: 12px auto 8px;
+    flex-shrink: 0;
+}
+
+.bottom-sheet-header {
+    padding: 8px 16px 16px;
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+}
+
+.bottom-sheet-header h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--color-text);
+    text-align: center;
+}
+
+.bottom-sheet-content {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 0;
+}
+
+/* ===== Bottom Sheet List Items ===== */
+.bottom-sheet-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    font-size: 16px;
+    color: var(--color-text);
+    cursor: pointer;
+    transition: background 100ms ease;
+}
+
+.bottom-sheet-item:hover,
+.bottom-sheet-item:active {
+    background: var(--color-hover);
+}
+
+.bottom-sheet-item.selected {
+    color: var(--color-primary);
+}
+
+.bottom-sheet-item.selected::after {
+    content: '✓';
+    margin-left: auto;
+    font-size: 18px;
+}
+
+.bottom-sheet-item .item-icon {
+    width: 24px;
+    height: 24px;
+    opacity: 0.8;
+}
+
+.bottom-sheet-item .item-label {
+    flex: 1;
+}
+
+.bottom-sheet-item .item-description {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+}
+
+/* ===== Model Selector Specific ===== */
+#modelBottomSheet .bottom-sheet-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+#modelBottomSheet .model-name {
+    font-weight: 500;
+}
+
+#modelBottomSheet .model-description {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+}
+
+/* ===== Agent Selector Specific ===== */
+#agentBottomSheet .agent-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#agentBottomSheet .agent-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+#agentBottomSheet .agent-toggle {
+    margin-left: auto;
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    background: var(--color-border);
+    position: relative;
+    transition: background 200ms ease;
+}
+
+#agentBottomSheet .agent-toggle.active {
+    background: var(--color-primary);
+}
+
+#agentBottomSheet .agent-toggle::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    top: 2px;
+    left: 2px;
+    transition: transform 200ms ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+#agentBottomSheet .agent-toggle.active::after {
+    transform: translateX(20px);
+}
+
+/* ===== Full Screen Modal ===== */
+.mobile-fullscreen-modal {
+    position: fixed;
+    inset: 0;
+    background: var(--color-bg-white);
+    z-index: 1200;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
+    will-change: transform;
+}
+
+.mobile-fullscreen-modal.open {
+    transform: translateX(0);
+}
+
+.fullscreen-modal-header {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    padding-top: max(8px, env(safe-area-inset-top));
+    border-bottom: 1px solid var(--color-border);
+    min-height: 56px;
+    background: var(--color-bg-white);
+}
+
+.fullscreen-modal-header h3 {
+    flex: 1;
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--color-text);
+    text-align: center;
+}
+
+.modal-back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    border: none;
+    color: var(--color-primary);
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+.modal-back-btn:active {
+    background: var(--color-hover);
+}
+
+.modal-save-btn {
+    padding: 8px 16px;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.modal-save-btn:active {
+    opacity: 0.8;
+}
+
+.fullscreen-modal-content {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+/* System prompt textarea in modal */
+.fullscreen-modal-content textarea {
+    width: 100%;
+    min-height: 300px;
+    padding: 12px;
+    font-size: 16px;
+    line-height: 1.5;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    resize: vertical;
+}
+
+/* ===== Desktop: Hide Mobile-Only Elements ===== */
+@media (min-width: 768px) {
+    .bottom-sheet,
+    .bottom-sheet-backdrop,
+    .mobile-fullscreen-modal {
+        display: none !important;
+    }
+}
