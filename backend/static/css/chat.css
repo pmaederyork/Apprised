@@ -751,3 +751,20 @@ input.chat-title:focus {
     background: transparent;
 }
 
+/* Dark mode message bubble styles */
+[data-theme="dark"] .message.claude .message-bubble {
+    background: var(--gray-800);
+    border-color: var(--gray-700);
+    color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .message.claude .message-bubble * {
+    color: inherit;
+}
+
+[data-theme="dark"] .message.user .message-bubble {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: var(--color-text-primary);
+}
+

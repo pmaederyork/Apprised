@@ -106,24 +106,30 @@ const UI = {
         // Step 2: Remove complete <document_edit>...</document_edit> blocks (not in code blocks)
         filtered = filtered.replace(/<document_edit>[\s\S]*?<\/document_edit>/g, '');
 
-        // Step 3: Handle incomplete blocks during streaming
+        // Step 3: Remove <edits>...</edits> blocks (multi-agent simplified format)
+        filtered = filtered.replace(/```(?:xml)?\s*\n?<edits>[\s\S]*?<\/edits>\s*\n?```/g, '');
+        filtered = filtered.replace(/<edits>[\s\S]*?<\/edits>/g, '');
+
+        // Step 4: Handle incomplete blocks during streaming
         // This prevents flickering of partial XML as it streams in
         if (filtered.includes('<document_edit>')) {
-            // Found opening tag but no closing tag - remove everything from opening tag onwards
             filtered = filtered.substring(0, filtered.indexOf('<document_edit>'));
         }
+        if (filtered.includes('<edits>')) {
+            filtered = filtered.substring(0, filtered.indexOf('<edits>'));
+        }
 
-        // Step 4: Clean up orphaned markdown code block syntax
+        // Step 5: Clean up orphaned markdown code block syntax
         // Remove standalone ```xml or ``` that may be left over
         filtered = filtered.replace(/```xml\s*\n?\s*$/g, ''); // Trailing ```xml
         filtered = filtered.replace(/```\s*\n?\s*$/g, ''); // Trailing ```
         filtered = filtered.replace(/^\s*```\s*\n?/gm, ''); // Leading ```
 
-        // Step 5: Clean up orphaned backticks (single or pairs)
+        // Step 6: Clean up orphaned backticks (single or pairs)
         filtered = filtered.replace(/`xml\s*\n?\s*`/g, ''); // `xml ` pairs
         filtered = filtered.replace(/`\s*\n?\s*`/g, ''); // Empty ` ` pairs
 
-        // Step 6: Clean up excessive newlines (more than 2 consecutive)
+        // Step 7: Clean up excessive newlines (more than 2 consecutive)
         filtered = filtered.replace(/\n{3,}/g, '\n\n');
 
         return filtered.trim();

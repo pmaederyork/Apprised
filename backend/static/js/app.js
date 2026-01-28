@@ -100,6 +100,16 @@ const App = {
             console.error('Failed to initialize Chat:', error);
         }
 
+        // Initialize moderator module (multi-agent orchestration)
+        try {
+            if (typeof Moderator !== 'undefined') {
+                Moderator.init();
+                console.log('Moderator module initialized');
+            }
+        } catch (error) {
+            console.error('Failed to initialize Moderator:', error);
+        }
+
         // Initialize agents module
         try {
             Agents.init();

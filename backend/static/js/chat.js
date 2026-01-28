@@ -330,39 +330,24 @@ const Chat = {
         const currentChat = chats[this.currentChatId];
         const hasAddedAgents = currentChat && currentChat.agents && currentChat.agents.length > 0;
 
-        // In multi-agent mode, show agent badge for initial response (Agent 1)
-        let agent1 = null;
-        if (hasAddedAgents && activeSystemPromptId && systemPrompts[activeSystemPromptId]) {
-            agent1 = {
-                id: 'agent_active_prompt',
-                name: systemPrompts[activeSystemPromptId].name || 'Assistant',
-                systemPromptId: activeSystemPromptId,
-                color: '#ea580c'  // Orange - Agent 1 color
-            };
+        // In multi-agent mode, Moderator intercepts FIRST (before any agent responds)
+        if (hasAddedAgents && typeof Moderator !== 'undefined') {
+            console.log('[Chat] Multi-agent mode - Moderator intercepts');
+            // Save user message to history
+            this.saveMessageToHistory(message, true, filesData);
 
-            // Inject multi-agent context for Agent 1's initial response
-            if (typeof Agents !== 'undefined' && Agents.appendMultiAgentContext) {
-                // Build full agents list for context
-                const allAgents = [agent1];
-                const addedAgents = currentChat.agents.map((agent, index) => ({
-                    ...agent,
-                    color: Agents.AGENT_COLORS[(1 + index) % Agents.AGENT_COLORS.length]
-                }));
-                allAgents.push(...addedAgents);
-
-                console.log(`[Chat] Injecting multi-agent context for Agent 1. Total agents: ${allAgents.length}`);
-                console.log(`[Chat] Agents:`, allAgents.map(a => a.name));
-
-                // Append context: Agent 1, Turn 1, Index 0 (responding to user)
-                systemPrompt = Agents.appendMultiAgentContext(systemPrompt, agent1, allAgents, 1, 0);
-                console.log(`[Chat] System prompt after injection (first 200 chars):`, systemPrompt?.substring(0, 200));
-            } else {
-                console.log(`[Chat] Multi-agent context NOT injected. Agents defined: ${typeof Agents !== 'undefined'}, method exists: ${Agents?.appendMultiAgentContext ? 'yes' : 'no'}`);
+            try {
+                await Moderator.intercept(message, filesData, screenshotData);
+            } finally {
+                this.isSending = false;
+                UI.setSendButtonState(true);
+                UI.focusMessageInput();
             }
+            return; // Moderator handles everything
         }
 
-        // Create streaming message bubble with agent badge if in multi-agent mode
-        const streamingBubble = UI.addStreamingMessage(false, agent1);
+        // Single-agent mode: normal flow
+        const streamingBubble = UI.addStreamingMessage(false, null);
         let fullResponse = '';
 
         try {
@@ -370,6 +355,9 @@ const Chat = {
             // Append document editing instructions if document is open
             if (Documents && Documents.currentDocumentId) {
                 this.hadDocumentEditingInstructions = true;
+
+                // Use full document editing instructions for initial response
+                // In multi-agent mode, Moderator will handle collaboration after this
                 const documentEditingInstructions = `
 
 DOCUMENT EDITING CAPABILITY:
@@ -868,7 +856,7 @@ Response: "I'll add a note:
 </change>
 </document_edit>"`;
 
-                systemPrompt = systemPrompt ? systemPrompt + documentEditingInstructions : documentEditingInstructions;
+                    systemPrompt = systemPrompt ? systemPrompt + documentEditingInstructions : documentEditingInstructions;
             } else if (this.hadDocumentEditingInstructions) {
                 // Document was open earlier but is now closed
                 const documentClosedNotice = `
@@ -900,36 +888,17 @@ The document editor is currently CLOSED. Do not generate <document_edit> tags. I
                     UI.updateStreamingMessage(streamingBubble, fullResponse, true);
                     // Save only the original text message, not the screenshot data
                     this.saveMessageToHistory(message, true, filesData);
-                    this.saveMessageToHistory(fullResponse, false, [], agent1);
+                    this.saveMessageToHistory(fullResponse, false, []);
 
-                    // Check if response contains document edits (only if document is open)
-                    let agent1Edits = [];
+                    // Single-agent mode: parse <document_edit> XML and apply directly
                     if (Documents && Documents.currentDocumentId) {
-                        console.log(`[Chat] Parsing Agent 1 response for edits...`);
-                        console.log(`[Chat] Response contains <document_edit>: ${fullResponse.includes('<document_edit>')}`);
+                        console.log(`[Chat] Single-agent mode - parsing response for document edits...`);
                         const changes = Documents.parseClaudeEditResponse(fullResponse);
                         if (changes && changes.length > 0) {
                             console.log(`[Chat] Detected ${changes.length} document edits from Claude`);
-                            agent1Edits = changes;
-                        } else {
-                            console.log(`[Chat] No document edits found in Agent 1 response`);
+                            Documents.applyClaudeEdits(changes);
+                            this.addSystemMessage(`Claude proposed ${changes.length} change${changes.length !== 1 ? 's' : ''} to your document. Review them in the editor.`);
                         }
-                    }
-
-                    // After initial response, check if multi-agent conversation should start
-                    const hasMultipleAgents = typeof Agents !== 'undefined' &&
-                        Agents.getCurrentAgents().length > 0;
-
-                    console.log(`[Chat] hasMultipleAgents: ${hasMultipleAgents}, agent1Edits: ${agent1Edits.length}`);
-
-                    if (hasMultipleAgents) {
-                        // Multi-agent mode: pass edits to orchestrator for collaboration
-                        console.log(`[Chat] Multi-agent mode - passing ${agent1Edits.length} edits to orchestrator`);
-                        await Agents.orchestrateAgentTurns(message, agent1Edits);
-                    } else if (agent1Edits.length > 0) {
-                        // Single agent mode: apply edits immediately
-                        Documents.applyClaudeEdits(agent1Edits);
-                        this.addSystemMessage(`Claude proposed ${agent1Edits.length} change${agent1Edits.length !== 1 ? 's' : ''} to your document. Review them in the editor.`);
                     }
                 }
             }
