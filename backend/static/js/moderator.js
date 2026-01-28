@@ -70,31 +70,50 @@ const Moderator = {
         const agentNames = agents.map(a => a.name).join(', ');
         const turnsConfig = Agents.getCurrentTurns();
 
+        // Check if there's prior chat history
+        const messages = Chat.getCurrentMessages();
+        const hasPriorChat = messages.length > 1;
+        const priorChatSummary = hasPriorChat
+            ? `There is prior conversation history (${messages.length - 1} previous messages) that agents can reference.`
+            : 'This is the start of the conversation.';
+
         const moderatorPrompt = `You are a MODERATOR coordinating a team of AI agents: ${agentNames}.
 
 Analyze the user's request and decide how to handle it:
 
-1. DIRECT EDIT - If the user wants simple formatting changes (bold, italic, font size, alignment) and a document is open:
-   - You should handle this yourself
-   - These are quick operations that don't need discussion
+1. DIRECT (you handle it yourself) - Use for:
+   - Simple formatting changes (bold, italic, font size, alignment)
+   - Synthesize/summarize existing chat and add to document (no new ideas needed)
+   - Extract and compile information that's already been discussed
 
-2. DELEGATE - If the user wants content creation, discussion, or complex edits:
-   - The agents will work together on this
-   - They'll discuss and collaborate on the scratchpad
-   - You'll finalize their work into document edits
+2. DELEGATE (agents collaborate) - Use for:
+   - Generate NEW content or ideas
+   - Creative work, brainstorming, or discussion
+   - "Discuss then add" or "collaborate on" requests
+   - Anything requiring multiple perspectives or new thinking
+
+KEY DISTINCTION:
+- "Synthesize this chat and add to doc" = DIRECT (you compile existing discussion)
+- "Generate ideas about X then add to doc" = DELEGATE (agents create new content)
+- "Discuss X and then add the results" = DELEGATE (agents need to collaborate first)
+
+TURNS (only for delegate, when turnsConfig is auto):
+- Default to 1 turn unless the task clearly needs discussion
+- Use 2+ turns only if user explicitly wants collaboration/debate OR the task is complex enough to benefit from back-and-forth
 
 Current state:
 - Document open: ${hasDocument ? 'YES' : 'NO'}
+- ${priorChatSummary}
 - Agents available: ${agentNames}
-- User's configured turns: ${turnsConfig === 'auto' ? 'Auto (you decide)' : turnsConfig}
+- User's configured turns: ${turnsConfig === 'auto' ? 'Auto (default to 1 unless discussion needed)' : turnsConfig}
 
 User's request: "${userMessage}"
 
 Respond with ONLY a JSON object (no markdown, no explanation):
 {
   "action": "direct" or "delegate",
-  "turns": <number, only if delegate and turnsConfig is auto>,
-  "agentTask": "<what to tell agents, only if delegate - rephrase without 'add to document' language>",
+  "turns": <number, only if delegate and turnsConfig is auto - default 1>,
+  "agentTask": "<what to tell agents, only if delegate>",
   "reasoning": "<brief explanation>"
 }`;
 
@@ -409,6 +428,10 @@ Respond with ONLY a JSON object (no markdown, no explanation):
             previousSpeaker = allAgents[allAgents.length - 1].name;
         }
 
+        // Check if there's prior chat history to reference
+        const messages = Chat.getCurrentMessages();
+        const hasPriorChat = messages.length > 1; // More than just the current user message
+
         const agentContext = `
 You are ${currentAgent.name}, working under a MODERATOR who coordinates this conversation.
 
@@ -417,6 +440,8 @@ The Moderator has assigned this task: "${agentTask}"
 You have ${totalTurns} round${totalTurns > 1 ? 's' : ''} to discuss with: ${otherAgents}.
 This is round ${turn} of ${totalTurns}.
 ${previousSpeaker !== 'the Moderator' ? `You are responding to ${previousSpeaker}'s message.` : ''}
+${hasPriorChat ? `
+CONTEXT: You have access to the conversation history. If the task involves synthesizing, summarizing, or building on earlier discussion, USE that chat context as source material.` : ''}
 
 RULES:
 - Give one response as ${currentAgent.name}, then stop
@@ -434,6 +459,10 @@ RULES:
      * Append document editing instructions for agents (simplified format)
      */
     appendDocumentEditingInstructions(systemPrompt, agent) {
+        // Check if there's prior chat to synthesize from
+        const messages = Chat.getCurrentMessages();
+        const hasPriorChat = messages.length > 1;
+
         const documentEditingInstructions = `
 
 COLLABORATIVE DOCUMENT EDITING:
@@ -442,11 +471,14 @@ You're working on a shared document with other agents. The attached "[SCRATCHPAD
 ${this.collaborationLog.length > 0 ? `
 Previous agents' changes (in scratchpad, NOT yet shown to user):
 ${this.collaborationLog.map(entry => `- ${entry.agentName}: ${entry.summary}`).join('\n')}` : ''}
+${hasPriorChat ? `
+CHAT HISTORY AVAILABLE: You have access to the earlier conversation. If the task involves synthesizing, summarizing, or capturing discussion points, USE the chat history as your source material - extract key ideas, decisions, and content from previous messages.` : ''}
 
 WHAT YOU CAN DO:
 1. DISCUSS the document and previous agents' changes
 2. BUILD ON their work with your own edits
 3. EXPLAIN your reasoning so other agents understand
+${hasPriorChat ? '4. SYNTHESIZE ideas from the chat history into document content' : ''}
 
 TO MAKE EDITS, use this simplified format:
 
@@ -471,11 +503,17 @@ RULES:
      * Append moderator-specific document editing instructions
      */
     appendModeratorDocEditInstructions(systemPrompt) {
+        // Check for prior chat to synthesize from
+        const messages = Chat.getCurrentMessages();
+        const hasPriorChat = messages.length > 1;
+
         const instructions = `
 
 DOCUMENT EDITING:
 
 You are the Moderator handling a direct edit request. The document HTML is attached.
+${hasPriorChat ? `
+SYNTHESIZING FROM CHAT: You have access to the conversation history. If the user asks to synthesize, summarize, or add discussion points to the document, extract the key ideas from the chat and compile them into document content.` : ''}
 
 To make changes, use this format:
 
@@ -485,6 +523,11 @@ To make changes, use this format:
 <new>[new HTML]</new>
 </change>
 </document_edit>
+
+For adding new content after an element:
+<change type="add" insertAfter-id="[data-edit-id]">
+<new><p>new content here</p></new>
+</change>
 
 For simple formatting (bold, italic, etc.), use:
 <change type="modify" targetId="[id]">
@@ -689,14 +732,26 @@ Output ONLY the <document_edit> block, no explanation:`;
 
     /**
      * Summarize chat history for agent context
+     * Preserves more content from recent messages for better synthesis
      */
     summarizeHistory(messages) {
-        const recentMessages = messages.slice(-10);
+        const recentMessages = messages.slice(-15); // Increased from 10 to 15
 
-        return recentMessages.map(msg => ({
-            role: msg.isUser ? 'user' : 'assistant',
-            content: msg.content.length > 500 ? msg.content.substring(0, 500) + '...' : msg.content
-        }));
+        return recentMessages.map((msg, index) => {
+            // Keep more content from recent messages (last 5 get full content up to 2000 chars)
+            // Older messages get truncated more aggressively
+            const isRecent = index >= recentMessages.length - 5;
+            const maxLength = isRecent ? 2000 : 800;
+
+            return {
+                role: msg.isUser ? 'user' : 'assistant',
+                content: msg.content.length > maxLength
+                    ? msg.content.substring(0, maxLength) + '...'
+                    : msg.content,
+                // Include agent info if available (helps with attribution during synthesis)
+                ...(msg.agentName && { agentName: msg.agentName })
+            };
+        });
     },
 
     /**
