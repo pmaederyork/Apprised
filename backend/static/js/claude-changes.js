@@ -304,6 +304,11 @@ const ClaudeChanges = {
 
         // Add body class for layout adjustment
         document.body.classList.add('review-mode-active');
+
+        // Notify Mobile module to switch to review mode
+        if (typeof Mobile !== 'undefined' && Mobile.isMobileView && Mobile.isMobileView()) {
+            Mobile.setReviewMode(true);
+        }
     },
 
     /**
@@ -1360,6 +1365,11 @@ const ClaudeChanges = {
 
         // Remove body class for layout adjustment
         document.body.classList.remove('review-mode-active');
+
+        // Notify Mobile module to exit review mode
+        if (typeof Mobile !== 'undefined' && Mobile.setReviewMode) {
+            Mobile.setReviewMode(false);
+        }
 
         // Remove all change markers
         document.querySelectorAll('[data-change-id]').forEach(el => {
