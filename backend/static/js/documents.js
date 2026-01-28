@@ -2093,6 +2093,15 @@ const Documents = {
                 }
             }
 
+            // Strategy 1.5: Check if content looks like a UUID (data-edit-id format)
+            // Claude may send just the ID instead of full HTML content
+            if (content && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(content.trim())) {
+                const node = contentIndex.byId.get(content.trim());
+                if (node && !contentIndex.isUsed(node)) {
+                    return node;
+                }
+            }
+
             // Strategy 2: By normalized content (O(1))
             if (content) {
                 const normalizedContent = this.normalizeHTML(content);

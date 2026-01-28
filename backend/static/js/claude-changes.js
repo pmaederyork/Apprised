@@ -115,7 +115,10 @@ const ClaudeChanges = {
             }
 
             // Strategy 2: By cached signature (tag + text content)
-            if (change._cachedSignature) {
+            // SKIP for ADD changes - their _cachedSignature contains the ANCHOR's signature,
+            // not the target's. Using it here would match wrong elements.
+            // ADD changes should use Strategy 4 (anchor resolution) instead.
+            if (change._cachedSignature && change.type !== 'add') {
                 const sig = change._cachedSignature;
                 const tagTextKey = `${sig.tagName}:${(sig.textContent || '').toLowerCase()}`;
                 const candidates = this._cache.byTagAndText.get(tagTextKey);
@@ -167,6 +170,15 @@ const ClaudeChanges = {
                 // Try anchor by content
                 const anchorContent = change.insertAfter || change.insertBefore;
                 if (anchorContent) {
+                    // Check if anchorContent looks like a UUID (Claude may send just the ID)
+                    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                    if (uuidPattern.test(anchorContent.trim())) {
+                        const node = this._cache.byId.get(anchorContent.trim());
+                        if (node) {
+                            return { node, method: 'index-anchor-id-from-content' };
+                        }
+                    }
+
                     // Try anchor by normalized content
                     const normalizedAnchor = Documents.normalizeHTML(anchorContent);
                     let candidates = this._cache.byNormalizedOuterHTML.get(normalizedAnchor);
@@ -516,7 +528,10 @@ const ClaudeChanges = {
         }
 
         // Strategy 2: Cached signature (from preview phase)
-        if (change._cachedSignature) {
+        // SKIP for ADD changes - their _cachedSignature contains the ANCHOR's signature,
+        // not the target's. Using it here would match wrong elements.
+        // ADD changes should use Strategy 4 (anchor resolution) instead.
+        if (change._cachedSignature && change.type !== 'add') {
             const bySignature = this.findNodeBySignature(container, change._cachedSignature);
             if (bySignature) {
                 return { node: bySignature, method: 'signature' };
@@ -524,7 +539,8 @@ const ClaudeChanges = {
         }
 
         // Strategy 3: Content matching (fallback for backward compatibility)
-        if (change.originalContent) {
+        // Also skip for ADD changes (they don't have originalContent anyway)
+        if (change.originalContent && change.type !== 'add') {
             const byContent = Documents.findNodeByContent(container, change.originalContent);
             if (byContent) {
                 return { node: byContent, method: 'content' };
@@ -547,6 +563,17 @@ const ClaudeChanges = {
             // Fall back to content-based anchor resolution
             const anchorContent = change.insertAfter || change.insertBefore;
             if (anchorContent) {
+                // Check if anchorContent looks like a UUID (Claude may send just the ID)
+                const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                if (uuidPattern.test(anchorContent.trim())) {
+                    const anchorById = typeof ElementIds !== 'undefined'
+                        ? ElementIds.findById(container, anchorContent.trim())
+                        : container.querySelector(`[data-edit-id="${anchorContent.trim()}"]`);
+                    if (anchorById) {
+                        return { node: anchorById, method: 'anchor-id-from-content' };
+                    }
+                }
+
                 const anchorByContent = Documents.findNodeByContent(container, anchorContent);
                 if (anchorByContent) {
                     return { node: anchorByContent, method: 'anchor-content' };
