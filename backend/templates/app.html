@@ -216,7 +216,20 @@
                             <option value="10">10</option>
                         </select>
                     </div>
+                    <!-- Mobile chat collapse button -->
+                    <button class="mobile-btn chat-collapse-btn" id="chatCollapseBtn" title="Collapse chat">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
                 </div>
+            </div>
+            <!-- Collapsed chat bar - shown when chat is minimized -->
+            <div class="mobile-collapsed-chat-bar" id="collapsedChatBar">
+                <span>Chat</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
             </div>
             <div class="chat-messages" id="chatMessages">
                 <div class="message claude">
@@ -292,6 +305,40 @@
         </div>
 
         <div class="document-editor" id="documentEditor">
+            <!-- Mobile editor header -->
+            <div class="mobile-editor-header">
+                <div class="mobile-editor-title">
+                    <span class="editor-doc-title">Untitled</span>
+                </div>
+                <div class="mobile-editor-actions">
+                    <button class="mobile-btn gdrive-status-btn" id="mobileGdriveStatusBtn" title="Google Drive status">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12.01 1.485c-2.082 0-3.754.02-3.743.047.01.02 1.708 3.001 3.774 6.62l3.76 6.574h3.76c2.081 0 3.753-.02 3.742-.047-.01-.02-1.708-3.001-3.774-6.62l-3.76-6.574h-3.759zm-4.76 1.73a789.828 789.861 0 00-3.63 6.319L0 15.828l1.89 3.293 1.89 3.291 3.612-6.319 3.612-6.318-1.89-3.271c-1.04-1.8-1.92-3.272-1.953-3.271-.033 0-1.698 2.845-3.7 6.319l-3.638 6.317 1.89 3.291 1.89 3.291h7.234l3.63-6.319 3.63-6.318-3.63-6.319c-1.996-3.474-3.66-6.318-3.693-6.319-.033 0-1.698 2.845-3.7 6.319l-3.638 6.317h3.76l1.87-3.265c1.028-1.795 1.87-3.291 1.87-3.324 0-.033-.84-1.53-1.87-3.325L8.14.044c-.046-.025-.07.003-.11.009-.04.006-.08.016-.08.016a.045.045 0 00.013.006l3.807 6.62z"/>
+                        </svg>
+                    </button>
+                    <button class="mobile-btn save-btn" id="mobileSaveBtn" title="Save">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                    </button>
+                    <button class="mobile-btn toolbar-toggle-btn" id="toolbarToggleBtn" title="Toggle toolbar">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="4" y1="9" x2="20" y2="9"></line>
+                            <line x1="4" y1="15" x2="20" y2="15"></line>
+                            <line x1="10" y1="3" x2="8" y2="21"></line>
+                            <line x1="16" y1="3" x2="14" y2="21"></line>
+                        </svg>
+                    </button>
+                    <button class="mobile-btn close-btn" id="mobileCloseEditorBtn" title="Close document">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
             <div class="editor-header">
                 <input type="text" class="editor-title" id="documentTitle" placeholder="Document Name" />
                 <span id="driveSyncIndicator" class="drive-sync-indicator" style="display: none; margin-left: 8px;"></span>
