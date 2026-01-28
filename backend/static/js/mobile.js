@@ -176,10 +176,13 @@ const Mobile = {
 
     updateLayoutClasses() {
         const body = document.body;
+        const chatCollapseBtn = document.getElementById('chatCollapseBtn');
 
         // Only apply layout classes on mobile
         if (!this.isMobileView()) {
             body.classList.remove('chat-only-mode', 'split-view', 'chat-collapsed', 'review-mode');
+            // Show collapse button on desktop (if it exists)
+            if (chatCollapseBtn) chatCollapseBtn.style.display = '';
             return;
         }
 
@@ -187,9 +190,15 @@ const Mobile = {
         if (this.documentOpen || this.reviewMode) {
             body.classList.remove('chat-only-mode');
             body.classList.add('split-view');
+            // Show collapse button in split view
+            if (chatCollapseBtn) chatCollapseBtn.style.display = '';
         } else {
             body.classList.add('chat-only-mode');
             body.classList.remove('split-view');
+            // Hide collapse button in chat-only mode (nothing to collapse to)
+            if (chatCollapseBtn) chatCollapseBtn.style.display = 'none';
+            // Also ensure chat isn't collapsed when no document open
+            this.chatCollapsed = false;
         }
 
         // Chat collapsed state (not applicable in review mode)
