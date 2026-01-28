@@ -265,11 +265,8 @@
                 <button id="fileBtn" title="Attach files">📎</button>
                 <button id="sendBtn">↗</button>
             </div>
-            <div class="input-hint">
-                Press Ctrl+C to interrupt streaming response
-            </div>
         </div>
-        
+
         <div class="system-prompt-editor" id="systemPromptEditor">
             <div class="editor-header">
                 <input type="text" class="editor-title" id="editorTitle" placeholder="System Prompt Name" />
@@ -324,12 +321,19 @@
                     </svg>
                 </button>
                 <div class="mobile-editor-title">
-                    <span class="editor-doc-title">Untitled</span>
+                    <input type="text" class="editor-doc-title" id="mobileDocumentTitle" placeholder="Document Name" />
                 </div>
                 <div class="mobile-editor-actions">
                     <button class="mobile-btn gdrive-status-btn" id="mobileGdriveStatusBtn" title="Google Drive status">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12.01 1.485c-2.082 0-3.754.02-3.743.047.01.02 1.708 3.001 3.774 6.62l3.76 6.574h3.76c2.081 0 3.753-.02 3.742-.047-.01-.02-1.708-3.001-3.774-6.62l-3.76-6.574h-3.759zm-4.76 1.73a789.828 789.861 0 00-3.63 6.319L0 15.828l1.89 3.293 1.89 3.291 3.612-6.319 3.612-6.318-1.89-3.271c-1.04-1.8-1.92-3.272-1.953-3.271-.033 0-1.698 2.845-3.7 6.319l-3.638 6.317 1.89 3.291 1.89 3.291h7.234l3.63-6.319 3.63-6.318-3.63-6.319c-1.996-3.474-3.66-6.318-3.693-6.319-.033 0-1.698 2.845-3.7 6.319l-3.638 6.317h3.76l1.87-3.265c1.028-1.795 1.87-3.291 1.87-3.324 0-.033-.84-1.53-1.87-3.325L8.14.044c-.046-.025-.07.003-.11.009-.04.006-.08.016-.08.016a.045.045 0 00.013.006l3.807 6.62z"/>
+                        </svg>
+                    </button>
+                    <button class="mobile-btn pull-btn" id="mobilePullBtn" title="Pull from Drive">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
                         </svg>
                     </button>
                     <button class="mobile-btn save-btn" id="mobileSaveBtn" title="Save">
@@ -768,6 +772,72 @@
         </div>
         <div class="bottom-sheet-content" id="agentSheetContent">
             <!-- Agent list populated by JS -->
+        </div>
+    </div>
+
+    <!-- Bottom sheet for theme selector -->
+    <div class="bottom-sheet" id="themeBottomSheet">
+        <div class="bottom-sheet-handle"></div>
+        <div class="bottom-sheet-header">
+            <h3>Select Theme</h3>
+        </div>
+        <div class="bottom-sheet-content" id="themeSheetContent">
+            <!-- Theme options populated by JS -->
+        </div>
+    </div>
+
+    <!-- Bottom sheet for prompt selector (Add Agent modal) -->
+    <div class="bottom-sheet" id="promptBottomSheet">
+        <div class="bottom-sheet-handle"></div>
+        <div class="bottom-sheet-header">
+            <h3>Select System Prompt</h3>
+        </div>
+        <div class="bottom-sheet-content" id="promptSheetContent">
+            <!-- Prompt options populated by JS -->
+        </div>
+    </div>
+
+    <!-- Bottom sheet for font size selector -->
+    <div class="bottom-sheet" id="fontSizeBottomSheet">
+        <div class="bottom-sheet-handle"></div>
+        <div class="bottom-sheet-header">
+            <h3>Font Size</h3>
+        </div>
+        <div class="bottom-sheet-content" id="fontSizeSheetContent">
+            <!-- Font size options populated by JS -->
+        </div>
+    </div>
+
+    <!-- Bottom sheet for font family selector -->
+    <div class="bottom-sheet" id="fontFamilyBottomSheet">
+        <div class="bottom-sheet-handle"></div>
+        <div class="bottom-sheet-header">
+            <h3>Font</h3>
+        </div>
+        <div class="bottom-sheet-content" id="fontFamilySheetContent">
+            <!-- Font family options populated by JS -->
+        </div>
+    </div>
+
+    <!-- Bottom sheet for text format/header selector -->
+    <div class="bottom-sheet" id="formatBottomSheet">
+        <div class="bottom-sheet-handle"></div>
+        <div class="bottom-sheet-header">
+            <h3>Text Format</h3>
+        </div>
+        <div class="bottom-sheet-content" id="formatSheetContent">
+            <!-- Format options populated by JS -->
+        </div>
+    </div>
+
+    <!-- Bottom sheet for text alignment selector -->
+    <div class="bottom-sheet" id="alignBottomSheet">
+        <div class="bottom-sheet-handle"></div>
+        <div class="bottom-sheet-header">
+            <h3>Text Alignment</h3>
+        </div>
+        <div class="bottom-sheet-content" id="alignSheetContent">
+            <!-- Alignment options populated by JS -->
         </div>
     </div>
 

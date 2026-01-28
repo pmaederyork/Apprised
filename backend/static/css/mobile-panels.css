@@ -9,7 +9,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 12px;
-    background: var(--color-editor-header-bg, var(--color-bg-secondary));
+    background: var(--color-bg-white); /* Same as chat header - dark in dark mode */
     border-bottom: 1px solid var(--color-border);
     min-height: var(--mobile-header-height, 48px);
 }
@@ -50,6 +50,19 @@ body.is-mobile .document-editor > .editor-header {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    background: transparent;
+    border: none;
+    outline: none;
+    width: 100%;
+    padding: 4px 0;
+}
+
+.mobile-editor-title .editor-doc-title:focus {
+    background: var(--color-bg-secondary);
+    border-radius: 4px;
+    padding: 4px 8px;
+    margin: 0 -8px;
+    width: calc(100% + 16px);
 }
 
 .mobile-editor-actions {
@@ -86,6 +99,18 @@ body.is-mobile .document-editor > .editor-header {
 /* GDrive connected indicator */
 .mobile-btn.gdrive-status-btn.connected {
     color: var(--color-success, #4caf50);
+}
+
+/* Override generic save-btn styling for mobile header buttons */
+.mobile-btn.save-btn {
+    background: transparent;
+    color: var(--color-text-secondary);
+    padding: 0;
+}
+
+.mobile-btn.save-btn:hover {
+    background: var(--color-hover);
+    color: var(--color-text);
 }
 
 /* ===== Collapsible Toolbar ===== */

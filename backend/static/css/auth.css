@@ -191,25 +191,23 @@
     background: #b91c1c;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    #loginScreen h1 {
-        font-size: 2rem;
-    }
+/* Responsive Design - uses body.is-mobile class set by JS */
+body.is-mobile #loginScreen h1 {
+    font-size: 2rem;
+}
 
-    #loginScreen p {
-        font-size: 1rem;
-    }
+body.is-mobile #loginScreen p {
+    font-size: 1rem;
+}
 
-    .api-key-container {
-        padding: 24px;
-    }
+body.is-mobile .api-key-container {
+    padding: 24px;
+}
 
-    #userMenu {
-        padding: 6px 12px;
-    }
+body.is-mobile #userMenu {
+    padding: 6px 12px;
+}
 
-    #userEmail {
-        display: none;
-    }
+body.is-mobile #userEmail {
+    display: none;
 }

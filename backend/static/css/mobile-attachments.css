@@ -66,9 +66,10 @@
     flex-shrink: 0;
 }
 
-/* ===== Hide Screenshare on Mobile ===== */
+/* ===== Hide Screenshare and Desktop File Button on Mobile ===== */
 body.is-mobile .screenshare-btn,
-body.is-mobile #screenshareBtn {
+body.is-mobile #screenshareBtn,
+body.is-mobile #fileBtn {
     display: none;
 }
 
@@ -138,10 +139,16 @@ body.is-mobile .file-preview-item img {
 }
 
 /* ===== Desktop: Hide Mobile Attachments ===== */
-@media (min-width: 768px) {
-    .mobile-attachment-menu,
-    .mobile-attachment-backdrop,
-    .mobile-attach-btn {
-        display: none !important;
-    }
+/* These are only shown when body.is-mobile class is present (set by JS) */
+.mobile-attachment-menu,
+.mobile-attachment-backdrop {
+    /* Default hidden, shown via .visible class on mobile */
+}
+
+.mobile-attach-btn {
+    display: none;
+}
+
+body.is-mobile .mobile-attach-btn {
+    display: flex;
 }

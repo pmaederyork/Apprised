@@ -392,28 +392,8 @@
     display: inline-block;
 }
 
-/* Mobile Responsive */
-@media (max-width: 768px) {
-    .change-review-panel {
-        position: fixed;
-        right: 0;
-        left: 0;
-        top: auto;
-        bottom: 0;
-        width: 100%;
-        border-radius: 12px 12px 0 0;
-        max-height: 60vh;
-    }
-
-    .review-controls {
-        flex-direction: column;
-    }
-
-    .change-position {
-        order: -1;
-        margin-bottom: 8px;
-    }
-}
+/* Mobile Responsive - uses body.is-mobile class set by JS */
+/* Mobile-specific review panel styles are in mobile-review.css */
 
 /* Animation for entering/exiting review mode */
 @keyframes slideIn {

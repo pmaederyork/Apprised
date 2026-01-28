@@ -52,6 +52,7 @@ body.is-mobile.is-portrait.split-view .document-editor {
   flex-direction: column;
   min-width: 0; /* Allow shrinking */
   height: auto;
+  border-bottom: 2px solid var(--color-border);
 }
 
 body.is-mobile.is-portrait.split-view .chat-container {
@@ -90,6 +91,7 @@ body.is-mobile.is-landscape.split-view .chat-container {
   width: auto !important;
   height: auto !important;
   min-width: 0;
+  border-right: 2px solid var(--color-border);
 }
 
 body.is-mobile.is-landscape.split-view .document-editor {
@@ -121,6 +123,7 @@ body.is-tablet.split-view .chat-container {
   width: auto !important;
   height: auto !important;
   min-width: 0;
+  border-right: 2px solid var(--color-border);
 }
 
 body.is-tablet.split-view .document-editor {
@@ -177,11 +180,5 @@ body.is-mobile .document-editor {
 }
 
 /* ===== Desktop Override ===== */
-/* Preserve original layout on desktop */
-@media (min-width: 1025px) {
-  body .app-container {
-    display: flex !important;
-    grid-template-rows: unset !important;
-    grid-template-columns: unset !important;
-  }
-}
+/* Desktop layout preserved - grid only applies when body.is-mobile.split-view is present */
+/* No media query needed - JS controls body.is-mobile class based on MOBILE_BREAKPOINT */

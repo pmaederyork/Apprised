@@ -1,30 +1,23 @@
 /**
  * Mobile Foundation Styles
  * Breakpoint detection, safe area support, and mobile state management.
- * This file establishes the responsive infrastructure for mobile devices.
+ *
+ * MOBILE BREAKPOINT: 500px
+ * Change this value in mobile.js MOBILE_BREAKPOINT constant.
+ * The JS sets body.is-mobile class, which most styles should use.
+ * Media queries below use 500px/501px to match - update if breakpoint changes.
  */
 
 /* Mobile CSS Variables */
 :root {
-  --mobile-breakpoint: 768px;
-  --tablet-max: 1024px;
   --mobile-sidebar-width: 80%;
   --mobile-header-height: 48px;
   --mobile-collapsed-chat-height: 44px;
   --keyboard-height: 0px;
 }
 
-/* Safe Area Insets - iOS notch and home indicator support */
-@media (max-width: 767px) {
-  .app-container {
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    padding-left: env(safe-area-inset-left, 0px);
-    padding-right: env(safe-area-inset-right, 0px);
-  }
-}
-
-/* Mobile Body Class Styles - Applied by JavaScript when mobile detected */
+/* ===== Mobile Body Class Styles ===== */
+/* Applied by JavaScript when mobile detected (width < 500px) */
 body.is-mobile {
   overflow: hidden; /* Prevent body scroll, app handles scroll */
 }
@@ -37,64 +30,56 @@ body.is-mobile .hamburger-btn {
   display: flex; /* Show hamburger on mobile */
 }
 
-/* Desktop Hamburger Hidden */
+/* Desktop: Hamburger Hidden */
 .hamburger-btn {
   display: none;
 }
 
-@media (min-width: 768px) {
-  .hamburger-btn {
-    display: none !important;
-  }
-}
-
-/* Tablet Detection (768-1024px) - always get landscape-style layout */
-@media (min-width: 768px) and (max-width: 1024px) {
-  body.is-tablet .app-container {
-    /* Handled by mobile-layout.css */
-  }
-}
-
 /* ===== Orientation-Specific Styles ===== */
-/* Portrait orientation */
 body.is-mobile.is-portrait {
-  /* Portrait-specific overrides will be added by layout plan */
+  /* Portrait-specific overrides in mobile-layout.css */
 }
 
-/* Landscape orientation */
 body.is-mobile.is-landscape {
-  /* Landscape-specific overrides will be added by layout plan */
+  /* Landscape-specific overrides in mobile-layout.css */
 }
 
 /* ===== Mobile Viewport Constraints ===== */
-/* Prevent iOS Safari bounce/overscroll effect */
-@media (max-width: 767px) {
-  html, body {
-    position: fixed;
-    width: 100%;
-    height: 100%;
-  }
-
-  /* Ensure proper touch handling */
-  * {
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-  }
-
-  /* Allow text selection in input elements */
-  input, textarea {
-    -webkit-touch-callout: default;
-    -webkit-user-select: text;
-    user-select: text;
-  }
+/* These use media query because they affect html/body before JS runs */
+body.is-mobile {
+  /* Prevent iOS Safari bounce/overscroll effect */
+  position: fixed;
+  width: 100%;
+  height: 100%;
 }
 
-/* ===== Mobile-Specific Utility Classes ===== */
+body.is-mobile * {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.is-mobile input,
+body.is-mobile textarea {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Safe Area Insets - iOS notch and home indicator support */
+body.is-mobile .app-container {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* ===== Utility Classes ===== */
 /* Hide on mobile */
-@media (max-width: 767px) {
-  .hide-mobile {
-    display: none !important;
-  }
+.hide-mobile {
+  display: block;
+}
+
+body.is-mobile .hide-mobile {
+  display: none !important;
 }
 
 /* Show only on mobile */
@@ -102,26 +87,6 @@ body.is-mobile.is-landscape {
   display: none;
 }
 
-@media (max-width: 767px) {
-  .show-mobile {
-    display: block !important;
-  }
-}
-
-/* Hide on tablet */
-@media (min-width: 768px) and (max-width: 1024px) {
-  .hide-tablet {
-    display: none !important;
-  }
-}
-
-/* Show only on tablet */
-.show-tablet {
-  display: none;
-}
-
-@media (min-width: 768px) and (max-width: 1024px) {
-  .show-tablet {
-    display: block !important;
-  }
+body.is-mobile .show-mobile {
+  display: block !important;
 }

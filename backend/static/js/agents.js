@@ -189,8 +189,10 @@ const Agents = {
 
         document.body.appendChild(modal);
 
+        const promptSelect = document.getElementById('agentPrompt');
+
         // Auto-fill agent name when system prompt is selected
-        document.getElementById('agentPrompt').addEventListener('change', (e) => {
+        promptSelect.addEventListener('change', (e) => {
             const promptId = e.target.value;
             const nameInput = document.getElementById('agentName');
 
@@ -198,6 +200,30 @@ const Agents = {
                 nameInput.value = systemPrompts[promptId].name;
             }
         });
+
+        // On mobile, intercept the select and show bottom sheet instead
+        if (typeof Mobile !== 'undefined' && Mobile.isMobileView()) {
+            // Create a visual trigger element
+            const selectTrigger = document.createElement('div');
+            selectTrigger.className = 'mobile-select-trigger';
+            selectTrigger.innerHTML = '<span>Select a prompt...</span>';
+            promptSelect.parentNode.insertBefore(selectTrigger, promptSelect);
+
+            selectTrigger.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof MobileSheets !== 'undefined' && MobileSheets.showPromptSheet) {
+                    MobileSheets.showPromptSheet((promptId) => {
+                        // Update native select
+                        promptSelect.value = promptId;
+                        promptSelect.dispatchEvent(new Event('change'));
+                        // Update visual trigger
+                        const prompt = systemPrompts[promptId];
+                        selectTrigger.innerHTML = `<span>${UI.escapeHtml(prompt?.name || promptId)}</span>`;
+                    });
+                }
+            });
+        }
 
         // Handle add agent confirmation
         document.getElementById('confirmAddAgent').addEventListener('click', () => {
@@ -401,6 +427,32 @@ const Agents = {
         `;
 
         document.body.appendChild(modal);
+
+        const editPromptSelect = document.getElementById('editAgentPrompt');
+
+        // On mobile, intercept the select and show bottom sheet instead
+        if (typeof Mobile !== 'undefined' && Mobile.isMobileView()) {
+            // Create a visual trigger element
+            const selectTrigger = document.createElement('div');
+            selectTrigger.className = 'mobile-select-trigger';
+            const currentPrompt = systemPrompts[agent.systemPromptId];
+            selectTrigger.innerHTML = `<span>${UI.escapeHtml(currentPrompt?.name || 'Select a prompt...')}</span>`;
+            editPromptSelect.parentNode.insertBefore(selectTrigger, editPromptSelect);
+
+            selectTrigger.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof MobileSheets !== 'undefined' && MobileSheets.showPromptSheet) {
+                    MobileSheets.showPromptSheet((promptId) => {
+                        // Update native select
+                        editPromptSelect.value = promptId;
+                        // Update visual trigger
+                        const prompt = systemPrompts[promptId];
+                        selectTrigger.innerHTML = `<span>${UI.escapeHtml(prompt?.name || promptId)}</span>`;
+                    });
+                }
+            });
+        }
 
         document.getElementById('confirmEditAgent').addEventListener('click', () => {
             const name = document.getElementById('editAgentName').value.trim();

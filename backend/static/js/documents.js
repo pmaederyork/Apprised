@@ -130,8 +130,24 @@ const Documents = {
         // Document title saving
         UI.elements.documentTitle?.addEventListener('input', () => {
             this.saveDocumentTitleImmediate();
+            // Sync to mobile title
+            if (UI.elements.mobileDocumentTitle) {
+                UI.elements.mobileDocumentTitle.value = UI.elements.documentTitle.value;
+            }
         });
         UI.elements.documentTitle?.addEventListener('blur', () => {
+            this.saveDocumentTitle();
+        });
+
+        // Mobile document title syncing
+        UI.elements.mobileDocumentTitle?.addEventListener('input', () => {
+            // Sync to desktop title
+            if (UI.elements.documentTitle) {
+                UI.elements.documentTitle.value = UI.elements.mobileDocumentTitle.value;
+            }
+            this.saveDocumentTitleImmediate();
+        });
+        UI.elements.mobileDocumentTitle?.addEventListener('blur', () => {
             this.saveDocumentTitle();
         });
 
@@ -288,6 +304,9 @@ const Documents = {
         const displayTitle = document.title.endsWith('.html') ?
             document.title.slice(0, -5) : document.title;
         UI.elements.documentTitle.value = displayTitle;
+        if (UI.elements.mobileDocumentTitle) {
+            UI.elements.mobileDocumentTitle.value = displayTitle;
+        }
 
         // Load content into Squire editor
         if (this.squireEditor) {
@@ -584,6 +603,31 @@ const Documents = {
         }
     },
 
+    // Trigger inline edit for a document name (used by mobile long-press)
+    editName(documentId) {
+        const doc = this.documents[documentId];
+        if (!doc) return;
+
+        // Find the document item in the sidebar
+        const docItem = document.querySelector(`.document-item[data-document-id="${documentId}"]`);
+        if (!docItem) return;
+
+        // Find the text span inside the item content
+        const textSpan = docItem.querySelector('.document-item-content span');
+        if (!textSpan) return;
+
+        // Get display title (without .html extension)
+        const displayTitle = doc.title.endsWith('.html') ?
+            doc.title.slice(0, -5) : doc.title;
+
+        // Trigger inline edit via Components
+        if (typeof Components !== 'undefined' && Components.startInlineEdit) {
+            Components.startInlineEdit(textSpan, displayTitle, (newName) => {
+                this.renameDocument(documentId, newName);
+            });
+        }
+    },
+
     // Rename a document
     renameDocument(documentId, newName) {
         const document = this.documents[documentId];
@@ -599,9 +643,12 @@ const Documents = {
             
             // Update title input if this is the current document - hide .html extension
             if (documentId === this.currentDocumentId) {
-                const displayTitle = finalName.endsWith('.html') ? 
+                const displayTitle = finalName.endsWith('.html') ?
                     finalName.slice(0, -5) : finalName;
                 UI.elements.documentTitle.value = displayTitle;
+                if (UI.elements.mobileDocumentTitle) {
+                    UI.elements.mobileDocumentTitle.value = displayTitle;
+                }
             }
         }
     },

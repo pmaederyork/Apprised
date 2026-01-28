@@ -19,12 +19,25 @@ body.is-mobile .agent-item {
   overflow: hidden;
 }
 
+/* Inner swipe container created by JS */
+.chat-item > .swipe-container,
+.document-item > .swipe-container,
+.prompt-item > .swipe-container {
+  width: 100%;
+  display: flex;
+}
+
 .swipe-content {
   position: relative;
   background: var(--color-sidebar-bg);
   transform: translateX(0);
   transition: transform 150ms ease-out;
   z-index: 1;
+  /* Maintain original flex layout after wrapping */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
 .swipe-content.swiping {
@@ -130,10 +143,5 @@ body.is-mobile .agent-item {
   padding: 12px 16px;
 }
 
-/* Hide action buttons on mobile - use swipe/long-press instead */
-body.is-mobile .sidebar-item .action-btn,
-body.is-mobile .chat-item .action-btn,
-body.is-mobile .document-item .action-btn,
-body.is-mobile .agent-item .action-btn {
-  display: none;
-}
+/* Action buttons visible on mobile - swipe-to-delete disabled */
+/* Keep X buttons for delete actions */

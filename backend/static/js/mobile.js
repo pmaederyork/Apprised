@@ -1,6 +1,10 @@
 /**
  * Mobile detection and responsive state management.
  * Detects mobile/tablet breakpoints and manages body classes.
+ *
+ * SINGLE SOURCE OF TRUTH FOR MOBILE BREAKPOINT
+ * Change MOBILE_BREAKPOINT below to adjust when mobile UI is used.
+ * All CSS uses body.is-mobile class which this module sets.
  */
 const Mobile = {
     initialized: false,
@@ -15,9 +19,13 @@ const Mobile = {
     keyboardHeight: 0,
     reviewMode: false,
 
-    // Breakpoints match CSS
-    MOBILE_BREAKPOINT: 768,
-    TABLET_MAX: 1024,
+    /**
+     * MOBILE BREAKPOINT - Single source of truth
+     * Screens narrower than this get mobile UI (body.is-mobile class)
+     * Currently: 500px (phones only, iPads get desktop)
+     */
+    MOBILE_BREAKPOINT: 500,
+    TABLET_MAX: 500, // Disabled - iPads get desktop
 
     init() {
         if (this.initialized) {
@@ -43,11 +51,11 @@ const Mobile = {
     detectDevice() {
         const width = window.innerWidth;
 
-        // Mobile: < 768px
+        // Mobile: < 500px (phones only, iPads get desktop)
         this.isMobile = width < this.MOBILE_BREAKPOINT;
 
-        // Tablet: 768-1024px (treated as mobile with landscape layout)
-        this.isTablet = width >= this.MOBILE_BREAKPOINT && width <= this.TABLET_MAX;
+        // Tablet detection disabled - iPads get desktop version
+        this.isTablet = false;
 
         // Orientation detection
         this.orientation = window.matchMedia('(orientation: portrait)').matches
@@ -226,6 +234,15 @@ const Mobile = {
                 Documents.saveCurrentDocument();
             }
         });
+
+        // Mobile pull from Drive button
+        const mobilePullBtn = document.getElementById('mobilePullBtn');
+        mobilePullBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (typeof GDrive !== 'undefined' && typeof Documents !== 'undefined' && Documents.currentDocumentId) {
+                GDrive.pullFromDrive(Documents.currentDocumentId);
+            }
+        });
     },
 
     toggleToolbar() {
@@ -239,7 +256,12 @@ const Mobile = {
     updateEditorTitle(title) {
         const titleEl = document.querySelector('.mobile-editor-header .editor-doc-title');
         if (titleEl) {
-            titleEl.textContent = title || 'Untitled';
+            // Works for both input (value) and span (textContent)
+            if (titleEl.tagName === 'INPUT') {
+                titleEl.value = title || 'Untitled';
+            } else {
+                titleEl.textContent = title || 'Untitled';
+            }
         }
     },
 

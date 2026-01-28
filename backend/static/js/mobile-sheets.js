@@ -18,10 +18,19 @@ const MobileSheets = {
         this.backdrop = document.getElementById('bottomSheetBackdrop');
         this.modelSheet = document.getElementById('modelBottomSheet');
         this.agentSheet = document.getElementById('agentBottomSheet');
+        this.themeSheet = document.getElementById('themeBottomSheet');
+        this.promptSheet = document.getElementById('promptBottomSheet');
         this.systemPromptModal = document.getElementById('systemPromptModal');
+
+        // Toolbar sheets
+        this.fontSizeSheet = document.getElementById('fontSizeBottomSheet');
+        this.fontFamilySheet = document.getElementById('fontFamilyBottomSheet');
+        this.formatSheet = document.getElementById('formatBottomSheet');
+        this.alignSheet = document.getElementById('alignBottomSheet');
 
         this.bindEvents();
         this.initModelDisplay();
+        this.initToolbarTriggers();
         this.initialized = true;
         console.log('MobileSheets module initialized');
     },
@@ -31,7 +40,8 @@ const MobileSheets = {
         this.backdrop?.addEventListener('click', () => this.closeSheet());
 
         // Swipe to dismiss on sheets
-        [this.modelSheet, this.agentSheet].forEach(sheet => {
+        [this.modelSheet, this.agentSheet, this.themeSheet, this.promptSheet,
+         this.fontSizeSheet, this.fontFamilySheet, this.formatSheet, this.alignSheet].forEach(sheet => {
             if (!sheet) return;
 
             sheet.addEventListener('touchstart', (e) => this.handleSheetTouchStart(e, sheet), { passive: true });
@@ -66,6 +76,43 @@ const MobileSheets = {
 
         document.getElementById('systemPromptModalSave')?.addEventListener('click', () => {
             this.saveSystemPrompt();
+        });
+
+        // Theme selector trigger (in settings)
+        this.initThemeTrigger();
+    },
+
+    initThemeTrigger() {
+        const themeSelect = document.getElementById('themeSelect');
+        if (!themeSelect) return;
+
+        const themeContainer = themeSelect.closest('.settings-section-content');
+        if (!themeContainer) return;
+
+        // Create mobile trigger element
+        const trigger = document.createElement('div');
+        trigger.className = 'theme-selector-trigger';
+        trigger.id = 'themeSelectorTrigger';
+
+        // Get current theme name
+        const currentTheme = themeSelect.value || 'system';
+        const themeNames = { system: 'System', light: 'Light', dark: 'Dark' };
+        trigger.textContent = themeNames[currentTheme] || 'System';
+
+        themeContainer.appendChild(trigger);
+
+        trigger.addEventListener('click', (e) => {
+            if (typeof Mobile !== 'undefined' && Mobile.isMobileView()) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.showThemeSheet();
+            }
+        });
+
+        // Update trigger when theme changes (from desktop or elsewhere)
+        themeSelect.addEventListener('change', () => {
+            const theme = themeSelect.value || 'system';
+            trigger.textContent = themeNames[theme] || 'System';
         });
     },
 
@@ -247,6 +294,87 @@ const MobileSheets = {
         this.showSheet(this.agentSheet);
     },
 
+    // ===== Theme Sheet =====
+
+    showThemeSheet() {
+        const content = document.getElementById('themeSheetContent');
+        if (!content) return;
+
+        const themes = [
+            { id: 'system', name: 'System', description: 'Follow device settings' },
+            { id: 'light', name: 'Light', description: 'Light background' },
+            { id: 'dark', name: 'Dark', description: 'Dark background' }
+        ];
+
+        const currentTheme = Storage?.getSetting?.('theme') || 'system';
+
+        content.innerHTML = themes.map(theme => `
+            <div class="bottom-sheet-item ${theme.id === currentTheme ? 'selected' : ''}" data-value="${theme.id}">
+                <span class="theme-name">${theme.name}</span>
+                <span class="theme-description">${theme.description}</span>
+            </div>
+        `).join('');
+
+        // Bind click handlers
+        content.querySelectorAll('.bottom-sheet-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const themeId = item.dataset.value;
+
+                // Update native select
+                const themeSelect = document.getElementById('themeSelect');
+                if (themeSelect) {
+                    themeSelect.value = themeId;
+                    // Trigger change event to apply theme
+                    themeSelect.dispatchEvent(new Event('change'));
+                }
+
+                // Save to storage
+                if (typeof Storage !== 'undefined' && Storage.saveSetting) {
+                    Storage.saveSetting('theme', themeId);
+                }
+
+                this.closeSheet();
+            });
+        });
+
+        this.showSheet(this.themeSheet);
+    },
+
+    // ===== Prompt Selector Sheet (for Add Agent modal) =====
+
+    showPromptSheet(callback) {
+        const content = document.getElementById('promptSheetContent');
+        if (!content) return;
+
+        // Get prompts from SystemPrompts module
+        const prompts = typeof SystemPrompts !== 'undefined' && SystemPrompts.state?.systemPrompts
+            ? Object.values(SystemPrompts.state.systemPrompts)
+            : [];
+
+        if (prompts.length === 0) {
+            content.innerHTML = '<div class="bottom-sheet-item">No system prompts available</div>';
+        } else {
+            content.innerHTML = prompts.map(prompt => `
+                <div class="bottom-sheet-item prompt-item" data-prompt-id="${prompt.id}">
+                    <span class="prompt-name">${prompt.name || 'Untitled'}</span>
+                </div>
+            `).join('');
+
+            // Bind click handlers
+            content.querySelectorAll('.bottom-sheet-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const promptId = item.dataset.promptId;
+                    if (callback && typeof callback === 'function') {
+                        callback(promptId);
+                    }
+                    this.closeSheet();
+                });
+            });
+        }
+
+        this.showSheet(this.promptSheet);
+    },
+
     // ===== System Prompt Modal =====
 
     showSystemPromptModal(promptId) {
@@ -265,15 +393,106 @@ const MobileSheets = {
             const escapedContent = (prompt?.content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
             content.innerHTML = `
-                <label for="promptNameInput" style="display: block; margin-bottom: 8px; font-weight: 500;">Name</label>
-                <input type="text" id="promptNameInput" value="${escapedName}" style="width: 100%; padding: 10px; margin-bottom: 16px; border: 1px solid var(--color-border); border-radius: 8px; font-size: 16px;">
-                <label for="promptContentInput" style="display: block; margin-bottom: 8px; font-weight: 500;">System Prompt</label>
+                <label for="promptNameInput" style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--color-text);">Name</label>
+                <input type="text" id="promptNameInput" value="${escapedName}" style="width: 100%; padding: 10px; margin-bottom: 16px; border: 1px solid var(--color-border); border-radius: 8px; font-size: 16px; background: var(--color-bg-input); color: var(--color-text);">
+
+                <div style="margin-bottom: 16px; padding: 12px; background: var(--color-bg-subtle); border-radius: 8px;">
+                    <label for="mobilePromptDescription" style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--color-text);">Generate with AI</label>
+                    <input type="text" id="mobilePromptDescription" placeholder="Describe what this agent should do..." style="width: 100%; padding: 10px; margin-bottom: 8px; border: 1px solid var(--color-border); border-radius: 8px; font-size: 14px; background: var(--color-bg-input); color: var(--color-text);">
+                    <button type="button" id="mobileGenerateBtn" style="width: 100%; padding: 10px; background: var(--color-primary); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;">✨ Generate</button>
+                    <div id="mobileGeneratorStatus" style="display: none; margin-top: 8px; padding: 8px; border-radius: 6px; font-size: 13px;"></div>
+                </div>
+
+                <label for="promptContentInput" style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--color-text);">System Prompt</label>
                 <textarea id="promptContentInput" placeholder="Enter system prompt...">${escapedContent}</textarea>
             `;
+
+            // Bind generate button
+            const generateBtn = document.getElementById('mobileGenerateBtn');
+            generateBtn?.addEventListener('click', () => this.generateMobilePrompt());
+
+            // Enter key in description triggers generate
+            const descInput = document.getElementById('mobilePromptDescription');
+            descInput?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.generateMobilePrompt();
+                }
+            });
         }
 
         this.systemPromptModal.classList.add('open');
         document.body.style.overflow = 'hidden';
+    },
+
+    async generateMobilePrompt() {
+        const descInput = document.getElementById('mobilePromptDescription');
+        const generateBtn = document.getElementById('mobileGenerateBtn');
+        const statusDiv = document.getElementById('mobileGeneratorStatus');
+        const textarea = document.getElementById('promptContentInput');
+        const nameInput = document.getElementById('promptNameInput');
+
+        const description = descInput?.value?.trim();
+        if (!description) {
+            this.showMobileGeneratorStatus('Please enter a description first.', 'error');
+            return;
+        }
+
+        if (this.isGenerating) return;
+
+        try {
+            this.isGenerating = true;
+            generateBtn.disabled = true;
+            generateBtn.textContent = '⏳ Generating...';
+            this.showMobileGeneratorStatus('Generating your system prompt...', 'loading');
+
+            // Clear textarea for streaming
+            if (textarea) textarea.value = '';
+
+            // Use PromptGenerator's API call if available
+            if (typeof PromptGenerator !== 'undefined' && PromptGenerator.callGenerationAPI) {
+                const result = await PromptGenerator.callGenerationAPI(description, textarea);
+
+                if (nameInput && result.name) {
+                    nameInput.value = result.name;
+                }
+                if (textarea) {
+                    textarea.value = result.prompt;
+                }
+
+                this.showMobileGeneratorStatus('✓ Generated successfully!', 'success');
+                descInput.value = '';
+
+                setTimeout(() => {
+                    if (statusDiv) statusDiv.style.display = 'none';
+                }, 3000);
+            } else {
+                throw new Error('Prompt generator not available');
+            }
+        } catch (error) {
+            console.error('Mobile prompt generation error:', error);
+            this.showMobileGeneratorStatus(`Error: ${error.message}`, 'error');
+        } finally {
+            this.isGenerating = false;
+            generateBtn.disabled = false;
+            generateBtn.textContent = '✨ Generate';
+        }
+    },
+
+    showMobileGeneratorStatus(message, type) {
+        const statusDiv = document.getElementById('mobileGeneratorStatus');
+        if (!statusDiv) return;
+
+        statusDiv.style.display = 'block';
+        statusDiv.textContent = message;
+
+        // Style based on type
+        statusDiv.style.background = type === 'error' ? 'var(--color-error-bg, #ffebee)' :
+                                     type === 'success' ? 'var(--color-success-bg, #e8f5e9)' :
+                                     'var(--color-bg-subtle)';
+        statusDiv.style.color = type === 'error' ? 'var(--color-error, #c62828)' :
+                                type === 'success' ? 'var(--color-success, #2e7d32)' :
+                                'var(--color-text)';
     },
 
     closeSystemPromptModal() {
@@ -302,5 +521,189 @@ const MobileSheets = {
         }
 
         this.closeSystemPromptModal();
+    },
+
+    // ===== Toolbar Sheet Methods =====
+
+    initToolbarTriggers() {
+        // Font Size trigger
+        const fontSizeSelect = document.getElementById('fontSizeSelect');
+        if (fontSizeSelect) {
+            const trigger = this.createToolbarTrigger('fontSizeTrigger', '14');
+            fontSizeSelect.parentNode.insertBefore(trigger, fontSizeSelect.nextSibling);
+            trigger.addEventListener('click', () => this.showFontSizeSheet());
+        }
+
+        // Font Family trigger
+        const fontFamilySelect = document.getElementById('fontFamilySelect');
+        if (fontFamilySelect) {
+            const trigger = this.createToolbarTrigger('fontFamilyTrigger', 'Font');
+            fontFamilySelect.parentNode.insertBefore(trigger, fontFamilySelect.nextSibling);
+            trigger.addEventListener('click', () => this.showFontFamilySheet());
+        }
+
+        // Format (Header) trigger
+        const formatSelect = document.getElementById('formatSelect');
+        if (formatSelect) {
+            const trigger = this.createToolbarTrigger('formatTrigger', 'P');
+            formatSelect.parentNode.insertBefore(trigger, formatSelect.nextSibling);
+            trigger.addEventListener('click', () => this.showFormatSheet());
+        }
+
+        // Alignment trigger
+        const alignSelect = document.getElementById('textAlignSelect');
+        if (alignSelect) {
+            const trigger = this.createToolbarTrigger('alignTrigger', '≡');
+            alignSelect.parentNode.insertBefore(trigger, alignSelect.nextSibling);
+            trigger.addEventListener('click', () => this.showAlignSheet());
+        }
+    },
+
+    createToolbarTrigger(id, label) {
+        const trigger = document.createElement('button');
+        trigger.className = 'toolbar-select-trigger';
+        trigger.id = id;
+        trigger.type = 'button';
+        trigger.innerHTML = `<span>${label}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+        return trigger;
+    },
+
+    // Font Size Sheet
+    showFontSizeSheet() {
+        const content = document.getElementById('fontSizeSheetContent');
+        if (!content) return;
+
+        const sizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 60, 72];
+        const fontSizeSelect = document.getElementById('fontSizeSelect');
+        const currentSize = fontSizeSelect?.value || '14';
+
+        content.innerHTML = sizes.map(size => `
+            <div class="bottom-sheet-item ${String(size) === currentSize ? 'selected' : ''}" data-value="${size}">
+                <span style="font-size: ${Math.min(size, 24)}px;">${size}</span>
+            </div>
+        `).join('');
+
+        content.querySelectorAll('.bottom-sheet-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const value = item.dataset.value;
+                if (fontSizeSelect) {
+                    fontSizeSelect.value = value;
+                    fontSizeSelect.dispatchEvent(new Event('change'));
+                }
+                document.getElementById('fontSizeTrigger').querySelector('span').textContent = value;
+                this.closeSheet();
+            });
+        });
+
+        this.showSheet(this.fontSizeSheet);
+    },
+
+    // Font Family Sheet
+    showFontFamilySheet() {
+        const content = document.getElementById('fontFamilySheetContent');
+        if (!content) return;
+
+        const fonts = [
+            { value: 'Arial', name: 'Arial' },
+            { value: 'Times New Roman', name: 'Times New Roman' },
+            { value: 'Georgia', name: 'Georgia' },
+            { value: 'Courier New', name: 'Courier New' },
+            { value: 'Verdana', name: 'Verdana' }
+        ];
+        const fontFamilySelect = document.getElementById('fontFamilySelect');
+        const currentFont = fontFamilySelect?.value || 'Arial';
+
+        content.innerHTML = fonts.map(font => `
+            <div class="bottom-sheet-item ${font.value === currentFont ? 'selected' : ''}" data-value="${font.value}">
+                <span style="font-family: '${font.value}';">${font.name}</span>
+            </div>
+        `).join('');
+
+        content.querySelectorAll('.bottom-sheet-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const value = item.dataset.value;
+                if (fontFamilySelect) {
+                    fontFamilySelect.value = value;
+                    fontFamilySelect.dispatchEvent(new Event('change'));
+                }
+                document.getElementById('fontFamilyTrigger').querySelector('span').textContent = value.split(' ')[0];
+                this.closeSheet();
+            });
+        });
+
+        this.showSheet(this.fontFamilySheet);
+    },
+
+    // Format (Header) Sheet
+    showFormatSheet() {
+        const content = document.getElementById('formatSheetContent');
+        if (!content) return;
+
+        const formats = [
+            { value: 'p', name: 'Paragraph', label: 'P' },
+            { value: 't', name: 'Title', label: 'T' },
+            { value: 'h1', name: 'Heading 1', label: 'H1' },
+            { value: 'h2', name: 'Heading 2', label: 'H2' },
+            { value: 'h3', name: 'Heading 3', label: 'H3' }
+        ];
+        const formatSelect = document.getElementById('formatSelect');
+        const currentFormat = formatSelect?.value || 'p';
+
+        content.innerHTML = formats.map(format => `
+            <div class="bottom-sheet-item ${format.value === currentFormat ? 'selected' : ''}" data-value="${format.value}">
+                <span><strong>${format.label}</strong> - ${format.name}</span>
+            </div>
+        `).join('');
+
+        content.querySelectorAll('.bottom-sheet-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const value = item.dataset.value;
+                if (formatSelect) {
+                    formatSelect.value = value;
+                    formatSelect.dispatchEvent(new Event('change'));
+                }
+                const format = formats.find(f => f.value === value);
+                document.getElementById('formatTrigger').querySelector('span').textContent = format?.label || 'P';
+                this.closeSheet();
+            });
+        });
+
+        this.showSheet(this.formatSheet);
+    },
+
+    // Alignment Sheet
+    showAlignSheet() {
+        const content = document.getElementById('alignSheetContent');
+        if (!content) return;
+
+        const alignments = [
+            { value: 'left', name: 'Left', icon: '⬅' },
+            { value: 'center', name: 'Center', icon: '⬌' },
+            { value: 'right', name: 'Right', icon: '➡' },
+            { value: 'justify', name: 'Justify', icon: '≡' }
+        ];
+        const alignSelect = document.getElementById('textAlignSelect');
+        const currentAlign = alignSelect?.value || 'left';
+
+        content.innerHTML = alignments.map(align => `
+            <div class="bottom-sheet-item ${align.value === currentAlign ? 'selected' : ''}" data-value="${align.value}">
+                <span>${align.icon} ${align.name}</span>
+            </div>
+        `).join('');
+
+        content.querySelectorAll('.bottom-sheet-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const value = item.dataset.value;
+                if (alignSelect) {
+                    alignSelect.value = value;
+                    alignSelect.dispatchEvent(new Event('change'));
+                }
+                const align = alignments.find(a => a.value === value);
+                document.getElementById('alignTrigger').querySelector('span').textContent = align?.icon || '≡';
+                this.closeSheet();
+            });
+        });
+
+        this.showSheet(this.alignSheet);
     }
 };

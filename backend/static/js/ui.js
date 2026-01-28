@@ -28,6 +28,7 @@ const UI = {
         addDocumentBtn: document.getElementById('addDocumentBtn'),
         documentEditor: document.getElementById('documentEditor'),
         documentTitle: document.getElementById('documentTitle'),
+        mobileDocumentTitle: document.getElementById('mobileDocumentTitle'),
         documentTextarea: document.getElementById('documentTextarea'),
         undoBtn: document.getElementById('undoBtn'),
         redoBtn: document.getElementById('redoBtn'),

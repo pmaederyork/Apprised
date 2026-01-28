@@ -5,7 +5,11 @@
 
 /* ===== Hide Native Selects on Mobile ===== */
 body.is-mobile .model-selector select,
-body.is-mobile .sidebar select {
+body.is-mobile .sidebar select,
+body.is-mobile .settings-section select,
+body.is-mobile .modal select,
+body.is-mobile .modal-overlay select,
+body.is-mobile .modal-content select {
     display: none;
 }
 
@@ -18,11 +22,35 @@ body.is-mobile .model-selector::after {
     content: attr(data-model-name);
     display: block;
     padding: 10px 16px;
-    background: var(--color-bg-secondary);
+    background: var(--color-bg-subtle, var(--gray-100));
     border: 1px solid var(--color-border);
     border-radius: 8px;
     font-size: 14px;
     color: var(--color-text);
+}
+
+/* Show a custom trigger for theme selector on mobile */
+.theme-selector-trigger {
+    display: none; /* Hidden on desktop */
+}
+
+body.is-mobile .appearance-settings-section .settings-section-content {
+    position: relative;
+}
+
+body.is-mobile .theme-selector-trigger {
+    display: block;
+    padding: 10px 16px;
+    background: var(--color-bg-subtle, var(--gray-100));
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--color-text-primary, var(--color-text));
+    cursor: pointer;
+}
+
+body.is-mobile .theme-selector-trigger:active {
+    background: var(--color-hover);
 }
 
 /* ===== Bottom Sheet Backdrop ===== */
@@ -33,7 +61,7 @@ body.is-mobile .model-selector::after {
     opacity: 0;
     pointer-events: none;
     transition: opacity 300ms ease;
-    z-index: 1099;
+    z-index: 2099;
 }
 
 .bottom-sheet-backdrop.visible {
@@ -53,7 +81,7 @@ body.is-mobile .model-selector::after {
     transform: translateY(100%);
     transition: transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
     will-change: transform;
-    z-index: 1100;
+    z-index: 2100;
     display: flex;
     flex-direction: column;
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -154,6 +182,30 @@ body.is-mobile .model-selector::after {
 #modelBottomSheet .model-description {
     font-size: 13px;
     color: var(--color-text-secondary);
+}
+
+/* ===== Theme Selector Specific ===== */
+#themeBottomSheet .bottom-sheet-item {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+}
+
+#themeBottomSheet .theme-name {
+    font-weight: 500;
+    width: 100%;
+}
+
+#themeBottomSheet .theme-description {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    width: 100%;
+}
+
+/* ===== Prompt Selector Specific ===== */
+#promptBottomSheet .prompt-name {
+    font-weight: 500;
 }
 
 /* ===== Agent Selector Specific ===== */
@@ -289,11 +341,69 @@ body.is-mobile .model-selector::after {
     resize: vertical;
 }
 
+/* ===== Mobile Select Trigger (replaces native select in modals) ===== */
+.mobile-select-trigger {
+    display: none; /* Hidden on desktop */
+}
+
+body.is-mobile .mobile-select-trigger {
+    display: block;
+    padding: 10px 16px;
+    background: var(--color-bg-subtle, var(--gray-100));
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+body.is-mobile .mobile-select-trigger:active {
+    background: var(--color-hover);
+}
+
+/* ===== Mobile Toolbar Select Triggers ===== */
+/* Hide native selects in editor toolbar on mobile */
+body.is-mobile .editor-toolbar select,
+body.is-mobile .markdown-toolbar select {
+    display: none;
+}
+
+/* Toolbar select trigger buttons */
+.toolbar-select-trigger {
+    display: none;
+}
+
+body.is-mobile .toolbar-select-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 32px;
+    padding: 4px 8px;
+    background: var(--color-bg-subtle, var(--gray-100));
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--color-text);
+    cursor: pointer;
+    gap: 4px;
+}
+
+body.is-mobile .toolbar-select-trigger:active {
+    background: var(--color-hover);
+}
+
+body.is-mobile .toolbar-select-trigger svg {
+    width: 12px;
+    height: 12px;
+    opacity: 0.6;
+}
+
 /* ===== Desktop: Hide Mobile-Only Elements ===== */
-@media (min-width: 768px) {
-    .bottom-sheet,
-    .bottom-sheet-backdrop,
-    .mobile-fullscreen-modal {
-        display: none !important;
-    }
+/* Bottom sheets controlled by JS - only functional on mobile */
+.bottom-sheet,
+.bottom-sheet-backdrop,
+.mobile-fullscreen-modal {
+    /* Hidden by default via transform/opacity, shown via .open/.visible class */
+    /* JS checks Mobile.isMobileView() before showing */
 }

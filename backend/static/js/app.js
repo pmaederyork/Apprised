@@ -79,15 +79,16 @@ const App = {
             console.error('Failed to initialize MobileDrawer:', error);
         }
 
-        // Initialize mobile touch interactions (depends on Mobile module)
-        try {
-            if (typeof MobileTouch !== 'undefined') {
-                MobileTouch.init();
-                console.log('MobileTouch module initialized');
-            }
-        } catch (error) {
-            console.error('Failed to initialize MobileTouch:', error);
-        }
+        // Mobile touch interactions disabled - using standard X buttons instead
+        // Swipe-to-delete was causing layout issues
+        // try {
+        //     if (typeof MobileTouch !== 'undefined') {
+        //         MobileTouch.init();
+        //         console.log('MobileTouch module initialized');
+        //     }
+        // } catch (error) {
+        //     console.error('Failed to initialize MobileTouch:', error);
+        // }
 
         // Initialize mobile bottom sheets and modals (depends on Mobile module)
         try {
@@ -242,17 +243,13 @@ const App = {
         // Accept all button
         UI.elements.acceptAllBtn?.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (confirm('Accept all pending changes?')) {
-                ClaudeChanges.acceptAll();
-            }
+            ClaudeChanges.acceptAll();
         });
 
         // Reject all button
         UI.elements.rejectAllBtn?.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (confirm('Reject all pending changes?')) {
-                ClaudeChanges.rejectAll();
-            }
+            ClaudeChanges.rejectAll();
         });
     },
 

@@ -112,7 +112,7 @@ body.is-mobile .sidebar .prompt-item-content span {
   white-space: nowrap;
 }
 
-/* Always show action buttons on mobile (no hover) */
+/* Always show action buttons on mobile (no hover required) */
 body.is-mobile .sidebar .chat-actions,
 body.is-mobile .sidebar .document-actions,
 body.is-mobile .sidebar .prompt-actions {
