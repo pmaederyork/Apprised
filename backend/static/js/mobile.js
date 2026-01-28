@@ -250,8 +250,19 @@ const Mobile = {
         const mobileSaveBtn = document.getElementById('mobileSaveBtn');
         mobileSaveBtn?.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (typeof Documents !== 'undefined' && Documents.saveCurrentDocument) {
+            if (typeof Documents !== 'undefined' && Documents.currentDocumentId) {
+                // Save the document
                 Documents.saveCurrentDocument();
+
+                // Visual feedback - briefly change button color
+                mobileSaveBtn.style.color = 'var(--color-success, #4caf50)';
+                setTimeout(() => {
+                    mobileSaveBtn.style.color = '';
+                }, 500);
+
+                console.log('Mobile save triggered for document:', Documents.currentDocumentId);
+            } else {
+                console.warn('Mobile save: No document open');
             }
         });
 

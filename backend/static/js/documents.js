@@ -458,7 +458,14 @@ const Documents = {
 
     // Save current document content
     saveCurrentDocument() {
-        if (!this.currentDocumentId || this.isSaving) return;
+        if (!this.currentDocumentId) {
+            console.warn('saveCurrentDocument: No document open');
+            return;
+        }
+        if (this.isSaving) {
+            console.warn('saveCurrentDocument: Already saving, skipped');
+            return;
+        }
 
         this.isSaving = true;
         const document = this.documents[this.currentDocumentId];
@@ -470,6 +477,12 @@ const Documents = {
             document.content = this.squireEditor.getHTML();
             document.lastModified = Date.now();
             Storage.saveDocuments(this.documents);
+            console.log('Document saved:', this.currentDocumentId);
+        } else {
+            console.warn('saveCurrentDocument: Missing document or editor', {
+                hasDocument: !!document,
+                hasEditor: !!this.squireEditor
+            });
         }
         this.isSaving = false;
     },
