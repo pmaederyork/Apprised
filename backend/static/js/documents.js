@@ -2793,6 +2793,9 @@ const Documents = {
 
         const editor = this.squireEditor;
 
+        // Focus required by Squire API before formatting methods (per SQUIRE_API.md)
+        editor.focus();
+
         // Create range for selection
         const range = document.createRange();
 

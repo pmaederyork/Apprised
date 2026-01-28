@@ -683,23 +683,13 @@ const ClaudeChanges = {
             }
         }
 
-        // 1.5. Process FORMAT changes (apply via Squire methods)
+        // 1.5. Process FORMAT changes - SKIP in reconstruction
+        // FORMAT changes must be applied AFTER HTML is set to editor
+        // because Squire methods require focus and work on live DOM.
+        // The actual FORMAT application happens in acceptChange()/exitReviewMode().
+        // Just mark them as applied here so they aren't counted as skipped.
         formats.forEach(change => {
-            const resolution = resolveWithIndex(change);
-
-            if (resolution.node) {
-                // Apply formatting using Documents helper
-                if (typeof Documents !== 'undefined' && Documents.applyFormatToNode) {
-                    Documents.applyFormatToNode(resolution.node, change);
-                }
-                applied.push({ change, method: resolution.method });
-            } else {
-                if (skipOnFailure) {
-                    skipped.push({ change, reason: 'target not found' });
-                } else {
-                    console.error(`FORMAT failed: Could not find target element`);
-                }
-            }
+            applied.push({ change, method: 'deferred-to-live-dom' });
         });
 
         // 2. Process ADDITIONS - handle both regular and chained sequence items
@@ -1159,6 +1149,18 @@ const ClaudeChanges = {
             const editor = Documents.squireEditor.getRoot();
             if (editor) {
                 editor.innerHTML = reconstructedHTML;
+
+                // Apply FORMAT changes to live editor (requires focus for Squire methods)
+                const acceptedFormats = acceptedChanges.filter(c => c.type === 'format');
+                if (acceptedFormats.length > 0) {
+                    Documents.squireEditor.focus();
+                    acceptedFormats.forEach(formatChange => {
+                        const resolution = this.resolveChangeTarget(editor, formatChange);
+                        if (resolution?.node) {
+                            Documents.applyFormatToNode(resolution.node, formatChange);
+                        }
+                    });
+                }
             }
         }
 
@@ -1232,6 +1234,18 @@ const ClaudeChanges = {
             const editor = Documents.squireEditor.getRoot();
             if (editor) {
                 editor.innerHTML = reconstructedHTML;
+
+                // Apply FORMAT changes to live editor (requires focus for Squire methods)
+                const acceptedFormats = acceptedChanges.filter(c => c.type === 'format');
+                if (acceptedFormats.length > 0) {
+                    Documents.squireEditor.focus();
+                    acceptedFormats.forEach(formatChange => {
+                        const resolution = this.resolveChangeTarget(editor, formatChange);
+                        if (resolution?.node) {
+                            Documents.applyFormatToNode(resolution.node, formatChange);
+                        }
+                    });
+                }
             }
         }
 
@@ -1334,6 +1348,19 @@ const ClaudeChanges = {
                 if (typeof ElementIds !== 'undefined') {
                     ElementIds.ensureIds(editor);
                 }
+
+                // Apply FORMAT changes to live editor (requires focus for Squire methods)
+                const allAccepted = this.changes.filter(c => c.status === 'accepted');
+                const acceptedFormats = allAccepted.filter(c => c.type === 'format');
+                if (acceptedFormats.length > 0) {
+                    Documents.squireEditor.focus();
+                    acceptedFormats.forEach(formatChange => {
+                        const resolution = this.resolveChangeTarget(editor, formatChange);
+                        if (resolution?.node) {
+                            Documents.applyFormatToNode(resolution.node, formatChange);
+                        }
+                    });
+                }
             }
         }
 
@@ -1404,6 +1431,18 @@ const ClaudeChanges = {
                 if (typeof ElementIds !== 'undefined') {
                     ElementIds.ensureIds(editor);
                 }
+
+                // Apply FORMAT changes to live editor (requires focus for Squire methods)
+                const acceptedFormats = acceptedChanges.filter(c => c.type === 'format');
+                if (acceptedFormats.length > 0) {
+                    Documents.squireEditor.focus();
+                    acceptedFormats.forEach(formatChange => {
+                        const resolution = this.resolveChangeTarget(editor, formatChange);
+                        if (resolution?.node) {
+                            Documents.applyFormatToNode(resolution.node, formatChange);
+                        }
+                    });
+                }
             }
         }
 
@@ -1452,6 +1491,18 @@ const ClaudeChanges = {
                 const editor = Documents.squireEditor.getRoot();
                 if (editor) {
                     editor.innerHTML = cleanHTML;
+
+                    // Apply FORMAT changes to live editor (requires focus for Squire methods)
+                    const acceptedFormats = acceptedChanges.filter(c => c.type === 'format');
+                    if (acceptedFormats.length > 0) {
+                        Documents.squireEditor.focus();
+                        acceptedFormats.forEach(formatChange => {
+                            const resolution = this.resolveChangeTarget(editor, formatChange);
+                            if (resolution?.node) {
+                                Documents.applyFormatToNode(resolution.node, formatChange);
+                            }
+                        });
+                    }
                 }
             }
 
