@@ -3101,7 +3101,19 @@ const Documents = {
             }
 
             const originalMatch = content.match(/<original>(.*?)<\/original>/s);
-            const newMatch = content.match(/<new>(.*?)<\/new>/s);
+
+            // Handle multiple <new> blocks - Claude might generate separate blocks for each paragraph
+            // Collect ALL <new> blocks and combine their content
+            let newContent = null;
+            const newBlockRegex = /<new>(.*?)<\/new>/gs;
+            const newBlocks = [];
+            let newBlockMatch;
+            while ((newBlockMatch = newBlockRegex.exec(content)) !== null) {
+                newBlocks.push(newBlockMatch[1].trim());
+            }
+            if (newBlocks.length > 0) {
+                newContent = newBlocks.join('');
+            }
 
             const change = {
                 id: Storage.generateChangeId(),
@@ -3112,7 +3124,7 @@ const Documents = {
                 _anchorDirection: anchorDirection,
                 targetId: targetId || undefined,
                 originalContent: originalMatch ? originalMatch[1].trim() : null,
-                newContent: newMatch ? newMatch[1].trim() : null,
+                newContent: newContent,
                 status: 'pending'
             };
 
