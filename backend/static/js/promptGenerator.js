@@ -38,10 +38,10 @@ const PromptGenerator = {
             this.toggleCollapse();
         });
 
-        // Keyboard shortcuts - Ctrl/Cmd+Enter to generate
+        // Keyboard shortcuts - Enter to generate, Shift+Enter for new line
         const descriptionInput = document.getElementById('promptDescriptionInput');
         descriptionInput?.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 this.generatePrompt();
             }
@@ -74,8 +74,13 @@ const PromptGenerator = {
             generateBtn.textContent = '⏳ Generating...';
             this.showStatus('Generating your system prompt...', 'loading');
 
-            // Call API to generate prompt and name
-            const result = await this.callGenerationAPI(description);
+            // Clear textarea for streaming display
+            if (textarea) {
+                textarea.value = '';
+            }
+
+            // Call API to generate prompt and name, passing textarea for streaming
+            const result = await this.callGenerationAPI(description, textarea);
 
             // Update the title field with generated name
             const titleInput = document.getElementById('editorTitle');
@@ -122,8 +127,10 @@ const PromptGenerator = {
 
     /**
      * Call the Anthropic API to generate a system prompt
+     * @param {string} description - The user's description of the agent
+     * @param {HTMLTextAreaElement} [streamTarget] - Optional textarea to stream content to
      */
-    async callGenerationAPI(description) {
+    async callGenerationAPI(description, streamTarget) {
         // Get API key from localStorage
         const apiKey = Storage.getApiKey();
         if (!apiKey) {
@@ -147,10 +154,14 @@ IMPORTANT: First, generate a concise 1-3 word name for the agent wrapped in XML 
 
 Then on a new line, write the complete system prompt.`;
 
-        const userMessage = `Create a system prompt for an AI agent with this description:\n\n"${description}"`;;
+        const userMessage = `Create a system prompt for an AI agent with this description:\n\n"${description}"`;
 
-        // Get selected model
-        const model = Storage.getSetting('model', 'claude-sonnet-4-5-20250929');
+        // Find Haiku model from dropdown for faster generation
+        const modelSelect = document.getElementById('modelSelect');
+        const haikuOption = Array.from(modelSelect.options).find(opt =>
+            opt.value.toLowerCase().includes('haiku')
+        );
+        const model = haikuOption?.value || 'claude-haiku-4-5-20251001';
 
         // Call the /chat endpoint
         const response = await fetch('/chat', {
@@ -194,6 +205,11 @@ Then on a new line, write the complete system prompt.`;
                         const data = JSON.parse(line.slice(6));
                         if (data.chunk) {
                             generatedPrompt += data.chunk;
+                            // Strip agent_name tags and update textarea in real-time
+                            if (streamTarget) {
+                                const displayPrompt = generatedPrompt.replace(/<agent_name>.*?<\/agent_name>\s*/s, '').trim();
+                                streamTarget.value = displayPrompt;
+                            }
                         }
                         if (data.error) {
                             throw new Error(data.error);

@@ -188,24 +188,22 @@ const Chat = {
 
     // Delete a chat
     deleteChat(chatId) {
-        if (confirm('Are you sure you want to delete this chat?')) {
-            delete this.chats[chatId];
-            Storage.saveChats(this.chats);
-            
-            // If we deleted the current chat, create a new one or load another
-            if (this.currentChatId === chatId) {
-                if (Object.keys(this.chats).length === 0) {
-                    this.createNewChat();
-                } else {
-                    // Load the most recent remaining chat
-                    const sortedChats = Object.values(this.chats).sort((a, b) => b.createdAt - a.createdAt);
-                    this.loadChat(sortedChats[0].id);
-                    this.renderChatList();
-                }
+        delete this.chats[chatId];
+        Storage.saveChats(this.chats);
+
+        // If we deleted the current chat, create a new one or load another
+        if (this.currentChatId === chatId) {
+            if (Object.keys(this.chats).length === 0) {
+                this.createNewChat();
             } else {
-                // Just refresh the chat list
+                // Load the most recent remaining chat
+                const sortedChats = Object.values(this.chats).sort((a, b) => b.createdAt - a.createdAt);
+                this.loadChat(sortedChats[0].id);
                 this.renderChatList();
             }
+        } else {
+            // Just refresh the chat list
+            this.renderChatList();
         }
     },
 
