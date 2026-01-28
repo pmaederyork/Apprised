@@ -351,6 +351,16 @@ const Documents = {
 
         // Update Drive icon visibility
         this.updateDriveIconVisibility();
+
+        // Notify Mobile module that document is open
+        if (typeof Mobile !== 'undefined' && Mobile.setDocumentOpen) {
+            Mobile.setDocumentOpen(true);
+        }
+
+        // Update mobile editor title
+        if (typeof Mobile !== 'undefined' && Mobile.updateEditorTitle) {
+            Mobile.updateEditorTitle(displayTitle);
+        }
     },
 
     // Close the document editor
@@ -400,6 +410,11 @@ const Documents = {
         if (typeof Chat !== 'undefined' && Chat.currentChatId) {
             Chat.addSystemMessage('📄 Document closed. Document editing is no longer available.');
         }
+
+        // Notify Mobile module that document is closed
+        if (typeof Mobile !== 'undefined' && Mobile.setDocumentOpen) {
+            Mobile.setDocumentOpen(false);
+        }
     },
 
     // Delete a document
@@ -443,7 +458,7 @@ const Documents = {
     // Save document title immediately (without extension logic)
     saveDocumentTitleImmediate() {
         if (!this.currentDocumentId) return;
-        
+
         const newTitle = UI.elements.documentTitle.value.trim() || 'New Document';
         const document = this.documents[this.currentDocumentId];
         if (document && document.title !== newTitle) {
@@ -451,13 +466,18 @@ const Documents = {
             document.lastModified = Date.now();
             Storage.saveDocuments(this.documents);
             this.renderDocumentList();
+
+            // Update mobile editor title
+            if (typeof Mobile !== 'undefined' && Mobile.updateEditorTitle) {
+                Mobile.updateEditorTitle(newTitle);
+            }
         }
     },
 
     // Save document title with extension logic (on blur)
     saveDocumentTitle() {
         if (!this.currentDocumentId) return;
-        
+
         const rawTitle = UI.elements.documentTitle.value.trim() || 'New Document';
         // Auto-add .html extension if not present
         const newTitle = rawTitle.endsWith('.html') ? rawTitle : rawTitle + '.html';
@@ -467,11 +487,16 @@ const Documents = {
             document.lastModified = Date.now();
             Storage.saveDocuments(this.documents);
             this.renderDocumentList();
-            
+
             // Update the input field to show the final name without extension
-            const displayTitle = newTitle.endsWith('.html') ? 
+            const displayTitle = newTitle.endsWith('.html') ?
                 newTitle.slice(0, -5) : newTitle;
             UI.elements.documentTitle.value = displayTitle;
+
+            // Update mobile editor title
+            if (typeof Mobile !== 'undefined' && Mobile.updateEditorTitle) {
+                Mobile.updateEditorTitle(displayTitle);
+            }
         }
     },
 
