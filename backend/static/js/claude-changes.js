@@ -727,6 +727,10 @@ const ClaudeChanges = {
         // Track inserted elements by change ID for chained resolution
         const insertedByChangeId = new Map();
 
+        // Track last inserted element for each anchor to maintain correct order
+        // When multiple ADDs share the same anchor, we chain them to prevent reverse ordering
+        const lastInsertedAfterAnchor = new Map();
+
         // Sort regular additions by anchor position - earlier anchors first (top to bottom)
         // Use pre-resolved anchors to get positions (anchors were resolved before modifications)
         // Since we pre-resolve to actual DOM nodes, the order shouldn't affect correctness

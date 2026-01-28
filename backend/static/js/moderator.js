@@ -761,14 +761,31 @@ FINAL DOCUMENT:
 ${finalHTML}
 \`\`\`
 
-CRITICAL RULES:
-1. For targetId and insertAfter-id, use ONLY IDs from the ORIGINAL document
-2. IDs that appear ONLY in the FINAL document (new content) CANNOT be used as anchors
-3. Copy IDs EXACTLY as they appear - they are UUIDs
+DECISION LOGIC - How to choose ADD vs MODIFY:
+1. Find each element in FINAL by its data-edit-id
+2. If an element's ID exists in ORIGINAL → check if content changed:
+   - Content SAME → skip (no change needed)
+   - Content DIFFERENT → use MODIFY
+3. If an element has NO data-edit-id OR its ID is NOT in ORIGINAL → this is NEW content, use ADD
+4. If an element from ORIGINAL is missing in FINAL → use DELETE
+
+CRITICAL: Most agent contributions are NEW content (no matching ID in ORIGINAL). Use ADD for these!
+
+ORDERING: Generate changes in DOCUMENT ORDER (top to bottom). Process elements in the order they appear in FINAL.
+
+ANCHOR RULES:
+- For ADD, anchor to the NEAREST PRECEDING element that has an ID from ORIGINAL
+- For targetId in MODIFY/DELETE, use the element's own ID from ORIGINAL
+- IDs appearing ONLY in FINAL cannot be used as anchors
 
 OUTPUT FORMAT - produce a <document_edit> block:
 
-MODIFY:
+ADD (use for NEW content not in ORIGINAL):
+<change type="add" insertAfter-id="[ID of preceding element from ORIGINAL]">
+<new>[new content - NO data-edit-id attributes]</new>
+</change>
+
+MODIFY (use ONLY when same ID exists in both, content differs):
 <change type="modify" targetId="[ID from ORIGINAL]">
 <original>[element from original]</original>
 <new>[element from final]</new>
@@ -778,22 +795,6 @@ DELETE:
 <change type="delete" targetId="[ID from ORIGINAL]">
 <original>[element being removed]</original>
 </change>
-
-ADD (after an element - for content FOLLOWING a section):
-<change type="add" insertAfter-id="[ID from ORIGINAL]">
-<new>[new content - DO NOT include data-edit-id on new elements]</new>
-</change>
-
-ADD (before an element - for headers/content ABOVE a section):
-<change type="add" insertBefore-id="[ID from ORIGINAL]">
-<new>[new content - DO NOT include data-edit-id on new elements]</new>
-</change>
-
-POSITIONING GUIDANCE:
-- Use insertBefore-id when adding headers or content that should appear ABOVE existing content
-- Use insertAfter-id when adding content that should follow existing content
-- For inserting at the VERY START of the document, use insertBefore-id with the FIRST element's ID
-- For inserting at the END of the document, use insertAfter-id with the LAST element's ID
 
 Output ONLY the <document_edit> block, no explanation:`;
 
