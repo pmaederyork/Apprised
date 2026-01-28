@@ -123,7 +123,7 @@ const Chat = {
             title: 'New Chat',
             messages: [],
             agents: [],
-            turns: 1,
+            turns: 'auto',
             createdAt: Date.now()
         };
 
