@@ -79,6 +79,16 @@ const App = {
             console.error('Failed to initialize MobileDrawer:', error);
         }
 
+        // Initialize mobile touch interactions (depends on Mobile module)
+        try {
+            if (typeof MobileTouch !== 'undefined') {
+                MobileTouch.init();
+                console.log('MobileTouch module initialized');
+            }
+        } catch (error) {
+            console.error('Failed to initialize MobileTouch:', error);
+        }
+
         // Initialize system prompts first (needed for chat)
         try {
             SystemPrompts.init();
