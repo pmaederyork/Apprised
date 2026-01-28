@@ -2733,6 +2733,52 @@ const Documents = {
                 continue;
             }
 
+            // Handle format type (formatting-only changes via Squire methods)
+            if (type === 'format') {
+                // Parse targetId (required for format)
+                const targetIdMatch = attributeString.match(/targetId="([^"]+)"/);
+                const targetId = targetIdMatch ? targetIdMatch[1] : undefined;
+
+                // Parse optional text attribute for partial formatting
+                const textMatch = attributeString.match(/text="([^"]+)"/);
+                const textTarget = textMatch ? textMatch[1] : undefined;
+
+                // Parse style elements (multiple allowed)
+                const styles = [];
+                const styleRegex = /<style>(.*?)<\/style>/gs;
+                let styleMatch;
+                while ((styleMatch = styleRegex.exec(content)) !== null) {
+                    styles.push(styleMatch[1].trim());
+                }
+
+                // Parse remove elements (multiple allowed)
+                const removes = [];
+                const removeRegex = /<remove>(.*?)<\/remove>/gs;
+                let removeMatch;
+                while ((removeMatch = removeRegex.exec(content)) !== null) {
+                    // Extract just the tag name: <b> -> 'b'
+                    const tagMatch = removeMatch[1].match(/<(\w+)/);
+                    if (tagMatch) removes.push(tagMatch[1].toLowerCase());
+                }
+
+                // Parse original for fallback verification
+                const originalMatch = content.match(/<original>(.*?)<\/original>/s);
+
+                const change = {
+                    id: Storage.generateChangeId(),
+                    type: 'format',
+                    targetId: targetId,
+                    textTarget: textTarget,
+                    styles: styles,
+                    removes: removes,
+                    originalContent: originalMatch ? originalMatch[1].trim() : null,
+                    status: 'pending'
+                };
+
+                changes.push(change);
+                continue;
+            }
+
             // Handle add-sequence type (bulk insertions)
             if (type === 'add-sequence') {
                 // Parse ID-based anchors (token-efficient format)
