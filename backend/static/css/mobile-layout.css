@@ -48,15 +48,25 @@ body.is-mobile.is-portrait.split-view .app-container {
 body.is-mobile.is-portrait.split-view .document-editor {
   grid-area: editor;
   overflow: hidden;
-  display: flex;
+  display: flex !important;
   flex-direction: column;
+  min-width: 0; /* Allow shrinking */
+  height: auto;
 }
 
 body.is-mobile.is-portrait.split-view .chat-container {
   grid-area: chat;
   overflow: hidden;
-  display: flex;
+  display: flex !important;
   flex-direction: column;
+  position: relative !important; /* Reset from chat-only fixed positioning */
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0; /* Allow shrinking in grid */
 }
 
 /* ===== Landscape Split View ===== */
@@ -70,15 +80,24 @@ body.is-mobile.is-landscape.split-view .app-container {
 body.is-mobile.is-landscape.split-view .chat-container {
   grid-area: chat;
   overflow: hidden;
-  display: flex;
+  display: flex !important;
   flex-direction: column;
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0;
 }
 
 body.is-mobile.is-landscape.split-view .document-editor {
   grid-area: editor;
   overflow: hidden;
-  display: flex;
+  display: flex !important;
   flex-direction: column;
+  min-width: 0;
 }
 
 /* ===== Tablet Layout ===== */
@@ -92,15 +111,24 @@ body.is-tablet.split-view .app-container {
 body.is-tablet.split-view .chat-container {
   grid-area: chat;
   overflow: hidden;
-  display: flex;
+  display: flex !important;
   flex-direction: column;
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0;
 }
 
 body.is-tablet.split-view .document-editor {
   grid-area: editor;
   overflow: hidden;
-  display: flex;
+  display: flex !important;
   flex-direction: column;
+  min-width: 0;
 }
 
 /* ===== Collapsed Chat State ===== */
@@ -126,9 +154,13 @@ body.is-mobile.is-landscape.split-view.chat-collapsed .chat-container {
   max-width: var(--mobile-collapsed-chat-height);
 }
 
-/* ===== Sidebar Hidden on Mobile ===== */
-/* Sidebar shown via drawer in separate plan */
-body.is-mobile .sidebar {
+/* ===== Non-Grid Elements on Mobile ===== */
+/* These elements use position: fixed and don't participate in grid */
+/* Sidebar handled by mobile-drawer.css */
+/* Drawer backdrop handled by mobile-drawer.css */
+
+/* System prompt editor - hide in split view unless active */
+body.is-mobile.split-view .system-prompt-editor:not(.active) {
   display: none;
 }
 

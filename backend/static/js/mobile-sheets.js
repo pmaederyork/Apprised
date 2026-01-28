@@ -219,15 +219,18 @@ const MobileSheets = {
 
         this.currentPromptId = promptId;
 
-        // Get prompt content
+        // Get prompt content from SystemPrompts state
         const content = document.getElementById('systemPromptModalContent');
         if (content && typeof SystemPrompts !== 'undefined') {
-            const prompt = SystemPrompts.items?.[promptId];
+            const prompt = SystemPrompts.state?.systemPrompts?.[promptId];
+            const escapedName = (prompt?.name || '').replace(/"/g, '&quot;');
+            const escapedContent = (prompt?.content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
             content.innerHTML = `
                 <label for="promptNameInput" style="display: block; margin-bottom: 8px; font-weight: 500;">Name</label>
-                <input type="text" id="promptNameInput" value="${prompt?.name || ''}" style="width: 100%; padding: 10px; margin-bottom: 16px; border: 1px solid var(--color-border); border-radius: 8px; font-size: 16px;">
+                <input type="text" id="promptNameInput" value="${escapedName}" style="width: 100%; padding: 10px; margin-bottom: 16px; border: 1px solid var(--color-border); border-radius: 8px; font-size: 16px;">
                 <label for="promptContentInput" style="display: block; margin-bottom: 8px; font-weight: 500;">System Prompt</label>
-                <textarea id="promptContentInput" placeholder="Enter system prompt...">${prompt?.content || ''}</textarea>
+                <textarea id="promptContentInput" placeholder="Enter system prompt...">${escapedContent}</textarea>
             `;
         }
 
@@ -249,8 +252,15 @@ const MobileSheets = {
         const name = document.getElementById('promptNameInput')?.value;
         const content = document.getElementById('promptContentInput')?.value;
 
-        if (typeof SystemPrompts !== 'undefined' && SystemPrompts.update) {
-            SystemPrompts.update(this.currentPromptId, { name, content });
+        if (typeof SystemPrompts !== 'undefined') {
+            const prompt = SystemPrompts.state.systemPrompts[this.currentPromptId];
+            if (prompt) {
+                prompt.name = name || prompt.name;
+                prompt.content = content || '';
+                prompt.updatedAt = Date.now();
+                SystemPrompts.save();
+                SystemPrompts.render();
+            }
         }
 
         this.closeSystemPromptModal();

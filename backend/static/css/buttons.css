@@ -347,6 +347,15 @@
     transform: none;
 }
 
+/* Send button in streaming state - becomes stop button */
+#sendBtn.streaming {
+    background: var(--color-error, #e53935);
+}
+
+#sendBtn.streaming:hover {
+    background: #c62828;
+}
+
 /* Inline Edit Input for Sidebar Items */
 .inline-edit-input {
     background: var(--color-bg-white);

@@ -303,13 +303,21 @@ const SystemPrompts = {
     edit(promptId) {
         const prompt = this.state.systemPrompts[promptId];
         if (!prompt) return;
-        
+
         // If clicking the same prompt that's already being edited, close the editor
         if (this.state.editingSystemPromptId === promptId && this.state.isEditingSystemPrompt) {
             this.exitEdit();
             return;
         }
-        
+
+        // On mobile, use full-screen modal instead of hiding chat
+        if (typeof Mobile !== 'undefined' && Mobile.isMobileView()) {
+            if (typeof MobileSheets !== 'undefined' && MobileSheets.showSystemPromptModal) {
+                MobileSheets.showSystemPromptModal(promptId);
+            }
+            return;
+        }
+
         this.state.isEditingSystemPrompt = true;
         this.state.editingSystemPromptId = promptId;
         this.showEditor(prompt);

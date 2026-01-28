@@ -25,6 +25,12 @@ const MobileDrawer = {
         }
 
         this.bindEvents();
+
+        // Set initial inert state for accessibility
+        if (typeof Mobile !== 'undefined' && Mobile.isMobileView()) {
+            this.sidebar.setAttribute('inert', '');
+        }
+
         this.initialized = true;
         console.log('MobileDrawer module initialized');
     },
@@ -78,7 +84,7 @@ const MobileDrawer = {
         document.body.style.top = `-${this.scrollY}px`;
 
         // Focus management for accessibility
-        this.sidebar.setAttribute('aria-hidden', 'false');
+        this.sidebar.removeAttribute('inert');
         this.hamburgerBtn.setAttribute('aria-expanded', 'true');
     },
 
@@ -94,8 +100,8 @@ const MobileDrawer = {
         document.body.style.top = '';
         window.scrollTo(0, this.scrollY || 0);
 
-        // Accessibility
-        this.sidebar.setAttribute('aria-hidden', 'true');
+        // Accessibility - use inert to prevent focus inside closed drawer
+        this.sidebar.setAttribute('inert', '');
         this.hamburgerBtn.setAttribute('aria-expanded', 'false');
     },
 

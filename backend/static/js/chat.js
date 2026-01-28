@@ -50,8 +50,14 @@ const Chat = {
 
     // Bind event listeners
     bindEvents() {
-        // Send message events
-        UI.elements.sendBtn.addEventListener('click', () => this.sendMessage());
+        // Send message events - also handles stop when streaming
+        UI.elements.sendBtn.addEventListener('click', () => {
+            if (this.isSending) {
+                this.interruptMessage();
+            } else {
+                this.sendMessage();
+            }
+        });
         UI.elements.messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -314,7 +320,7 @@ const Chat = {
         // Add user message to UI with screenshot indicator (if captured)
         UI.addMessage(displayText, true, filesData);
         UI.clearMessageInput();
-        UI.setSendButtonState(false);
+        UI.setSendButtonState(false, true); // Show stop button while streaming
         UI.hideLoading();
 
         // Get system prompt if active
@@ -338,7 +344,7 @@ const Chat = {
                 await Moderator.intercept(message, filesData, screenshotData);
             } finally {
                 this.isSending = false;
-                UI.setSendButtonState(true);
+                UI.setSendButtonState(true, false); // Reset to send button
                 UI.focusMessageInput();
             }
             return; // Moderator handles everything
@@ -408,7 +414,7 @@ const Chat = {
             this.saveMessageToHistory(message, true, filesData);
         } finally {
             this.isSending = false;
-            UI.setSendButtonState(true);
+            UI.setSendButtonState(true, false); // Reset to send button
             UI.focusMessageInput();
         }
     },

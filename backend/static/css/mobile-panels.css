@@ -18,6 +18,11 @@ body.is-mobile .mobile-editor-header {
     display: flex;
 }
 
+/* Hide desktop editor header on mobile */
+body.is-mobile .document-editor > .editor-header {
+    display: none;
+}
+
 .mobile-editor-title {
     flex: 1;
     min-width: 0; /* Allow text truncation */

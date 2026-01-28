@@ -334,8 +334,21 @@ const UI = {
     },
 
     // UI state management
-    setSendButtonState(enabled) {
-        this.elements.sendBtn.disabled = !enabled;
+    setSendButtonState(enabled, isStreaming = false) {
+        const sendBtn = this.elements.sendBtn;
+        if (!sendBtn) return;
+
+        sendBtn.disabled = false; // Always enabled - either sends or stops
+
+        if (isStreaming) {
+            sendBtn.innerHTML = '■'; // Stop icon
+            sendBtn.classList.add('streaming');
+            sendBtn.title = 'Stop streaming';
+        } else {
+            sendBtn.innerHTML = '↗'; // Send icon
+            sendBtn.classList.remove('streaming');
+            sendBtn.title = 'Send message';
+        }
     },
 
     focusMessageInput() {
