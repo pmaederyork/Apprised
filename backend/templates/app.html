@@ -49,6 +49,12 @@
     <!-- API Key Setup Screen -->
     <div id="apiKeySetup" style="display: none;">
         <div class="api-key-container">
+            <button class="api-key-close-btn" id="apiKeyCloseBtn" onclick="skipApiKeySetup()" title="Skip for now">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
             <h2>Welcome, <span id="setupUserName"></span>!</h2>
             <p class="subtitle">One last step to get started</p>
 
@@ -69,6 +75,11 @@
             <button class="save-api-key-btn" id="saveApiKeyBtn" onclick="saveApiKey()">
                 Save & Continue
             </button>
+
+            <button class="skip-api-key-btn" id="skipApiKeyBtn" onclick="skipApiKeySetup()">
+                Skip for now
+            </button>
+            <p class="skip-hint">You can add your API key later in Settings. Chat will be disabled until then.</p>
         </div>
     </div>
 

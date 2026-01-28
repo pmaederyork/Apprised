@@ -67,6 +67,7 @@
 }
 
 .api-key-container {
+    position: relative;
     background: white;
     color: #333;
     padding: 40px;
@@ -153,6 +154,53 @@
     cursor: not-allowed;
 }
 
+/* Close button (X) in top right */
+.api-key-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    color: #666;
+    transition: all 0.2s ease;
+}
+
+.api-key-close-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #333;
+}
+
+/* Skip button */
+.skip-api-key-btn {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    color: #666;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: var(--text-base);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 12px;
+}
+
+.skip-api-key-btn:hover {
+    background: #f5f5f5;
+    border-color: #ccc;
+}
+
+/* Skip hint text */
+.skip-hint {
+    font-size: var(--text-sm);
+    color: #999;
+    text-align: center;
+    margin-top: 12px;
+    margin-bottom: 0;
+}
+
 /* User Menu */
 #userMenu {
     display: none;
@@ -200,8 +248,79 @@ body.is-mobile #loginScreen p {
     font-size: 1rem;
 }
 
+/* Mobile: Full-screen API key setup */
+body.is-mobile #apiKeySetup {
+    background: #ffffff;
+    padding: 0;
+}
+
 body.is-mobile .api-key-container {
-    padding: 24px;
+    max-width: none;
+    width: 100%;
+    height: auto;
+    min-height: 100%;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 60px 24px 24px 24px;
+    padding-top: calc(60px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(24px + env(safe-area-inset-left, 0px));
+    padding-right: calc(24px + env(safe-area-inset-right, 0px));
+    display: block;
+    background: #ffffff;
+    color: #1a1a1a;
+    box-sizing: border-box;
+}
+
+body.is-mobile .api-key-container h2 {
+    color: #1a1a1a;
+}
+
+body.is-mobile .api-key-container .subtitle {
+    color: #444444;
+}
+
+body.is-mobile .api-key-container label {
+    color: #1a1a1a;
+}
+
+body.is-mobile .api-key-container input {
+    background: #ffffff;
+    color: #1a1a1a;
+    border-color: #cccccc;
+}
+
+body.is-mobile .api-key-container input::placeholder {
+    color: #888888;
+}
+
+body.is-mobile .api-key-help {
+    color: #444444;
+}
+
+body.is-mobile .api-key-close-btn {
+    top: 16px;
+    right: 16px;
+    color: #333333;
+}
+
+body.is-mobile .api-key-close-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #000000;
+}
+
+body.is-mobile .skip-api-key-btn {
+    color: #333333;
+    border-color: #888888;
+    background: transparent;
+}
+
+body.is-mobile .skip-api-key-btn:hover {
+    background: #f0f0f0;
+}
+
+body.is-mobile .skip-hint {
+    color: #555555;
 }
 
 body.is-mobile #userMenu {
@@ -210,4 +329,76 @@ body.is-mobile #userMenu {
 
 body.is-mobile #userEmail {
     display: none;
+}
+
+/*
+ * Media query fallback for API key setup on mobile
+ * This is needed because Mobile.init() runs AFTER Auth shows the setup screen,
+ * so body.is-mobile class isn't set yet. Uses 500px to match MOBILE_BREAKPOINT.
+ */
+@media (max-width: 500px) {
+    #apiKeySetup {
+        background: #ffffff;
+        padding: 0;
+    }
+
+    .api-key-container {
+        max-width: none;
+        width: 100%;
+        height: auto;
+        min-height: 100%;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 60px 24px 24px 24px;
+        padding-top: calc(60px + env(safe-area-inset-top, 0px));
+        padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+        padding-left: calc(24px + env(safe-area-inset-left, 0px));
+        padding-right: calc(24px + env(safe-area-inset-right, 0px));
+        display: block;
+        background: #ffffff;
+        color: #1a1a1a;
+        box-sizing: border-box;
+    }
+
+    .api-key-container h2 {
+        color: #1a1a1a;
+    }
+
+    .api-key-container .subtitle {
+        color: #444444;
+    }
+
+    .api-key-container label {
+        color: #1a1a1a;
+    }
+
+    .api-key-container input {
+        background: #ffffff;
+        color: #1a1a1a;
+        border-color: #cccccc;
+    }
+
+    .api-key-container input::placeholder {
+        color: #888888;
+    }
+
+    .api-key-help {
+        color: #444444;
+    }
+
+    .api-key-close-btn {
+        top: 16px;
+        right: 16px;
+        color: #333333;
+    }
+
+    .skip-api-key-btn {
+        color: #333333;
+        border-color: #888888;
+        background: transparent;
+    }
+
+    .skip-hint {
+        color: #555555;
+    }
 }

@@ -28,6 +28,15 @@ const Auth = {
         this.hasApiKey = !!apiKey;
 
         if (!this.hasApiKey) {
+            // Check if user previously dismissed the setup
+            const setupDismissed = localStorage.getItem('apiKeySetupDismissed');
+
+            if (setupDismissed) {
+                // User dismissed setup previously - show app without API key
+                this.showMainApp();
+                return true;
+            }
+
             // Check if this is a returning user (has existing data)
             const isReturningUser = this.checkForExistingData();
 
@@ -159,6 +168,9 @@ const Auth = {
         // Save to localStorage
         localStorage.setItem('anthropicApiKey', apiKey);
 
+        // Clear dismissed flag since user now has a key
+        localStorage.removeItem('apiKeySetupDismissed');
+
         this.hasApiKey = true;
         this.showMainApp();
 
@@ -166,6 +178,24 @@ const Auth = {
         if (typeof initializeModules === 'function') {
             initializeModules();
         }
+    },
+
+    /**
+     * Skip API key setup - user can add key later in settings
+     */
+    skipApiKeySetup() {
+        // Remember that user dismissed the setup
+        localStorage.setItem('apiKeySetupDismissed', 'true');
+
+        this.hasApiKey = false;
+        this.showMainApp();
+
+        // Initialize the rest of the app (chat will show error when used)
+        if (typeof initializeModules === 'function') {
+            initializeModules();
+        }
+
+        console.log('API key setup skipped - chat will be disabled until key is added in Settings');
     },
 
     /**
@@ -263,4 +293,5 @@ const Auth = {
 
 // Bind global functions for HTML onclick handlers
 window.saveApiKey = () => Auth.saveApiKey();
+window.skipApiKeySetup = () => Auth.skipApiKeySetup();
 window.logoutUser = () => Auth.logout();
