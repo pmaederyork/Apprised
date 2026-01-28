@@ -1,0 +1,139 @@
+/**
+ * Mobile Touch Interaction Styles
+ * Swipe-to-delete reveal, long-press feedback, touch targets.
+ */
+
+/* Disable text selection on interactive elements for long-press */
+body.is-mobile .sidebar-item,
+body.is-mobile .chat-item,
+body.is-mobile .document-item,
+body.is-mobile .agent-item {
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y; /* Allow vertical scroll, capture horizontal */
+}
+
+/* Swipe container - allows item to slide */
+.swipe-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.swipe-content {
+  position: relative;
+  background: var(--color-sidebar-bg);
+  transform: translateX(0);
+  transition: transform 150ms ease-out;
+  z-index: 1;
+}
+
+.swipe-content.swiping {
+  transition: none; /* Disable transition during active swipe */
+}
+
+/* Delete action revealed behind swipe */
+.swipe-delete-action {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-error, #e53935);
+  color: white;
+  font-weight: 500;
+  font-size: 14px;
+  z-index: 0;
+}
+
+.swipe-delete-action svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Show delete when swiped */
+.swipe-container.show-delete .swipe-content {
+  transform: translateX(-80px);
+}
+
+/* Long-press visual feedback */
+.long-press-active {
+  background: var(--color-hover) !important;
+  transform: scale(0.98);
+  transition: transform 100ms ease;
+}
+
+/* Options menu (shown on long-press) */
+.touch-options-menu {
+  position: fixed;
+  background: var(--color-bg-white);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  min-width: 180px;
+  padding: 8px 0;
+  z-index: 1100;
+  animation: fadeInScale 150ms ease-out;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.touch-options-menu .menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  font-size: 15px;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background 100ms ease;
+}
+
+.touch-options-menu .menu-item:hover,
+.touch-options-menu .menu-item:active {
+  background: var(--color-hover);
+}
+
+.touch-options-menu .menu-item.danger {
+  color: var(--color-error, #e53935);
+}
+
+.touch-options-menu .menu-item svg {
+  width: 18px;
+  height: 18px;
+  opacity: 0.8;
+}
+
+/* Menu backdrop */
+.touch-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1099;
+}
+
+/* Larger touch targets on mobile */
+body.is-mobile .sidebar-item,
+body.is-mobile .chat-item,
+body.is-mobile .document-item,
+body.is-mobile .agent-item {
+  min-height: 48px; /* iOS recommended minimum */
+  padding: 12px 16px;
+}
+
+/* Hide action buttons on mobile - use swipe/long-press instead */
+body.is-mobile .sidebar-item .action-btn,
+body.is-mobile .chat-item .action-btn,
+body.is-mobile .document-item .action-btn,
+body.is-mobile .agent-item .action-btn {
+  display: none;
+}
