@@ -132,17 +132,31 @@ const Mobile = {
         this.setChatCollapsed(!this.chatCollapsed);
     },
 
+    // Call this when entering/exiting review mode (called by ClaudeChanges module)
+    setReviewMode(active) {
+        this.reviewMode = active;
+        document.body.classList.toggle('review-mode', active);
+
+        if (active) {
+            // Ensure chat is not collapsed during review
+            this.setChatCollapsed(false);
+        }
+
+        this.updateLayoutClasses();
+        console.log('Mobile review mode:', active);
+    },
+
     updateLayoutClasses() {
         const body = document.body;
 
         // Only apply layout classes on mobile
         if (!this.isMobileView()) {
-            body.classList.remove('chat-only-mode', 'split-view', 'chat-collapsed');
+            body.classList.remove('chat-only-mode', 'split-view', 'chat-collapsed', 'review-mode');
             return;
         }
 
-        // Chat-only vs split view
-        if (this.documentOpen) {
+        // Chat-only vs split view (review mode also enables split view)
+        if (this.documentOpen || this.reviewMode) {
             body.classList.remove('chat-only-mode');
             body.classList.add('split-view');
         } else {
@@ -150,8 +164,14 @@ const Mobile = {
             body.classList.remove('split-view');
         }
 
-        // Chat collapsed state
-        body.classList.toggle('chat-collapsed', this.chatCollapsed);
+        // Chat collapsed state (not applicable in review mode)
+        if (!this.reviewMode) {
+            body.classList.toggle('chat-collapsed', this.chatCollapsed);
+        } else {
+            body.classList.remove('chat-collapsed');
+        }
+
+        // Review mode class is handled by setReviewMode
     },
 
     // Utility methods for other modules
