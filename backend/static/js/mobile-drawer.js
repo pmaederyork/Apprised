@@ -42,6 +42,13 @@ const MobileDrawer = {
             this.open();
         });
 
+        // Editor hamburger button (when document is open)
+        const editorHamburgerBtn = document.getElementById('editorHamburgerBtn');
+        editorHamburgerBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.open();
+        });
+
         // Backdrop click closes drawer
         this.backdrop.addEventListener('click', () => {
             this.close();

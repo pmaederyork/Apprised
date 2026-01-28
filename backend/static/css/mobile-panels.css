@@ -18,6 +18,21 @@ body.is-mobile .mobile-editor-header {
     display: flex;
 }
 
+/* Editor hamburger - only show on mobile */
+.editor-hamburger {
+    display: none;
+}
+
+body.is-mobile .editor-hamburger {
+    display: flex;
+    margin-right: 8px;
+}
+
+/* When document is open in split view, hide chat hamburger and show editor hamburger */
+body.is-mobile.split-view .chat-header .hamburger-btn {
+    display: none;
+}
+
 /* Hide desktop editor header on mobile */
 body.is-mobile .document-editor > .editor-header {
     display: none;

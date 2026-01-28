@@ -88,6 +88,39 @@ body.is-mobile .sidebar .sidebar-content {
   overflow-y: auto;
 }
 
+/* Fix sidebar item layout on mobile - prevent action buttons from wrapping */
+body.is-mobile .sidebar .chat-item,
+body.is-mobile .sidebar .document-item,
+body.is-mobile .sidebar .prompt-item {
+  flex-wrap: nowrap;
+  min-height: 44px; /* Touch-friendly */
+}
+
+body.is-mobile .sidebar .chat-item-content,
+body.is-mobile .sidebar .document-item-content,
+body.is-mobile .sidebar .prompt-item-content {
+  flex: 1;
+  min-width: 0; /* Allow text truncation */
+  overflow: hidden;
+}
+
+body.is-mobile .sidebar .chat-item-content span,
+body.is-mobile .sidebar .document-item-content span,
+body.is-mobile .sidebar .prompt-item-content span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Always show action buttons on mobile (no hover) */
+body.is-mobile .sidebar .chat-actions,
+body.is-mobile .sidebar .document-actions,
+body.is-mobile .sidebar .prompt-actions {
+  opacity: 1;
+  visibility: visible;
+  flex-shrink: 0;
+}
+
 /* Remove resize handle on mobile */
 body.is-mobile .sidebar .resize-handle {
   display: none;

@@ -21,6 +21,7 @@ const MobileSheets = {
         this.systemPromptModal = document.getElementById('systemPromptModal');
 
         this.bindEvents();
+        this.initModelDisplay();
         this.initialized = true;
         console.log('MobileSheets module initialized');
     },
@@ -138,14 +139,19 @@ const MobileSheets = {
         const content = document.getElementById('modelSheetContent');
         if (!content) return;
 
-        // Get available models and current selection
-        const models = [
+        // Get available models from the native select
+        const modelSelect = document.getElementById('modelSelect');
+        const models = modelSelect ? Array.from(modelSelect.options).map(opt => ({
+            id: opt.value,
+            name: opt.textContent.trim(),
+            description: this.getModelDescription(opt.value)
+        })) : [
             { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', description: 'Latest model, best for most tasks' },
             { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', description: 'Most capable, complex reasoning' },
             { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', description: 'Fastest, great for simple tasks' }
         ];
 
-        const currentModel = Storage?.getSetting?.('model') || 'claude-sonnet-4-5-20250929';
+        const currentModel = modelSelect?.value || Storage?.getSetting?.('model') || 'claude-sonnet-4-5-20250929';
 
         content.innerHTML = models.map(model => `
             <div class="bottom-sheet-item ${model.id === currentModel ? 'selected' : ''}" data-model="${model.id}">
@@ -158,18 +164,50 @@ const MobileSheets = {
         content.querySelectorAll('.bottom-sheet-item').forEach(item => {
             item.addEventListener('click', () => {
                 const modelId = item.dataset.model;
+                const modelName = item.querySelector('.model-name')?.textContent || modelId;
+
+                // Update native select
+                if (modelSelect) {
+                    modelSelect.value = modelId;
+                }
+
+                // Save to storage
                 if (typeof Storage !== 'undefined' && Storage.saveSetting) {
                     Storage.saveSetting('model', modelId);
                 }
-                // Update UI
-                if (typeof Settings !== 'undefined' && Settings.updateModelDisplay) {
-                    Settings.updateModelDisplay();
-                }
+
+                // Update mobile display
+                this.updateModelDisplay(modelName);
+
                 this.closeSheet();
             });
         });
 
         this.showSheet(this.modelSheet);
+    },
+
+    getModelDescription(modelId) {
+        if (modelId.includes('sonnet')) return 'Latest model, best for most tasks';
+        if (modelId.includes('opus')) return 'Most capable, complex reasoning';
+        if (modelId.includes('haiku')) return 'Fastest, great for simple tasks';
+        return '';
+    },
+
+    updateModelDisplay(modelName) {
+        const modelSelector = document.querySelector('.model-selector');
+        if (modelSelector) {
+            modelSelector.setAttribute('data-model-name', modelName);
+        }
+    },
+
+    initModelDisplay() {
+        const modelSelect = document.getElementById('modelSelect');
+        if (modelSelect) {
+            const selectedOption = modelSelect.options[modelSelect.selectedIndex];
+            if (selectedOption) {
+                this.updateModelDisplay(selectedOption.textContent.trim());
+            }
+        }
     },
 
     // ===== Agent Sheet =====

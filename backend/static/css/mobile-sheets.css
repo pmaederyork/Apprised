@@ -3,6 +3,28 @@
  * Native-feeling mobile modal patterns with swipe dismiss.
  */
 
+/* ===== Hide Native Selects on Mobile ===== */
+body.is-mobile .model-selector select,
+body.is-mobile .sidebar select {
+    display: none;
+}
+
+/* Show a custom trigger for model selector on mobile */
+body.is-mobile .model-selector {
+    cursor: pointer;
+}
+
+body.is-mobile .model-selector::after {
+    content: attr(data-model-name);
+    display: block;
+    padding: 10px 16px;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--color-text);
+}
+
 /* ===== Bottom Sheet Backdrop ===== */
 .bottom-sheet-backdrop {
     position: fixed;
