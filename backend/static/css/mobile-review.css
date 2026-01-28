@@ -1,0 +1,261 @@
+/**
+ * Mobile Review Panel
+ * Review changes panel that replaces chat section on mobile.
+ */
+
+/* ===== Review Mode Layout ===== */
+body.is-mobile.review-mode .chat-container {
+    display: none !important;
+}
+
+body.is-mobile.review-mode .mobile-collapsed-chat-bar {
+    display: none !important;
+}
+
+body.is-mobile.review-mode .change-review-panel {
+    display: flex !important;
+    flex-direction: column;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: var(--color-bg-white);
+    z-index: 100;
+    animation: none;
+    border-radius: 0;
+    width: 100%;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Portrait: review panel at bottom 40% */
+body.is-mobile.is-portrait.review-mode.split-view .app-container {
+    grid-template-rows: 60% 40%;
+    grid-template-areas:
+        "editor"
+        "review";
+}
+
+body.is-mobile.is-portrait.review-mode .change-review-panel {
+    grid-area: review;
+    position: relative;
+    height: auto;
+}
+
+/* Landscape: review panel on right 50% */
+body.is-mobile.is-landscape.review-mode.split-view .app-container {
+    grid-template-columns: 50% 50%;
+    grid-template-areas: "editor review";
+}
+
+body.is-mobile.is-landscape.review-mode .change-review-panel {
+    grid-area: review;
+    position: relative;
+    height: auto;
+}
+
+/* ===== Review Panel Mobile Styles ===== */
+body.is-mobile .change-review-panel {
+    border-top: 1px solid var(--color-border);
+    padding: 0;
+}
+
+body.is-mobile.is-landscape .change-review-panel {
+    border-top: none;
+    border-left: 1px solid var(--color-border);
+}
+
+/* Review header */
+body.is-mobile .review-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+    margin-bottom: 0;
+}
+
+body.is-mobile .review-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+body.is-mobile .change-count {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+}
+
+/* Review controls (navigation) */
+body.is-mobile .review-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--color-border);
+    flex-direction: row;
+    gap: 8px;
+}
+
+body.is-mobile .review-controls button {
+    flex: 1;
+    padding: 10px 12px;
+    font-size: 14px;
+    min-height: 40px;
+}
+
+body.is-mobile .change-position {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    order: 0;
+    margin-bottom: 0;
+    min-width: auto;
+    text-align: center;
+    flex: 0 0 auto;
+}
+
+/* Current change detail / content preview */
+body.is-mobile .current-change-detail {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 16px;
+    margin-bottom: 0;
+}
+
+/* Change type badge */
+body.is-mobile .change-type-indicator {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+/* Change type badge colors */
+body.is-mobile .change-type-add {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+body.is-mobile .change-type-modify {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+body.is-mobile .change-type-delete {
+    background: #ffebee;
+    color: #c62828;
+}
+
+body.is-mobile .change-type-format {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+/* Change content preview */
+body.is-mobile .change-content-preview {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+body.is-mobile .preview-original,
+body.is-mobile .preview-new {
+    padding: 12px;
+    background: var(--color-bg-secondary);
+    border-radius: 8px;
+    max-height: 120px;
+    overflow-y: auto;
+    margin: 8px 0;
+}
+
+/* Review actions (accept/reject buttons) */
+body.is-mobile .review-actions {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--color-border);
+    flex-shrink: 0;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    grid-template-columns: none;
+}
+
+body.is-mobile .review-actions button {
+    flex: 1;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 150ms ease;
+    min-height: 44px;
+}
+
+body.is-mobile .review-actions button:active {
+    opacity: 0.8;
+}
+
+body.is-mobile .review-actions .accept-btn {
+    background: var(--color-success, #4caf50);
+    color: white;
+}
+
+body.is-mobile .review-actions .reject-btn {
+    background: var(--color-error, #e53935);
+    color: white;
+}
+
+body.is-mobile .review-actions .accept-all-btn {
+    background: var(--color-primary);
+    color: white;
+    border: none;
+}
+
+body.is-mobile .review-actions .reject-all-btn {
+    background: var(--color-text-secondary);
+    color: white;
+    border: none;
+}
+
+/* Navigation buttons */
+body.is-mobile .change-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+}
+
+body.is-mobile .change-nav-btn:active {
+    background: var(--color-hover);
+}
+
+body.is-mobile .change-nav-btn:disabled {
+    opacity: 0.3;
+}
+
+/* Hide keyboard shortcuts help on mobile */
+body.is-mobile .review-shortcuts-help {
+    display: none;
+}
+
+/* ===== Desktop: Normal review panel ===== */
+@media (min-width: 769px) {
+    body .change-review-panel {
+        /* Desktop styles from editor-changes.css apply */
+    }
+
+    body .review-shortcuts-help {
+        display: block;
+    }
+}
