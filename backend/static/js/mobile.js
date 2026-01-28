@@ -287,24 +287,46 @@ const Mobile = {
     setupKeyboardFallback() {
         // Track visual viewport changes for Safari/older browsers
         if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', () => {
-                const keyboardHeight = window.innerHeight - window.visualViewport.height;
-                this.keyboardHeight = Math.max(0, keyboardHeight);
-                document.documentElement.style.setProperty(
-                    '--keyboard-height',
-                    `${this.keyboardHeight}px`
-                );
-                this.handleKeyboardChange();
-            });
+            let debounceTimer;
+
+            const handleViewportChange = () => {
+                // Debounce rapid changes (iOS Safari fires many events)
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    const keyboardHeight = window.innerHeight - window.visualViewport.height;
+                    this.keyboardHeight = Math.max(0, keyboardHeight);
+                    document.documentElement.style.setProperty(
+                        '--keyboard-height',
+                        `${this.keyboardHeight}px`
+                    );
+                    this.handleKeyboardChange();
+                }, 50);
+            };
+
+            window.visualViewport.addEventListener('resize', handleViewportChange);
+            window.visualViewport.addEventListener('scroll', handleViewportChange);
         }
     },
 
     handleKeyboardChange() {
+        const isKeyboardOpen = this.keyboardHeight > 50; // Threshold to detect real keyboard
+
+        // Toggle keyboard-open class for CSS
+        document.body.classList.toggle('keyboard-open', isKeyboardOpen);
+
+        // Log for debugging
+        if (isKeyboardOpen) {
+            console.log('Keyboard opened, height:', this.keyboardHeight);
+        } else {
+            console.log('Keyboard closed');
+        }
+
         // Scroll active input into view when keyboard appears
         const activeElement = document.activeElement;
-        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+        if (isKeyboardOpen && activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
             setTimeout(() => {
-                activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Use scrollIntoView with 'nearest' to avoid unnecessary scrolling
+                activeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }, 100);
         }
     }

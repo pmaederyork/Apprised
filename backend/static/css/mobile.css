@@ -90,3 +90,57 @@ body.is-mobile .hide-mobile {
 body.is-mobile .show-mobile {
   display: block !important;
 }
+
+/* ===== Mobile Keyboard Handling ===== */
+/**
+ * SINGLE SOURCE OF TRUTH FOR KEYBOARD BEHAVIOR
+ *
+ * The --keyboard-height CSS variable is set by JavaScript (mobile.js)
+ * when the virtual keyboard opens/closes.
+ *
+ * How it works:
+ * 1. JS detects keyboard via visualViewport API
+ * 2. JS sets --keyboard-height on :root
+ * 3. JS adds/removes 'keyboard-open' class on body
+ * 4. Layout-specific CSS (mobile-layout.css) uses --keyboard-height to shrink containers
+ * 5. This file handles universal keyboard concerns (zoom, safe areas, etc.)
+ */
+
+/* Prevent iOS zoom on input focus - requires 16px minimum font-size */
+body.is-mobile input,
+body.is-mobile textarea,
+body.is-mobile select {
+  font-size: 16px !important;
+  touch-action: manipulation;
+}
+
+/* Message input area - safe area when no keyboard */
+body.is-mobile .message-input-container {
+  margin-bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  transition: padding-bottom 0.15s ease-out;
+}
+
+/* When keyboard is open, remove safe area padding (keyboard covers home indicator) */
+body.is-mobile.keyboard-open .message-input-container {
+  padding-bottom: 8px;
+}
+
+/* Ensure chat messages area can shrink */
+body.is-mobile .chat-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Bottom sheets should appear above keyboard */
+body.is-mobile .bottom-sheet {
+  bottom: var(--keyboard-height, 0px);
+  transition: bottom 0.15s ease-out;
+}
+
+/* Modals with inputs should be scrollable when keyboard is up */
+body.is-mobile .modal-content {
+  max-height: calc(100vh - var(--keyboard-height, 0px) - 40px);
+  overflow-y: auto;
+}

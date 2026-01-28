@@ -11,11 +11,12 @@ body.is-mobile.chat-only-mode .chat-container {
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
-  height: 100%;
+  bottom: var(--keyboard-height, 0px); /* Shrink from bottom when keyboard opens */
+  height: auto;
   width: 100%;
   display: flex;
   flex-direction: column;
+  transition: bottom 0.15s ease-out;
 }
 
 body.is-mobile.chat-only-mode .document-editor {
@@ -32,7 +33,9 @@ body.is-mobile.split-view .app-container {
   display: grid;
   height: 100vh;
   height: 100dvh; /* Dynamic viewport height - accounts for mobile browser chrome */
+  height: calc(100dvh - var(--keyboard-height, 0px)); /* Shrink for keyboard */
   overflow: hidden;
+  transition: height 0.15s ease-out;
 }
 
 /* ===== Portrait Split View ===== */
@@ -168,15 +171,18 @@ body.is-mobile.split-view .system-prompt-editor:not(.active) {
 }
 
 /* ===== Smooth Transitions ===== */
-/* Animate layout changes */
+/* Animate layout changes - fast for keyboard, slow for orientation changes */
 body.is-mobile .app-container {
-  transition: grid-template-rows 300ms ease-out, grid-template-columns 300ms ease-out;
+  transition: grid-template-rows 300ms ease-out,
+              grid-template-columns 300ms ease-out,
+              height 0.15s ease-out;
 }
 
 body.is-mobile .chat-container,
 body.is-mobile .document-editor {
   transition: min-height 300ms ease-out, max-height 300ms ease-out,
-              min-width 300ms ease-out, max-width 300ms ease-out;
+              min-width 300ms ease-out, max-width 300ms ease-out,
+              bottom 0.15s ease-out;
 }
 
 /* ===== Desktop Override ===== */
