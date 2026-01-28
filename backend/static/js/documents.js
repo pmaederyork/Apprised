@@ -2286,10 +2286,19 @@ const Documents = {
                         anchorNode.before(changeElement);
                     } else {
                         console.warn('❌ ADD preview: Could not find insertBefore anchor:', change.insertBefore);
+                        // For insertBefore, prepend to document start instead of appending to end
+                        // This preserves the user's intent (wanting content BEFORE something)
                         if (!change._cachedSignature) {
-                            change._cachedSignature = null;
+                            change._cachedSignature = {
+                                anchorType: 'documentStart' // Mark as document start for reconstruction
+                            };
                         }
-                        tempDiv.appendChild(changeElement);
+                        const firstChild = tempDiv.firstChild;
+                        if (firstChild) {
+                            tempDiv.insertBefore(changeElement, firstChild);
+                        } else {
+                            tempDiv.appendChild(changeElement);
+                        }
                     }
                 } else {
                     // No anchor specified, append to end

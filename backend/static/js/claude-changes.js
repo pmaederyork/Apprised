@@ -744,10 +744,36 @@ const ClaudeChanges = {
 
                 applied.push({ change, method: resolution.method });
             } else {
-                const anchorPreview = (change.insertAfter || change.insertBefore || change.anchorTargetId || '').substring(0, 50);
-                if (skipOnFailure) {
+                // Anchor not found - determine fallback behavior based on insert direction
+                const isInsertBefore = change.insertBefore || change._anchorDirection === 'before' ||
+                    (change._cachedSignature && change._cachedSignature.anchorType === 'insertBefore') ||
+                    (change._cachedSignature && change._cachedSignature.anchorType === 'documentStart');
+
+                if (isInsertBefore && tempDiv.firstChild) {
+                    // For insertBefore failures, prepend to document start (preserves intent)
+                    const newElement = document.createElement('div');
+                    newElement.innerHTML = change.newContent;
+
+                    let lastInserted = null;
+                    const fragment = document.createDocumentFragment();
+                    while (newElement.firstChild) {
+                        lastInserted = newElement.firstChild;
+                        fragment.appendChild(newElement.firstChild);
+                    }
+
+                    tempDiv.insertBefore(fragment, tempDiv.firstChild);
+
+                    if (lastInserted) {
+                        insertedByChangeId.set(change.id, lastInserted);
+                    }
+
+                    applied.push({ change, method: 'document-start-fallback' });
+                    console.log(`⚠️ ADD: insertBefore anchor not found, prepended to document start`);
+                } else if (skipOnFailure) {
+                    const anchorPreview = (change.insertAfter || change.insertBefore || change.anchorTargetId || '').substring(0, 50);
                     skipped.push({ change, reason: 'anchor not found' });
                 } else {
+                    const anchorPreview = (change.insertAfter || change.insertBefore || change.anchorTargetId || '').substring(0, 50);
                     console.error(`❌ ADD failed: Anchor not found: "${anchorPreview}..."`);
                     // Fallback to end of document only if not skipping
                     tempDiv.innerHTML += change.newContent;

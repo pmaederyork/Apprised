@@ -501,42 +501,11 @@ RULES:
 
     /**
      * Append moderator-specific document editing instructions
+     * Uses the same full instructions as single agents for consistency
      */
     appendModeratorDocEditInstructions(systemPrompt) {
-        // Check for prior chat to synthesize from
-        const messages = Chat.getCurrentMessages();
-        const hasPriorChat = messages.length > 1;
-
-        const instructions = `
-
-DOCUMENT EDITING:
-
-You are the Moderator handling a direct edit request. The document HTML is attached.
-${hasPriorChat ? `
-SYNTHESIZING FROM CHAT: You have access to the conversation history. If the user asks to synthesize, summarize, or add discussion points to the document, extract the key ideas from the chat and compile them into document content.` : ''}
-
-To make changes, use this format:
-
-<document_edit>
-<change type="modify" targetId="[data-edit-id]">
-<original>[exact HTML]</original>
-<new>[new HTML]</new>
-</change>
-</document_edit>
-
-For adding new content after an element:
-<change type="add" insertAfter-id="[data-edit-id]">
-<new><p>new content here</p></new>
-</change>
-
-For simple formatting (bold, italic, etc.), use:
-<change type="modify" targetId="[id]">
-<original><p>text</p></original>
-<new><p><strong>text</strong></p></new>
-</change>
-
-Keep responses brief. Apply the change and confirm what you did.`;
-
+        // Use shared full document editing instructions (same as single agents)
+        const instructions = DocumentEditingInstructions.getFull(true);
         return systemPrompt ? systemPrompt + instructions : instructions;
     },
 
@@ -626,10 +595,21 @@ DELETE:
 <original>[element being removed]</original>
 </change>
 
-ADD:
-<change type="add" insertAfter-id="[ID of LAST ORIGINAL element before insertion]">
+ADD (after an element - for content FOLLOWING a section):
+<change type="add" insertAfter-id="[ID from ORIGINAL]">
 <new>[new content - DO NOT include data-edit-id on new elements]</new>
 </change>
+
+ADD (before an element - for headers/content ABOVE a section):
+<change type="add" insertBefore-id="[ID from ORIGINAL]">
+<new>[new content - DO NOT include data-edit-id on new elements]</new>
+</change>
+
+POSITIONING GUIDANCE:
+- Use insertBefore-id when adding headers or content that should appear ABOVE existing content
+- Use insertAfter-id when adding content that should follow existing content
+- For inserting at the VERY START of the document, use insertBefore-id with the FIRST element's ID
+- For inserting at the END of the document, use insertAfter-id with the LAST element's ID
 
 Output ONLY the <document_edit> block, no explanation:`;
 
