@@ -1,0 +1,127 @@
+/**
+ * Mobile Foundation Styles
+ * Breakpoint detection, safe area support, and mobile state management.
+ * This file establishes the responsive infrastructure for mobile devices.
+ */
+
+/* Mobile CSS Variables */
+:root {
+  --mobile-breakpoint: 768px;
+  --tablet-max: 1024px;
+  --mobile-sidebar-width: 80%;
+  --mobile-header-height: 48px;
+  --mobile-collapsed-chat-height: 44px;
+  --keyboard-height: 0px;
+}
+
+/* Safe Area Insets - iOS notch and home indicator support */
+@media (max-width: 767px) {
+  .app-container {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+}
+
+/* Mobile Body Class Styles - Applied by JavaScript when mobile detected */
+body.is-mobile {
+  overflow: hidden; /* Prevent body scroll, app handles scroll */
+}
+
+body.is-mobile .sidebar {
+  display: none; /* Hidden by default on mobile, shown via drawer */
+}
+
+body.is-mobile .hamburger-btn {
+  display: flex; /* Show hamburger on mobile */
+}
+
+/* Desktop Hamburger Hidden */
+.hamburger-btn {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .hamburger-btn {
+    display: none !important;
+  }
+}
+
+/* Tablet Detection (768-1024px) - always get landscape-style layout */
+@media (min-width: 768px) and (max-width: 1024px) {
+  body.is-tablet .app-container {
+    /* Handled by mobile-layout.css */
+  }
+}
+
+/* ===== Orientation-Specific Styles ===== */
+/* Portrait orientation */
+body.is-mobile.is-portrait {
+  /* Portrait-specific overrides will be added by layout plan */
+}
+
+/* Landscape orientation */
+body.is-mobile.is-landscape {
+  /* Landscape-specific overrides will be added by layout plan */
+}
+
+/* ===== Mobile Viewport Constraints ===== */
+/* Prevent iOS Safari bounce/overscroll effect */
+@media (max-width: 767px) {
+  html, body {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Ensure proper touch handling */
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  /* Allow text selection in input elements */
+  input, textarea {
+    -webkit-touch-callout: default;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
+/* ===== Mobile-Specific Utility Classes ===== */
+/* Hide on mobile */
+@media (max-width: 767px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* Show only on mobile */
+.show-mobile {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .show-mobile {
+    display: block !important;
+  }
+}
+
+/* Hide on tablet */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .hide-tablet {
+    display: none !important;
+  }
+}
+
+/* Show only on tablet */
+.show-tablet {
+  display: none;
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .show-tablet {
+    display: block !important;
+  }
+}
