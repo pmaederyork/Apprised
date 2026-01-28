@@ -1,0 +1,206 @@
+/**
+ * Mobile Panel Headers and Controls
+ * Editor and chat panel headers for mobile view.
+ */
+
+/* ===== Mobile Editor Header ===== */
+.mobile-editor-header {
+    display: none; /* Hidden on desktop */
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--color-editor-header-bg, var(--color-bg-secondary));
+    border-bottom: 1px solid var(--color-border);
+    min-height: var(--mobile-header-height, 48px);
+}
+
+body.is-mobile .mobile-editor-header {
+    display: flex;
+}
+
+.mobile-editor-title {
+    flex: 1;
+    min-width: 0; /* Allow text truncation */
+}
+
+.mobile-editor-title .editor-doc-title {
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mobile-editor-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Mobile action buttons */
+.mobile-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+.mobile-btn:hover {
+    background-color: var(--color-hover);
+}
+
+.mobile-btn:active {
+    background-color: var(--color-active);
+    color: var(--color-text);
+}
+
+/* GDrive connected indicator */
+.mobile-btn.gdrive-status-btn.connected {
+    color: var(--color-success, #4caf50);
+}
+
+/* ===== Collapsible Toolbar ===== */
+body.is-mobile .editor-toolbar,
+body.is-mobile .markdown-toolbar {
+    display: none; /* Hidden by default on mobile */
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 8px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+body.is-mobile.toolbar-expanded .editor-toolbar,
+body.is-mobile.toolbar-expanded .markdown-toolbar {
+    display: flex;
+}
+
+.toolbar-toggle-btn.active {
+    background-color: var(--color-active);
+    color: var(--color-primary);
+}
+
+/* ===== Chat Header Adjustments ===== */
+body.is-mobile .chat-header {
+    padding: 8px 12px;
+    min-height: var(--mobile-header-height, 48px);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Collapse button hidden on desktop */
+.chat-collapse-btn {
+    display: none;
+}
+
+body.is-mobile .chat-collapse-btn {
+    display: flex;
+    margin-left: auto;
+}
+
+body.is-mobile.chat-collapsed .chat-collapse-btn svg {
+    transform: rotate(180deg);
+}
+
+/* ===== Collapsed Chat Bar ===== */
+.mobile-collapsed-chat-bar {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: var(--mobile-collapsed-chat-height, 44px);
+    background: var(--color-chat-header-bg, var(--color-bg-secondary));
+    border-top: 1px solid var(--color-border);
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 150ms ease;
+}
+
+.mobile-collapsed-chat-bar:hover {
+    background-color: var(--color-hover);
+}
+
+body.is-mobile.chat-collapsed .mobile-collapsed-chat-bar {
+    display: flex;
+}
+
+/* Hide main chat content when collapsed */
+body.is-mobile.chat-collapsed .chat-container .chat-header,
+body.is-mobile.chat-collapsed .chat-container .chat-messages,
+body.is-mobile.chat-collapsed .chat-container .chat-input-container,
+body.is-mobile.chat-collapsed .chat-container .input-hint,
+body.is-mobile.chat-collapsed .chat-container .loading,
+body.is-mobile.chat-collapsed .chat-container .file-preview-area,
+body.is-mobile.chat-collapsed .chat-container .screenshare-preview-container {
+    display: none;
+}
+
+/* ===== Panel Content Areas ===== */
+body.is-mobile .document-editor {
+    display: flex;
+    flex-direction: column;
+}
+
+body.is-mobile .document-editor .editor-content {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+body.is-mobile .chat-container {
+    display: flex;
+    flex-direction: column;
+}
+
+body.is-mobile .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ===== Overflow Menu (Mobile) ===== */
+.mobile-overflow-menu {
+    position: absolute;
+    top: 100%;
+    right: 8px;
+    background: var(--color-bg-white);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    min-width: 160px;
+    padding: 8px 0;
+    z-index: 100;
+}
+
+.mobile-overflow-menu .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    font-size: 14px;
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.mobile-overflow-menu .menu-item:hover {
+    background: var(--color-hover);
+}
+
+/* ===== Safe Area Adjustments ===== */
+body.is-mobile .mobile-editor-header {
+    padding-top: max(8px, env(safe-area-inset-top));
+}
+
+body.is-mobile .chat-input-container {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
