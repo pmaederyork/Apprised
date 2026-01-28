@@ -246,38 +246,31 @@ const Mobile = {
             this.setDocumentOpen(false);
         });
 
-        // Mobile save button - saves locally AND pushes to Google Drive
+        // Mobile save button - saves to Google Drive (same as desktop)
+        // Creates new Drive doc if not linked, updates existing if linked
         const mobileSaveBtn = document.getElementById('mobileSaveBtn');
         mobileSaveBtn?.addEventListener('click', async (e) => {
             e.stopPropagation();
             if (typeof Documents !== 'undefined' && Documents.currentDocumentId) {
                 const docId = Documents.currentDocumentId;
 
-                // Save locally first
-                Documents.saveCurrentDocument();
-                console.log('Mobile save: Local save complete for:', docId);
-
                 // Visual feedback - show saving state
                 mobileSaveBtn.style.color = 'var(--color-warning, #ff9800)';
+                console.log('Mobile save: Saving to Google Drive...');
 
-                // Also push to Google Drive if linked
-                const doc = Documents.documents[docId];
-                if (doc?.driveFileId && typeof Documents.saveToDrive === 'function') {
-                    console.log('Mobile save: Pushing to Google Drive...');
-                    try {
-                        await Documents.saveToDrive(docId);
-                        console.log('Mobile save: Google Drive push complete');
-                        // Success - green
-                        mobileSaveBtn.style.color = 'var(--color-success, #4caf50)';
-                    } catch (err) {
-                        console.error('Mobile save: Google Drive push failed:', err);
-                        // Error - red
-                        mobileSaveBtn.style.color = 'var(--color-error, #e53935)';
-                    }
-                } else {
-                    // No Drive link - just local save success
-                    console.log('Mobile save: No Drive link, local only');
+                try {
+                    // Same as desktop - saveToDrive handles everything:
+                    // - Creates new Drive doc if not linked
+                    // - Updates existing Drive doc if linked
+                    // - Shows "not connected" dialog if Drive isn't connected
+                    await Documents.saveToDrive(docId);
+                    console.log('Mobile save: Google Drive save complete');
+                    // Success - green
                     mobileSaveBtn.style.color = 'var(--color-success, #4caf50)';
+                } catch (err) {
+                    console.error('Mobile save: Google Drive save failed:', err);
+                    // Error - red
+                    mobileSaveBtn.style.color = 'var(--color-error, #e53935)';
                 }
 
                 // Reset color after delay
