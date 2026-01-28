@@ -18,6 +18,8 @@ body.is-mobile.review-mode .change-review-panel {
     bottom: 0;
     left: 0;
     right: 0;
+    top: auto !important; /* Override desktop top: 0 */
+    width: 100% !important; /* Override desktop width: 360px */
     max-height: 60vh;
     background: var(--color-bg-white);
     border-radius: 16px 16px 0 0;
@@ -25,6 +27,7 @@ body.is-mobile.review-mode .change-review-panel {
     z-index: 500; /* Above content, below drawer (999) */
     animation: slideUpSheet 300ms ease-out;
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    border-left: none !important; /* Remove desktop border */
 }
 
 @keyframes slideUpSheet {

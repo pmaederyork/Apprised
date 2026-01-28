@@ -145,9 +145,29 @@ const Mobile = {
         this.reviewMode = active;
         document.body.classList.toggle('review-mode', active);
 
+        const reviewPanel = document.getElementById('documentChangeReview');
+
         if (active) {
             // Ensure chat is not collapsed during review
             this.setChatCollapsed(false);
+
+            // Move review panel to body to escape any transform containers
+            if (reviewPanel && reviewPanel.parentElement !== document.body) {
+                this._originalReviewParent = reviewPanel.parentElement;
+                this._originalReviewNextSibling = reviewPanel.nextSibling;
+                document.body.appendChild(reviewPanel);
+            }
+        } else {
+            // Restore review panel to original location
+            if (reviewPanel && this._originalReviewParent) {
+                if (this._originalReviewNextSibling) {
+                    this._originalReviewParent.insertBefore(reviewPanel, this._originalReviewNextSibling);
+                } else {
+                    this._originalReviewParent.appendChild(reviewPanel);
+                }
+                this._originalReviewParent = null;
+                this._originalReviewNextSibling = null;
+            }
         }
 
         this.updateLayoutClasses();
@@ -243,6 +263,15 @@ const Mobile = {
                 GDrive.pullFromDrive(Documents.currentDocumentId);
             }
         });
+
+        // Mobile GDrive status button - saves to Drive
+        const mobileGdriveStatusBtn = document.getElementById('mobileGdriveStatusBtn');
+        mobileGdriveStatusBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (typeof Documents !== 'undefined' && Documents.currentDocumentId) {
+                Documents.saveToDrive(Documents.currentDocumentId);
+            }
+        });
     },
 
     toggleToolbar() {
@@ -305,7 +334,43 @@ const Mobile = {
 
             window.visualViewport.addEventListener('resize', handleViewportChange);
             window.visualViewport.addEventListener('scroll', handleViewportChange);
+
+            // Also trigger on initial load in case keyboard was already open
+            handleViewportChange();
         }
+
+        // Fallback for browsers without visualViewport - use focus/blur on inputs
+        document.addEventListener('focusin', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+                // Assume keyboard will open, give iOS time to show it
+                setTimeout(() => {
+                    if (window.visualViewport) {
+                        const keyboardHeight = window.innerHeight - window.visualViewport.height;
+                        if (keyboardHeight > 50) {
+                            this.keyboardHeight = keyboardHeight;
+                            document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
+                            this.handleKeyboardChange();
+                        }
+                    }
+                }, 300);
+            }
+        });
+
+        document.addEventListener('focusout', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+                // Keyboard likely closing
+                setTimeout(() => {
+                    if (window.visualViewport) {
+                        const keyboardHeight = window.innerHeight - window.visualViewport.height;
+                        if (keyboardHeight < 50) {
+                            this.keyboardHeight = 0;
+                            document.documentElement.style.setProperty('--keyboard-height', '0px');
+                            this.handleKeyboardChange();
+                        }
+                    }
+                }, 100);
+            }
+        });
     },
 
     handleKeyboardChange() {
@@ -315,19 +380,42 @@ const Mobile = {
         document.body.classList.toggle('keyboard-open', isKeyboardOpen);
 
         // Log for debugging
-        if (isKeyboardOpen) {
-            console.log('Keyboard opened, height:', this.keyboardHeight);
-        } else {
-            console.log('Keyboard closed');
-        }
+        console.log('Keyboard change:', isKeyboardOpen ? 'open' : 'closed', 'height:', this.keyboardHeight);
+
+        // Directly adjust layouts for iOS Safari (CSS variables may not work reliably)
+        this.adjustLayoutForKeyboard(isKeyboardOpen);
 
         // Scroll active input into view when keyboard appears
         const activeElement = document.activeElement;
-        if (isKeyboardOpen && activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+        if (isKeyboardOpen && activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.isContentEditable)) {
             setTimeout(() => {
-                // Use scrollIntoView with 'nearest' to avoid unnecessary scrolling
                 activeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }, 100);
+            }, 150);
+        }
+    },
+
+    adjustLayoutForKeyboard(isOpen) {
+        // Get elements that need adjustment
+        const chatContainer = document.querySelector('.chat-container');
+        const appContainer = document.querySelector('.app-container');
+
+        if (isOpen && this.keyboardHeight > 0) {
+            // Apply direct styles for keyboard open state
+            if (chatContainer && document.body.classList.contains('chat-only-mode')) {
+                chatContainer.style.bottom = `${this.keyboardHeight}px`;
+            }
+
+            if (appContainer && document.body.classList.contains('split-view')) {
+                appContainer.style.height = `calc(100dvh - ${this.keyboardHeight}px)`;
+            }
+        } else {
+            // Reset to default (let CSS handle it)
+            if (chatContainer) {
+                chatContainer.style.bottom = '';
+            }
+            if (appContainer) {
+                appContainer.style.height = '';
+            }
         }
     }
 };
