@@ -289,12 +289,38 @@ const Mobile = {
             }
         });
 
-        // Mobile pull from Drive button
+        // Mobile pull from Drive button - with color feedback
         const mobilePullBtn = document.getElementById('mobilePullBtn');
-        mobilePullBtn?.addEventListener('click', (e) => {
+        mobilePullBtn?.addEventListener('click', async (e) => {
             e.stopPropagation();
             if (typeof GDrive !== 'undefined' && typeof Documents !== 'undefined' && Documents.currentDocumentId) {
-                GDrive.pullFromDrive(Documents.currentDocumentId);
+                const docId = Documents.currentDocumentId;
+
+                // Visual feedback - show pulling state
+                mobilePullBtn.style.color = 'var(--color-warning, #ff9800)';
+                console.log('Mobile pull: Pulling from Google Drive...');
+
+                try {
+                    const result = await GDrive.pullFromDrive(docId);
+                    if (result && result.success) {
+                        console.log('Mobile pull: Google Drive pull complete');
+                        // Success - green
+                        mobilePullBtn.style.color = 'var(--color-success, #4caf50)';
+                    } else {
+                        console.warn('Mobile pull: Pull returned unsuccessful');
+                        // Unsuccessful - red
+                        mobilePullBtn.style.color = 'var(--color-error, #e53935)';
+                    }
+                } catch (err) {
+                    console.error('Mobile pull: Google Drive pull failed:', err);
+                    // Error - red
+                    mobilePullBtn.style.color = 'var(--color-error, #e53935)';
+                }
+
+                // Reset color after delay
+                setTimeout(() => {
+                    mobilePullBtn.style.color = '';
+                }, 1000);
             }
         });
 
