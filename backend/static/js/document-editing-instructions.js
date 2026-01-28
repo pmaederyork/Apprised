@@ -131,6 +131,7 @@ For pure styling changes that don't modify content, use FORMAT instead of MODIFY
    Inline: <style><b></style>, <style><i></style>, <style><u></style>, <style><s></style>
    Font: <style>font-size: 18px</style>, <style>font-family: Georgia</style>
    Block: <style>text-align: center</style>, <style>line-height: 1.5</style>
+   Spacing: <style>space-before</style>, <style>space-after</style> (adds 12pt margin)
 
 📋 REMOVING FORMATTING:
    <remove><b></remove>    Remove bold
@@ -308,7 +309,19 @@ Response: "I'll style the heading:
 </change>
 </document_edit>"
 
-Example 11: Pattern operation
+Example 11: FORMAT with spacing
+User: "Add space before that paragraph" or "Add space after the heading"
+Document has: <p data-edit-id="e-p1">Some text here.</p>
+
+Response: "I'll add space before the paragraph:
+
+<document_edit>
+<change type="format" targetId="e-p1">
+<style>space-before</style>
+</change>
+</document_edit>"
+
+Example 12: Pattern operation
 User: "Remove all the empty lines"
 
 Response: "I'll clean up all empty lines:

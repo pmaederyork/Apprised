@@ -2489,6 +2489,12 @@ const Documents = {
                     parentElement.style.textAlign = style.split(':')[1].trim();
                 } else if (style.startsWith('line-height:')) {
                     parentElement.style.lineHeight = style.split(':')[1].trim();
+                } else if (style.startsWith('margin-top:') || style === 'space-before') {
+                    // Space Before - apply to element itself
+                    parentElement.style.marginTop = style === 'space-before' ? '12pt' : style.split(':')[1].trim();
+                } else if (style.startsWith('margin-bottom:') || style === 'space-after') {
+                    // Space After - apply to element itself
+                    parentElement.style.marginBottom = style === 'space-after' ? '12pt' : style.split(':')[1].trim();
                 }
             });
 
@@ -2640,6 +2646,20 @@ const Documents = {
                 const lineHeight = style.split(':')[1].trim();
                 editor.forEachBlock((block) => {
                     block.style.lineHeight = lineHeight;
+                }, true);
+            }
+            else if (style.startsWith('margin-top:') || style === 'space-before') {
+                // Space Before - add margin-top to block
+                const value = style === 'space-before' ? '12pt' : style.split(':')[1].trim();
+                editor.forEachBlock((block) => {
+                    block.style.marginTop = value;
+                }, true);
+            }
+            else if (style.startsWith('margin-bottom:') || style === 'space-after') {
+                // Space After - add margin-bottom to block
+                const value = style === 'space-after' ? '12pt' : style.split(':')[1].trim();
+                editor.forEachBlock((block) => {
+                    block.style.marginBottom = value;
                 }, true);
             }
         });
