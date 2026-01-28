@@ -430,7 +430,8 @@ const ClaudeChanges = {
             rejected: this.changes.filter(c => c.status === 'rejected').length,
             deletions: this.changes.filter(c => c.type === 'delete').length,
             additions: this.changes.filter(c => c.type === 'add').length,
-            modifications: this.changes.filter(c => c.type === 'modify').length
+            modifications: this.changes.filter(c => c.type === 'modify').length,
+            formats: this.changes.filter(c => c.type === 'format').length
         };
     },
 
@@ -597,6 +598,7 @@ const ClaudeChanges = {
         const deletions = acceptedChanges.filter(c => c.type === 'delete');
         const modifications = acceptedChanges.filter(c => c.type === 'modify');
         const additions = acceptedChanges.filter(c => c.type === 'add');
+        const formats = acceptedChanges.filter(c => c.type === 'format');
 
         // Helper to resolve with index first, then fallback
         const resolveWithIndex = (change) => {
@@ -680,6 +682,25 @@ const ClaudeChanges = {
                 });
             }
         }
+
+        // 1.5. Process FORMAT changes (apply via Squire methods)
+        formats.forEach(change => {
+            const resolution = resolveWithIndex(change);
+
+            if (resolution.node) {
+                // Apply formatting using Documents helper
+                if (typeof Documents !== 'undefined' && Documents.applyFormatToNode) {
+                    Documents.applyFormatToNode(resolution.node, change);
+                }
+                applied.push({ change, method: resolution.method });
+            } else {
+                if (skipOnFailure) {
+                    skipped.push({ change, reason: 'target not found' });
+                } else {
+                    console.error(`FORMAT failed: Could not find target element`);
+                }
+            }
+        });
 
         // 2. Process ADDITIONS - handle both regular and chained sequence items
         // Separate chained items (those with _chainedAfter) from regular additions
@@ -1467,7 +1488,7 @@ const ClaudeChanges = {
         // Remove all change markers
         document.querySelectorAll('[data-change-id]').forEach(el => {
             el.removeAttribute('data-change-id');
-            el.classList.remove('claude-change-delete', 'claude-change-add', 'claude-change-modify', 'claude-change-active');
+            el.classList.remove('claude-change-delete', 'claude-change-add', 'claude-change-modify', 'claude-change-format', 'claude-change-active');
             if (el.classList.contains('claude-change-delete')) {
                 el.style.textDecoration = 'none';
             }

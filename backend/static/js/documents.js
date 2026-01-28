@@ -2343,6 +2343,46 @@ const Documents = {
                     }
                     tempDiv.appendChild(changeElement);
                 }
+            } else if (change.type === 'format') {
+                // Format change - purple indicator (formatting-only, no content change)
+                changeElement.className = 'claude-change-format';
+
+                // Find target element
+                const targetNode = findNodeWithIndex(change.originalContent, change.targetId);
+
+                if (targetNode) {
+                    // Capture stable ID if element has one
+                    if (!change.targetId && targetNode.dataset?.editId) {
+                        change.targetId = targetNode.dataset.editId;
+                    }
+
+                    // Store original HTML for reject/revert
+                    change._originalHTML = targetNode.innerHTML;
+                    change._originalOuterHTML = targetNode.outerHTML;
+
+                    // Cache signature for reconstruction
+                    if (!change._cachedSignature) {
+                        change._cachedSignature = {
+                            textContent: targetNode.textContent?.trim() || '',
+                            tagName: targetNode.tagName?.toLowerCase() || '',
+                            innerHTML: targetNode.innerHTML || '',
+                            outerHTML: targetNode.outerHTML || ''
+                        };
+                    }
+
+                    // Clone content and apply preview formatting (CSS-only simulation)
+                    const previewContent = targetNode.cloneNode(true);
+                    this.applyPreviewFormatting(previewContent, change);
+                    changeElement.innerHTML = previewContent.outerHTML;
+
+                    contentIndex.markUsed(targetNode);
+                    targetNode.replaceWith(changeElement);
+                } else {
+                    console.warn('FORMAT preview: Could not locate target element');
+                    if (!change._cachedSignature) {
+                        change._cachedSignature = null;
+                    }
+                }
             }
 
             // Add change number indicator - same for all changes including patterns
@@ -2658,6 +2698,195 @@ const Documents = {
         if (!html) return null;
         const match = html.match(/^<(\w+)/);
         return match ? match[1].toLowerCase() : null;
+    },
+
+    /**
+     * Apply formatting preview to a cloned element (CSS-only simulation)
+     * For safe reject, we simulate formatting visually rather than using Squire
+     * @param {Element} element - Cloned element to apply preview formatting
+     * @param {Object} change - Change object with styles and removes arrays
+     */
+    applyPreviewFormatting(element, change) {
+        // Get the target content - either specific text or entire element
+        const textTarget = change.textTarget;
+
+        // Helper to wrap text in formatting span
+        const wrapTextInStyle = (parentElement, styles) => {
+            const wrapper = document.createElement('span');
+            wrapper.className = 'format-preview-applied';
+
+            (styles || []).forEach(style => {
+                if (style === '<b>' || style === 'b') {
+                    wrapper.style.fontWeight = 'bold';
+                } else if (style === '<i>' || style === 'i') {
+                    wrapper.style.fontStyle = 'italic';
+                } else if (style === '<u>' || style === 'u') {
+                    wrapper.style.textDecoration = (wrapper.style.textDecoration || '') + ' underline';
+                } else if (style === '<s>' || style === 's') {
+                    wrapper.style.textDecoration = (wrapper.style.textDecoration || '') + ' line-through';
+                } else if (style.startsWith('font-size:')) {
+                    wrapper.style.fontSize = style.split(':')[1].trim();
+                } else if (style.startsWith('font-family:')) {
+                    wrapper.style.fontFamily = style.split(':')[1].trim();
+                } else if (style.startsWith('text-align:')) {
+                    // Block-level style - apply to element itself
+                    parentElement.style.textAlign = style.split(':')[1].trim();
+                } else if (style.startsWith('line-height:')) {
+                    parentElement.style.lineHeight = style.split(':')[1].trim();
+                }
+            });
+
+            return wrapper;
+        };
+
+        if (textTarget) {
+            // Format specific text occurrences within the element
+            const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
+            const textNodes = [];
+            while (walker.nextNode()) {
+                textNodes.push(walker.currentNode);
+            }
+
+            textNodes.forEach(textNode => {
+                const text = textNode.textContent;
+                if (text.includes(textTarget)) {
+                    // Replace all occurrences
+                    const parts = text.split(textTarget);
+                    const fragment = document.createDocumentFragment();
+
+                    parts.forEach((part, index) => {
+                        if (part) {
+                            fragment.appendChild(document.createTextNode(part));
+                        }
+                        if (index < parts.length - 1) {
+                            // Add formatted text
+                            const wrapper = wrapTextInStyle(element, change.styles);
+                            wrapper.textContent = textTarget;
+                            fragment.appendChild(wrapper);
+                        }
+                    });
+
+                    textNode.replaceWith(fragment);
+                }
+            });
+        } else {
+            // Format entire element content
+            const wrapper = wrapTextInStyle(element, change.styles);
+            wrapper.innerHTML = element.innerHTML;
+            element.innerHTML = '';
+            element.appendChild(wrapper);
+        }
+    },
+
+    /**
+     * Apply formatting to a node using Squire methods
+     * Called during reconstruction for accepted FORMAT changes
+     * @param {Element} node - Target node to format
+     * @param {Object} change - Change object with styles, removes, textTarget
+     * @returns {boolean} Success status
+     */
+    applyFormatToNode(node, change) {
+        if (!this.squireEditor) {
+            console.warn('Squire editor not available for format application');
+            return false;
+        }
+
+        const editor = this.squireEditor;
+
+        // Create range for selection
+        const range = document.createRange();
+
+        if (change.textTarget) {
+            // Find and format all occurrences of text within element
+            const textOccurrences = this.findTextOccurrences(node, change.textTarget);
+
+            textOccurrences.forEach(occurrence => {
+                range.setStart(occurrence.node, occurrence.start);
+                range.setEnd(occurrence.node, occurrence.end);
+                editor.setSelection(range);
+                this.applySquireFormatting(change.styles, change.removes);
+            });
+        } else {
+            // Select entire element content
+            range.selectNodeContents(node);
+            editor.setSelection(range);
+            this.applySquireFormatting(change.styles, change.removes);
+        }
+
+        return true;
+    },
+
+    /**
+     * Find all occurrences of text within an element
+     * @param {Element} element - Element to search within
+     * @param {string} searchText - Text to find
+     * @returns {Array} Array of {node, start, end} objects
+     */
+    findTextOccurrences(element, searchText) {
+        const occurrences = [];
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, null);
+
+        while (walker.nextNode()) {
+            const textNode = walker.currentNode;
+            const text = textNode.textContent;
+            let pos = 0;
+
+            while ((pos = text.indexOf(searchText, pos)) !== -1) {
+                occurrences.push({
+                    node: textNode,
+                    start: pos,
+                    end: pos + searchText.length
+                });
+                pos += searchText.length;
+            }
+        }
+
+        return occurrences;
+    },
+
+    /**
+     * Apply formatting using Squire methods
+     * @param {Array} styles - Array of style strings to apply
+     * @param {Array} removes - Array of tag names to remove
+     */
+    applySquireFormatting(styles, removes) {
+        const editor = this.squireEditor;
+        if (!editor) return;
+
+        // Apply removes first (order matters for toggle behavior)
+        (removes || []).forEach(remove => {
+            if (remove === 'b') editor.removeBold();
+            else if (remove === 'i') editor.removeItalic();
+            else if (remove === 'u') editor.removeUnderline();
+            else if (remove === 's') editor.removeStrikethrough();
+        });
+
+        // Apply styles
+        (styles || []).forEach(style => {
+            if (style === '<b>' || style === 'b') editor.bold();
+            else if (style === '<i>' || style === 'i') editor.italic();
+            else if (style === '<u>' || style === 'u') editor.underline();
+            else if (style === '<s>' || style === 's') editor.strikethrough();
+            else if (style.startsWith('font-size:')) {
+                editor.setFontSize(style.split(':')[1].trim());
+            }
+            else if (style.startsWith('font-family:')) {
+                editor.setFontFace(style.split(':')[1].trim());
+            }
+            else if (style.startsWith('text-align:')) {
+                editor.setTextAlignment(style.split(':')[1].trim());
+            }
+            else if (style.startsWith('line-height:')) {
+                // Squire doesn't have native line-height, use modifyBlocks
+                const lineHeight = style.split(':')[1].trim();
+                editor.modifyBlocks((frag) => {
+                    frag.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6').forEach(block => {
+                        block.style.lineHeight = lineHeight;
+                    });
+                    return frag;
+                });
+            }
+        });
     },
 
     /**

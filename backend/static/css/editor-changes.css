@@ -253,6 +253,27 @@
     transition: all 0.2s ease;
 }
 
+/* FORMAT change type - purple indicator */
+.claude-change-format {
+    background-color: transparent;
+    border-left: 3px solid var(--color-purple-accent, #7c3aed);
+    padding-left: 8px;
+    margin: 4px 0;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.change-type-format {
+    background: #f3e8ff;  /* Light purple bg */
+    color: #7c3aed;       /* Purple text */
+}
+
+/* Preview formatting applied via CSS */
+.format-preview-applied {
+    /* Visual indicator that formatting will be applied */
+    background-color: rgba(147, 51, 234, 0.1); /* Light purple tint */
+}
+
 /* Currently focused change */
 .claude-change-active {
     outline: 2px solid var(--color-change-active);
