@@ -12,6 +12,8 @@ const Mobile = {
     documentOpen: false,
     chatCollapsed: false,
     toolbarExpanded: false,
+    keyboardHeight: 0,
+    reviewMode: false,
 
     // Breakpoints match CSS
     MOBILE_BREAKPOINT: 768,
@@ -26,6 +28,7 @@ const Mobile = {
         this.detectDevice();
         this.bindEvents();
         this.bindPanelEvents();
+        this.initKeyboardHandling();
         this.applyBodyClasses();
         this.updateLayoutClasses();
 
@@ -217,6 +220,50 @@ const Mobile = {
         const titleEl = document.querySelector('.mobile-editor-header .editor-doc-title');
         if (titleEl) {
             titleEl.textContent = title || 'Untitled';
+        }
+    },
+
+    initKeyboardHandling() {
+        // Use VirtualKeyboard API if available (Chrome on Android)
+        if ('virtualKeyboard' in navigator) {
+            navigator.virtualKeyboard.overlaysContent = true;
+
+            navigator.virtualKeyboard.addEventListener('geometrychange', (e) => {
+                this.keyboardHeight = e.target.boundingRect.height;
+                document.documentElement.style.setProperty(
+                    '--keyboard-height',
+                    `${this.keyboardHeight}px`
+                );
+                this.handleKeyboardChange();
+            });
+        } else {
+            // Fallback: listen for visual viewport changes (Safari/older browsers)
+            this.setupKeyboardFallback();
+        }
+    },
+
+    setupKeyboardFallback() {
+        // Track visual viewport changes for Safari/older browsers
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                const keyboardHeight = window.innerHeight - window.visualViewport.height;
+                this.keyboardHeight = Math.max(0, keyboardHeight);
+                document.documentElement.style.setProperty(
+                    '--keyboard-height',
+                    `${this.keyboardHeight}px`
+                );
+                this.handleKeyboardChange();
+            });
+        }
+    },
+
+    handleKeyboardChange() {
+        // Scroll active input into view when keyboard appears
+        const activeElement = document.activeElement;
+        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+            setTimeout(() => {
+                activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
         }
     }
 };
