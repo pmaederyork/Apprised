@@ -99,6 +99,16 @@ const App = {
             console.error('Failed to initialize MobileSheets:', error);
         }
 
+        // Initialize mobile attachments (depends on Mobile module)
+        try {
+            if (typeof MobileAttachments !== 'undefined') {
+                MobileAttachments.init();
+                console.log('MobileAttachments module initialized');
+            }
+        } catch (error) {
+            console.error('Failed to initialize MobileAttachments:', error);
+        }
+
         // Initialize system prompts first (needed for chat)
         try {
             SystemPrompts.init();
