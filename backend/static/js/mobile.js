@@ -11,6 +11,7 @@ const Mobile = {
     // Layout state
     documentOpen: false,
     chatCollapsed: false,
+    toolbarExpanded: false,
 
     // Breakpoints match CSS
     MOBILE_BREAKPOINT: 768,
@@ -24,6 +25,7 @@ const Mobile = {
 
         this.detectDevice();
         this.bindEvents();
+        this.bindPanelEvents();
         this.applyBodyClasses();
         this.updateLayoutClasses();
 
@@ -160,5 +162,61 @@ const Mobile = {
 
     isLandscape() {
         return this.orientation === 'landscape';
+    },
+
+    bindPanelEvents() {
+        // Toolbar toggle
+        const toolbarToggleBtn = document.getElementById('toolbarToggleBtn');
+        toolbarToggleBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleToolbar();
+        });
+
+        // Chat collapse
+        const chatCollapseBtn = document.getElementById('chatCollapseBtn');
+        chatCollapseBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleChatCollapsed();
+        });
+
+        // Collapsed chat bar - restore chat
+        const collapsedChatBar = document.getElementById('collapsedChatBar');
+        collapsedChatBar?.addEventListener('click', () => {
+            this.setChatCollapsed(false);
+        });
+
+        // Mobile close editor button
+        const mobileCloseEditorBtn = document.getElementById('mobileCloseEditorBtn');
+        mobileCloseEditorBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (typeof Documents !== 'undefined' && Documents.closeDocument) {
+                Documents.closeDocument();
+            }
+            this.setDocumentOpen(false);
+        });
+
+        // Mobile save button
+        const mobileSaveBtn = document.getElementById('mobileSaveBtn');
+        mobileSaveBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (typeof Documents !== 'undefined' && Documents.saveCurrentDocument) {
+                Documents.saveCurrentDocument();
+            }
+        });
+    },
+
+    toggleToolbar() {
+        this.toolbarExpanded = !this.toolbarExpanded;
+        document.body.classList.toggle('toolbar-expanded', this.toolbarExpanded);
+
+        const toggleBtn = document.getElementById('toolbarToggleBtn');
+        toggleBtn?.classList.toggle('active', this.toolbarExpanded);
+    },
+
+    updateEditorTitle(title) {
+        const titleEl = document.querySelector('.mobile-editor-header .editor-doc-title');
+        if (titleEl) {
+            titleEl.textContent = title || 'Untitled';
+        }
     }
 };
