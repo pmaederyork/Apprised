@@ -48,14 +48,16 @@ const Moderator = {
                 // Handle formatting/simple edits directly
                 await this.handleDirectEdit(userMessage, filesData);
             } else {
-                // Delegate to agents - show friendly announcement first
-                const turns = this.determineTurns(decision.turns);
-                const agentNames = agents.map(a => a.name).join(' and ');
+                // Delegate to agents based on routing mode
+                const routing = decision.routing;
+                const turns = this.determineTurns(routing.turns);
 
-                // Show Moderator's announcement
-                Chat.addSystemMessage(`Moderator: I'll have ${agentNames} collaborate on this. ${turns > 1 ? `They'll discuss for ${turns} rounds.` : ''}`);
+                // Build announcement based on routing mode
+                const assignedAgentNames = routing.assignments.map(a => a.agentName);
+                const announcement = this.buildRoutingAnnouncement(routing.mode, assignedAgentNames, turns);
+                Chat.addSystemMessage(announcement);
 
-                await this.delegateToAgents(userMessage, agents, turns, decision.agentTask, filesData);
+                await this.delegateToAgents(userMessage, agents, routing, filesData);
             }
         } finally {
             Agents.setInputEnabled(true);
@@ -63,12 +65,51 @@ const Moderator = {
     },
 
     /**
+     * Build a friendly announcement based on routing mode
+     */
+    buildRoutingAnnouncement(mode, agentNames, turns) {
+        const names = agentNames.join(' and ');
+
+        switch (mode) {
+            case 'single':
+                return `Moderator: Routing this to ${names}.`;
+            case 'parallel':
+                return `Moderator: ${names} will each work on their part.`;
+            case 'collaborate':
+                return `Moderator: I'll have ${names} collaborate on this.${turns > 1 ? ` They'll discuss for ${turns} rounds.` : ''}`;
+            default:
+                return `Moderator: Delegating to ${names}.`;
+        }
+    },
+
+    /**
+     * Get agent profiles with expertise summaries for routing decisions
+     */
+    getAgentProfiles(agents) {
+        const systemPrompts = Storage.getSystemPrompts();
+
+        return agents.map(agent => {
+            const prompt = systemPrompts[agent.systemPromptId]?.content || '';
+            // First 400 chars as expertise summary
+            const expertise = prompt.length > 0
+                ? prompt.substring(0, 400) + (prompt.length > 400 ? '...' : '')
+                : 'General assistant';
+
+            return {
+                id: agent.id,
+                name: agent.name,
+                expertise: expertise
+            };
+        });
+    },
+
+    /**
      * Analyze user request and decide how to handle it (silent - no UI)
-     * Returns: { action: 'direct'|'delegate', turns?: number, agentTask?: string }
+     * Returns: { action: 'direct'|'delegate', routing?: { mode, assignments, turns } }
      */
     async analyzeRequest(userMessage, hasDocument, agents) {
-        const agentNames = agents.map(a => a.name).join(', ');
         const turnsConfig = Agents.getCurrentTurns();
+        const agentProfiles = this.getAgentProfiles(agents);
 
         // Check if there's prior chat history
         const messages = Chat.getCurrentMessages();
@@ -77,45 +118,64 @@ const Moderator = {
             ? `There is prior conversation history (${messages.length - 1} previous messages) that agents can reference.`
             : 'This is the start of the conversation.';
 
-        const moderatorPrompt = `You are a MODERATOR coordinating a team of AI agents: ${agentNames}.
+        // Build agent profiles section
+        const agentProfilesText = agentProfiles.map(a =>
+            `- ${a.name}: ${a.expertise}`
+        ).join('\n\n');
 
-Analyze the user's request and decide how to handle it:
+        const moderatorPrompt = `You are a MODERATOR coordinating these AI agents:
 
-1. DIRECT (you handle it yourself) - Use for:
+${agentProfilesText}
+
+Analyze the user's request and decide routing:
+
+1. DIRECT (you handle it) - Use for:
    - Simple formatting changes (bold, italic, font size, alignment)
-   - Synthesize/summarize existing chat and add to document (no new ideas needed)
-   - Extract and compile information that's already been discussed
+   - Synthesize/summarize existing chat and add to document
+   - Extract and compile information already discussed
 
-2. DELEGATE (agents collaborate) - Use for:
-   - Generate NEW content or ideas
-   - Creative work, brainstorming, or discussion
-   - "Discuss then add" or "collaborate on" requests
-   - Anything requiring multiple perspectives or new thinking
+2. SINGLE AGENT - Route to ONE specific agent when:
+   - User explicitly names an agent ("ask Writer to...", "have Editor...")
+   - Task clearly matches one agent's expertise
+   - No collaboration needed
 
-KEY DISTINCTION:
-- "Synthesize this chat and add to doc" = DIRECT (you compile existing discussion)
-- "Generate ideas about X then add to doc" = DELEGATE (agents create new content)
-- "Discuss X and then add the results" = DELEGATE (agents need to collaborate first)
+3. PARALLEL - Multiple agents work INDEPENDENTLY when:
+   - Different parts of task match different agents
+   - User assigns specific tasks to specific agents
+   - No discussion needed between agents
 
-TURNS (only for delegate, when turnsConfig is auto):
-- Default to 1 turn unless the task clearly needs discussion
-- Use 2+ turns only if user explicitly wants collaboration/debate OR the task is complex enough to benefit from back-and-forth
+4. COLLABORATE - Agents DISCUSS TOGETHER when:
+   - User wants debate, collaboration, or multiple perspectives
+   - Complex creative work benefiting from back-and-forth
+   - User says "collaborate", "discuss", "work together"
+
+ROUTING RULES:
+- If user names a specific agent, route to THAT agent only (single mode)
+- If task matches one agent's expertise clearly, use single mode
+- Default to 1 turn for collaborate mode unless discussion is explicitly requested
+- For parallel mode, give each agent their SPECIFIC task
 
 Current state:
 - Document open: ${hasDocument ? 'YES' : 'NO'}
 - ${priorChatSummary}
-- Agents available: ${agentNames}
-- User's configured turns: ${turnsConfig === 'auto' ? 'Auto (default to 1 unless discussion needed)' : turnsConfig}
+- User's configured turns: ${turnsConfig === 'auto' ? 'Auto (you decide)' : turnsConfig}
 
 User's request: "${userMessage}"
 
-Respond with ONLY a JSON object (no markdown, no explanation):
+Respond with ONLY a JSON object (no markdown):
 {
   "action": "direct" or "delegate",
-  "turns": <number, only if delegate and turnsConfig is auto - default 1>,
-  "agentTask": "<what to tell agents, only if delegate>",
+  "routing": {
+    "mode": "single" | "parallel" | "collaborate",
+    "assignments": [
+      { "agentName": "Agent Name", "task": "their specific task" }
+    ],
+    "turns": 1
+  },
   "reasoning": "<brief explanation>"
-}`;
+}
+
+NOTE: "routing" is only needed if action is "delegate". For "direct", omit routing.`;
 
         try {
             const systemPrompt = `You are a coordination moderator. Analyze requests and output JSON only.`;
@@ -143,20 +203,57 @@ Respond with ONLY a JSON object (no markdown, no explanation):
             const jsonMatch = fullResponse.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const decision = JSON.parse(jsonMatch[0]);
-                return {
+
+                // Normalize the response
+                const result = {
                     action: decision.action || 'delegate',
-                    turns: decision.turns,
-                    agentTask: decision.agentTask || userMessage,
                     reasoning: decision.reasoning
                 };
+
+                if (result.action === 'delegate' && decision.routing) {
+                    result.routing = {
+                        mode: decision.routing.mode || 'collaborate',
+                        assignments: decision.routing.assignments || agents.map(a => ({
+                            agentName: a.name,
+                            task: userMessage
+                        })),
+                        turns: decision.routing.turns || 1
+                    };
+                } else if (result.action === 'delegate') {
+                    // Fallback: collaborate with all agents
+                    result.routing = {
+                        mode: 'collaborate',
+                        assignments: agents.map(a => ({
+                            agentName: a.name,
+                            task: userMessage
+                        })),
+                        turns: 1
+                    };
+                }
+
+                return result;
             }
 
-            // Default to delegate if parsing fails
-            return { action: 'delegate', agentTask: userMessage };
+            // Default fallback
+            return {
+                action: 'delegate',
+                routing: {
+                    mode: 'collaborate',
+                    assignments: agents.map(a => ({ agentName: a.name, task: userMessage })),
+                    turns: 1
+                }
+            };
 
         } catch (error) {
             console.error('[Moderator] Analysis failed:', error);
-            return { action: 'delegate', agentTask: userMessage };
+            return {
+                action: 'delegate',
+                routing: {
+                    mode: 'collaborate',
+                    assignments: agents.map(a => ({ agentName: a.name, task: userMessage })),
+                    turns: 1
+                }
+            };
         }
     },
 
@@ -266,13 +363,27 @@ Respond with ONLY a JSON object (no markdown, no explanation):
     },
 
     /**
-     * Delegate task to agents for collaboration
+     * Delegate task to agents based on routing mode
      */
-    async delegateToAgents(userMessage, agents, turns, agentTask, filesData) {
-        console.log(`[Moderator] Delegating to ${agents.length} agents for ${turns} turns`);
-        console.log(`[Moderator] Agent task: ${agentTask}`);
+    async delegateToAgents(userMessage, allAgents, routing, filesData) {
+        const { mode, assignments, turns } = routing;
+        const effectiveTurns = this.determineTurns(turns);
 
-        // Check if we're in document editing collaboration mode
+        console.log(`[Moderator] Delegating: mode=${mode}, assignments=${assignments.length}, turns=${effectiveTurns}`);
+
+        // Map assignments to actual agent objects
+        const assignedAgents = assignments.map(assignment => {
+            const agent = allAgents.find(a => a.name === assignment.agentName);
+            return agent ? { agent, task: assignment.task } : null;
+        }).filter(Boolean);
+
+        if (assignedAgents.length === 0) {
+            console.error('[Moderator] No valid agents found for assignments');
+            Chat.addSystemMessage('Error: Could not find assigned agents.');
+            return;
+        }
+
+        // Check if we're in document editing mode
         const documentOpen = Documents && Documents.currentDocumentId;
 
         if (documentOpen) {
@@ -292,110 +403,57 @@ Respond with ONLY a JSON object (no markdown, no explanation):
         }
 
         try {
-            // Run through all agent turns
-            for (let turn = 1; turn <= turns; turn++) {
-                for (let i = 0; i < agents.length; i++) {
-                    const agent = agents[i];
+            switch (mode) {
+                case 'single':
+                    // Call single agent once
+                    await this.callAgent(
+                        assignedAgents[0].agent,
+                        assignedAgents[0].task,
+                        filesData,
+                        { mode: 'single' }
+                    );
+                    break;
 
-                    // Update placeholder with progress
-                    Agents.setInputEnabled(false, {
-                        turn: turn,
-                        totalTurns: turns,
-                        agentName: agent.name
-                    });
-
-                    // Build context for this agent
-                    const isFirstAgent = (i === 0 && turn === 1);
-                    const context = this.buildAgentContext(agent, isFirstAgent ? agentTask : null);
-
-                    // Create streaming message bubble with agent badge
-                    const streamingBubble = UI.addStreamingMessage(false, agent);
-
-                    try {
-                        // Get agent's system prompt
-                        const systemPrompts = Storage.getSystemPrompts();
-                        let agentSystemPrompt = systemPrompts[agent.systemPromptId]?.content || '';
-
-                        // Inject multi-agent context with moderator awareness
-                        agentSystemPrompt = this.appendAgentInstructions(
-                            agentSystemPrompt,
-                            agent,
-                            agents,
-                            turn,
-                            i,
-                            turns,
-                            agentTask
-                        );
-
-                        // If document is open, add document context
-                        let agentFiles = [...filesData];
-                        if (this.isCollaborating && Documents && Documents.currentDocumentId) {
-                            const docFile = this.getWorkingDocumentAsFile();
-                            if (docFile) {
-                                agentFiles.push(docFile);
-                            }
-
-                            agentSystemPrompt = this.appendDocumentEditingInstructions(agentSystemPrompt, agent);
-                        }
-
-                        // Call API with agent's context
-                        const response = await API.sendMessage(
-                            context.lastMessage,
-                            context.history,
-                            agentSystemPrompt,
-                            agentFiles,
-                            null
-                        );
-
-                        // Process streaming response
-                        let fullResponse = '';
-                        for await (const data of API.streamResponse(response)) {
-                            if (data.error) {
-                                throw new Error(data.error);
-                            }
-
-                            if (data.chunk) {
-                                fullResponse += data.chunk;
-                                UI.updateStreamingMessage(streamingBubble, fullResponse);
-                            }
-
-                            if (data.done) {
-                                UI.updateStreamingMessage(streamingBubble, fullResponse, true);
-                                Chat.saveMessageToHistory(fullResponse, false, [], agent, turn);
-
-                                // Collect document edits if in collaboration mode
-                                if (this.isCollaborating && Documents && Documents.currentDocumentId) {
-                                    const changes = this.parseSimplifiedEdits(fullResponse);
-
-                                    if (changes.length > 0) {
-                                        const attributedEdits = changes.map(edit => ({
-                                            ...edit,
-                                            agentId: agent.id,
-                                            agentName: agent.name,
-                                            agentColor: agent.color
-                                        }));
-                                        this.pendingEdits.push(...attributedEdits);
-
-                                        // Apply waypoint: update working document for next agent
-                                        this.applyWaypoint(changes, agent);
-                                    }
-                                }
-                            }
-                        }
-
-                    } catch (error) {
-                        console.error('Agent response error:', error);
-                        UI.updateStreamingMessage(streamingBubble, 'Error: ' + error.message, true);
+                case 'parallel':
+                    // Call each agent with their specific task (no inter-agent context)
+                    for (const { agent, task } of assignedAgents) {
+                        await this.callAgent(agent, task, filesData, { mode: 'parallel' });
                     }
-                }
+                    break;
+
+                case 'collaborate':
+                default:
+                    // Round-robin collaboration with shared context
+                    for (let turn = 1; turn <= effectiveTurns; turn++) {
+                        for (let i = 0; i < assignedAgents.length; i++) {
+                            const { agent, task } = assignedAgents[i];
+
+                            // Update placeholder with progress
+                            Agents.setInputEnabled(false, {
+                                turn: turn,
+                                totalTurns: effectiveTurns,
+                                agentName: agent.name
+                            });
+
+                            await this.callAgent(agent, task, filesData, {
+                                mode: 'collaborate',
+                                turn,
+                                totalTurns: effectiveTurns,
+                                agentIndex: i,
+                                allAssignedAgents: assignedAgents.map(a => a.agent),
+                                isFirstMessage: (turn === 1 && i === 0)
+                            });
+                        }
+                    }
+                    break;
             }
 
-            // After all turns complete, finalize collaboration
+            // After all agents complete, finalize if document was being edited
             const docsAreDifferent = this.originalDocumentHTML !== this.workingDocumentHTML;
             if (this.isCollaborating && docsAreDifferent) {
                 await this.finalizeCollaboration();
             } else if (this.isCollaborating) {
-                Chat.addSystemMessage('Collaboration complete. No changes were made to the document.');
+                Chat.addSystemMessage('Complete. No changes were made to the document.');
             }
         } finally {
             this.isCollaborating = false;
@@ -403,6 +461,132 @@ Respond with ONLY a JSON object (no markdown, no explanation):
                 this.cleanupCollaborationState();
             }
         }
+    },
+
+    /**
+     * Call a single agent with a task
+     * Reusable helper for all routing modes
+     */
+    async callAgent(agent, task, filesData, context = {}) {
+        const { mode = 'single', turn = 1, totalTurns = 1, agentIndex = 0, allAssignedAgents = [], isFirstMessage = true } = context;
+
+        console.log(`[Moderator] Calling ${agent.name} (mode=${mode}, turn=${turn}/${totalTurns})`);
+
+        // Build the message context
+        const messageContext = this.buildAgentContext(agent, isFirstMessage ? task : null);
+
+        // Create streaming message bubble
+        const streamingBubble = UI.addStreamingMessage(false, agent);
+
+        try {
+            // Get agent's system prompt
+            const systemPrompts = Storage.getSystemPrompts();
+            let agentSystemPrompt = systemPrompts[agent.systemPromptId]?.content || '';
+
+            // Build instructions based on mode
+            if (mode === 'collaborate' && allAssignedAgents.length > 1) {
+                agentSystemPrompt = this.appendAgentInstructions(
+                    agentSystemPrompt,
+                    agent,
+                    allAssignedAgents,
+                    turn,
+                    agentIndex,
+                    totalTurns,
+                    task
+                );
+            } else if (mode === 'parallel') {
+                // For parallel mode, agent works independently
+                agentSystemPrompt = this.appendSingleAgentInstructions(agentSystemPrompt, agent, task);
+            } else {
+                // Single mode - direct task
+                agentSystemPrompt = this.appendSingleAgentInstructions(agentSystemPrompt, agent, task);
+            }
+
+            // Add document context if editing
+            let agentFiles = [...filesData];
+            if (this.isCollaborating && Documents && Documents.currentDocumentId) {
+                const docFile = this.getWorkingDocumentAsFile();
+                if (docFile) {
+                    agentFiles.push(docFile);
+                }
+                agentSystemPrompt = this.appendDocumentEditingInstructions(agentSystemPrompt, agent);
+            }
+
+            // Call API
+            const response = await API.sendMessage(
+                messageContext.lastMessage,
+                messageContext.history,
+                agentSystemPrompt,
+                agentFiles,
+                null
+            );
+
+            // Process streaming response
+            let fullResponse = '';
+            for await (const data of API.streamResponse(response)) {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                if (data.chunk) {
+                    fullResponse += data.chunk;
+                    UI.updateStreamingMessage(streamingBubble, fullResponse);
+                }
+
+                if (data.done) {
+                    UI.updateStreamingMessage(streamingBubble, fullResponse, true);
+                    Chat.saveMessageToHistory(fullResponse, false, [], agent, turn);
+
+                    // Collect document edits
+                    if (this.isCollaborating && Documents && Documents.currentDocumentId) {
+                        const changes = this.parseSimplifiedEdits(fullResponse);
+
+                        if (changes.length > 0) {
+                            const attributedEdits = changes.map(edit => ({
+                                ...edit,
+                                agentId: agent.id,
+                                agentName: agent.name,
+                                agentColor: agent.color
+                            }));
+                            this.pendingEdits.push(...attributedEdits);
+
+                            // Apply waypoint: update working document for next agent
+                            this.applyWaypoint(changes, agent);
+                        }
+                    }
+                }
+            }
+
+            return fullResponse;
+
+        } catch (error) {
+            console.error(`[Moderator] Agent ${agent.name} error:`, error);
+            UI.updateStreamingMessage(streamingBubble, 'Error: ' + error.message, true);
+            return null;
+        }
+    },
+
+    /**
+     * Append instructions for single/parallel mode agents
+     */
+    appendSingleAgentInstructions(systemPrompt, agent, task) {
+        // Check for prior chat history
+        const messages = Chat.getCurrentMessages();
+        const hasPriorChat = messages.length > 1;
+
+        const instructions = `
+You are ${agent.name}.
+
+Your task: "${task}"
+${hasPriorChat ? `
+CONTEXT: You have access to the conversation history. If the task involves synthesizing, summarizing, or building on earlier discussion, USE that chat context as source material.` : ''}
+
+RULES:
+- Focus on completing your assigned task
+- Keep your response conversational - do NOT paste raw HTML, XML, or scratchpad content into chat
+- Be concise and helpful`;
+
+        return systemPrompt ? instructions + '\n\n' + systemPrompt : instructions;
     },
 
     /**

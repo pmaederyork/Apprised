@@ -2880,14 +2880,11 @@ const Documents = {
                 editor.setTextAlignment(style.split(':')[1].trim());
             }
             else if (style.startsWith('line-height:')) {
-                // Squire doesn't have native line-height, use modifyBlocks
+                // Squire doesn't have native line-height, use forEachBlock (same as setLineSpacing)
                 const lineHeight = style.split(':')[1].trim();
-                editor.modifyBlocks((frag) => {
-                    frag.querySelectorAll('p, div, h1, h2, h3, h4, h5, h6').forEach(block => {
-                        block.style.lineHeight = lineHeight;
-                    });
-                    return frag;
-                });
+                editor.forEachBlock((block) => {
+                    block.style.lineHeight = lineHeight;
+                }, true);
             }
         });
     },
