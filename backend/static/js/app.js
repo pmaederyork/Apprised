@@ -69,6 +69,16 @@ const App = {
             console.error('Failed to initialize Mobile:', error);
         }
 
+        // Initialize mobile drawer (depends on Mobile module)
+        try {
+            if (typeof MobileDrawer !== 'undefined') {
+                MobileDrawer.init();
+                console.log('MobileDrawer module initialized');
+            }
+        } catch (error) {
+            console.error('Failed to initialize MobileDrawer:', error);
+        }
+
         // Initialize system prompts first (needed for chat)
         try {
             SystemPrompts.init();
