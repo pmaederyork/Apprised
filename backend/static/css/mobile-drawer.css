@@ -1,0 +1,108 @@
+/**
+ * Mobile Drawer Navigation
+ * Hamburger menu that slides in sidebar from left.
+ * Hardware-accelerated animation using transforms.
+ */
+
+/* Hamburger button - hidden on desktop */
+.hamburger-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  margin-right: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: background-color 150ms ease;
+}
+
+.hamburger-btn:hover {
+  background-color: var(--color-hover);
+}
+
+.hamburger-btn:active {
+  background-color: var(--color-active);
+}
+
+/* Show hamburger on mobile */
+body.is-mobile .hamburger-btn {
+  display: flex;
+}
+
+/* Drawer backdrop */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+  z-index: 998;
+}
+
+.drawer-backdrop.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Sidebar as drawer on mobile */
+body.is-mobile .sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--mobile-sidebar-width, 80%);
+  max-width: 320px;
+  background: var(--color-sidebar-bg, #1a1a1a);
+  transform: translateX(-100%);
+  transition: transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  will-change: transform;
+  z-index: 999;
+  display: flex !important;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Drawer open state */
+body.is-mobile .sidebar.drawer-open {
+  transform: translateX(0);
+}
+
+/* Sidebar content adjustments for drawer */
+body.is-mobile .sidebar .sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Ensure sidebar sections are scrollable */
+body.is-mobile .sidebar .sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Remove resize handle on mobile */
+body.is-mobile .sidebar .resize-handle {
+  display: none;
+}
+
+body.is-mobile .sidebar .sidebar-resize-handle {
+  display: none;
+}
+
+/* Prevent body scroll when drawer is open */
+body.is-mobile.drawer-open {
+  overflow: hidden;
+}
+
+body.is-mobile.drawer-open .app-container {
+  position: fixed;
+  width: 100%;
+}
