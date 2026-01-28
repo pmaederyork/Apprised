@@ -89,6 +89,16 @@ const App = {
             console.error('Failed to initialize MobileTouch:', error);
         }
 
+        // Initialize mobile bottom sheets and modals (depends on Mobile module)
+        try {
+            if (typeof MobileSheets !== 'undefined') {
+                MobileSheets.init();
+                console.log('MobileSheets module initialized');
+            }
+        } catch (error) {
+            console.error('Failed to initialize MobileSheets:', error);
+        }
+
         // Initialize system prompts first (needed for chat)
         try {
             SystemPrompts.init();
