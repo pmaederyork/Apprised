@@ -246,21 +246,44 @@ const Mobile = {
             this.setDocumentOpen(false);
         });
 
-        // Mobile save button
+        // Mobile save button - saves locally AND pushes to Google Drive
         const mobileSaveBtn = document.getElementById('mobileSaveBtn');
-        mobileSaveBtn?.addEventListener('click', (e) => {
+        mobileSaveBtn?.addEventListener('click', async (e) => {
             e.stopPropagation();
             if (typeof Documents !== 'undefined' && Documents.currentDocumentId) {
-                // Save the document
-                Documents.saveCurrentDocument();
+                const docId = Documents.currentDocumentId;
 
-                // Visual feedback - briefly change button color
-                mobileSaveBtn.style.color = 'var(--color-success, #4caf50)';
+                // Save locally first
+                Documents.saveCurrentDocument();
+                console.log('Mobile save: Local save complete for:', docId);
+
+                // Visual feedback - show saving state
+                mobileSaveBtn.style.color = 'var(--color-warning, #ff9800)';
+
+                // Also push to Google Drive if linked
+                const doc = Documents.documents[docId];
+                if (doc?.driveFileId && typeof Documents.saveToDrive === 'function') {
+                    console.log('Mobile save: Pushing to Google Drive...');
+                    try {
+                        await Documents.saveToDrive(docId);
+                        console.log('Mobile save: Google Drive push complete');
+                        // Success - green
+                        mobileSaveBtn.style.color = 'var(--color-success, #4caf50)';
+                    } catch (err) {
+                        console.error('Mobile save: Google Drive push failed:', err);
+                        // Error - red
+                        mobileSaveBtn.style.color = 'var(--color-error, #e53935)';
+                    }
+                } else {
+                    // No Drive link - just local save success
+                    console.log('Mobile save: No Drive link, local only');
+                    mobileSaveBtn.style.color = 'var(--color-success, #4caf50)';
+                }
+
+                // Reset color after delay
                 setTimeout(() => {
                     mobileSaveBtn.style.color = '';
-                }, 500);
-
-                console.log('Mobile save triggered for document:', Documents.currentDocumentId);
+                }, 1000);
             } else {
                 console.warn('Mobile save: No document open');
             }
