@@ -59,6 +59,16 @@ const App = {
 
     // Initialize all modules (exported for Auth module to call after setup)
     initializeModules() {
+        // Initialize mobile detection first (other modules may need responsive state)
+        try {
+            if (typeof Mobile !== 'undefined') {
+                Mobile.init();
+                console.log('Mobile module initialized');
+            }
+        } catch (error) {
+            console.error('Failed to initialize Mobile:', error);
+        }
+
         // Initialize system prompts first (needed for chat)
         try {
             SystemPrompts.init();
