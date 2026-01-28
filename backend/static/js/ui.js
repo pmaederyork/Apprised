@@ -94,7 +94,10 @@ const UI = {
         formatSelect: document.getElementById('formatSelect'),
         gdriveFolderBtn: document.getElementById('gdriveFolderBtn'),
         gdriveFolderName: document.getElementById('gdriveFolderName'),
-        autoAcceptEditsToggle: document.getElementById('autoAcceptEditsToggle')
+        autoAcceptEditsToggle: document.getElementById('autoAcceptEditsToggle'),
+        // Mobile drawer elements
+        hamburgerBtn: document.getElementById('hamburgerBtn'),
+        drawerBackdrop: document.getElementById('drawerBackdrop')
     },
 
     // Helper function to strip document edit XML from chat display

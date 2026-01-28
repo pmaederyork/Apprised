@@ -26,6 +26,7 @@
     <link rel="stylesheet" href="/static/css/variables.css">
     <link rel="stylesheet" href="/static/css/mobile.css">
     <link rel="stylesheet" href="/static/css/mobile-layout.css">
+    <link rel="stylesheet" href="/static/css/mobile-drawer.css">
     <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="/static/css/sidebar.css">
     <link rel="stylesheet" href="/static/css/chat.css">
@@ -67,6 +68,9 @@
     </div>
 
     <div class="app-container">
+        <!-- Drawer backdrop for mobile -->
+        <div class="drawer-backdrop" id="drawerBackdrop"></div>
+
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <img id="appLogo" class="app-logo" src="/static/icons/apprised.png" alt="Apprised" />
@@ -176,6 +180,14 @@
         
         <div class="chat-container" id="chatContainer">
             <div class="chat-header">
+                <!-- Hamburger button for mobile drawer -->
+                <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
                 <input type="text" class="chat-title" id="chatTitle" value="New Chat" />
 
                 <div class="chat-header-actions">
@@ -673,6 +685,7 @@
 
     <!-- JavaScript Modules -->
     <script src="/static/js/mobile.js"></script>
+    <script src="/static/js/mobile-drawer.js"></script>
     <script src="/static/js/auth.js"></script>
     <script src="/static/js/storage.js"></script>
     <script src="/static/js/api.js"></script>
