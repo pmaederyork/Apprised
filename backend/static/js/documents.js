@@ -2083,52 +2083,19 @@ const Documents = {
         // BUILD CONTENT INDEX ONCE - O(M) single pass
         const contentIndex = this.buildContentIndex(tempDiv);
 
-        // Helper to find node using index with fallback
-        const findNodeWithIndex = (content, targetId) => {
-            // Strategy 1: By targetId (O(1))
-            if (targetId) {
-                const node = contentIndex.byId.get(targetId);
-                if (node && !contentIndex.isUsed(node)) {
-                    return node;
-                }
+        // Helper to find node using ID-only lookup
+        const findNodeWithIndex = (targetId) => {
+            if (!targetId) return null;
+
+            const node = contentIndex.byId.get(targetId);
+            if (node && !contentIndex.isUsed(node)) {
+                return node;
             }
 
-            // Strategy 1.5: Check if content looks like a UUID (data-edit-id format)
-            // Claude may send just the ID instead of full HTML content
-            if (content && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(content.trim())) {
-                const node = contentIndex.byId.get(content.trim());
-                if (node && !contentIndex.isUsed(node)) {
-                    return node;
-                }
+            if (!node) {
+                console.warn(`ID not found: ${targetId}`);
             }
-
-            // Strategy 2: By normalized content (O(1))
-            if (content) {
-                const normalizedContent = this.normalizeHTML(content);
-
-                // Try innerHTML match
-                let candidates = contentIndex.byNormalizedInnerHTML.get(normalizedContent);
-                if (candidates) {
-                    for (const node of candidates) {
-                        if (!contentIndex.isUsed(node)) {
-                            return node;
-                        }
-                    }
-                }
-
-                // Try outerHTML match
-                candidates = contentIndex.byNormalizedOuterHTML.get(normalizedContent);
-                if (candidates) {
-                    for (const node of candidates) {
-                        if (!contentIndex.isUsed(node)) {
-                            return node;
-                        }
-                    }
-                }
-            }
-
-            // Strategy 3: Fallback to recursive search (rarely needed)
-            return this.findNodeByContent(tempDiv, content);
+            return null;
         };
 
         // Track change elements for sequence chaining
@@ -2157,45 +2124,30 @@ const Documents = {
             if (change.type === 'delete') {
                 // Wrap content to be deleted in red highlight
                 changeElement.className = 'claude-change-delete';
-                // For pattern changes, use the cached signature if available
                 if (change._patternGroup) {
                     changeElement.classList.add('claude-change-pattern');
                 }
-                // Strip data-edit-id from content to prevent duplicate ID issues
-                // (otherwise subsequent queries find elements inside previous wrappers)
-                let deleteContent = change.originalContent || '';
-                deleteContent = deleteContent.replace(/\s*data-edit-id="[^"]*"/g, '');
-                changeElement.innerHTML = deleteContent;
 
-                // Find the original content using indexed lookup
-                const originalNode = findNodeWithIndex(change.originalContent, change.targetId);
+                // Find the target using ID-only lookup
+                const originalNode = findNodeWithIndex(change.targetId);
 
                 if (originalNode) {
-                    // Capture stable ID if element has one (for hybrid resolution)
-                    if (!change.targetId && originalNode.dataset?.editId) {
-                        change.targetId = originalNode.dataset.editId;
+                    // Get content from actual element (not from change.originalContent which may be empty)
+                    // Strip data-edit-id to prevent duplicate ID issues
+                    let deleteContent = originalNode.outerHTML;
+                    deleteContent = deleteContent.replace(/\s*data-edit-id="[^"]*"/g, '');
+                    changeElement.innerHTML = deleteContent;
+
+                    // Also store for later use if needed
+                    if (!change.originalContent) {
+                        change.originalContent = originalNode.outerHTML;
                     }
-                    // Cache content signature (not DOM reference) for reconstruction
-                    // Only if not already cached by PatternMatcher
-                    if (!change._cachedSignature) {
-                        change._cachedSignature = {
-                            textContent: originalNode.textContent?.trim() || '',
-                            tagName: originalNode.tagName?.toLowerCase() || '',
-                            innerHTML: originalNode.innerHTML || '',
-                            outerHTML: originalNode.outerHTML || ''
-                        };
-                    }
+
                     contentIndex.markUsed(originalNode);
                     originalNode.replaceWith(changeElement);
                 } else {
-                    // DELETE: Don't render preview if content not found
-                    // This prevents confusing duplicates when content can't be located
-                    console.warn('❌ DELETE preview: Could not locate content, no signature cached');
-                    console.warn('Change', change.id, 'will not be previewed in document');
-                    // User can still review and accept/reject via sidebar
-                    if (!change._cachedSignature) {
-                        change._cachedSignature = null;
-                    }
+                    // DELETE: Don't render preview if ID not found
+                    console.warn(`DELETE preview: Target ID not found: ${change.targetId}`);
                 }
             } else if (change.type === 'add') {
                 // Wrap new content in green highlight
@@ -2223,98 +2175,22 @@ const Documents = {
                         tempDiv.appendChild(changeElement);
                     }
                 }
-                // Handle ID-only anchor (token-efficient format with _anchorDirection)
-                else if (change._anchorDirection && change.anchorTargetId) {
-                    const anchorNode = findNodeWithIndex(null, change.anchorTargetId);
+                // Handle ADD with anchorTargetId (ID-only targeting)
+                else if (change.anchorTargetId) {
+                    const anchorNode = findNodeWithIndex(change.anchorTargetId);
                     if (anchorNode) {
-                        // Cache anchor signature for reconstruction
-                        if (!change._cachedSignature) {
-                            change._cachedSignature = {
-                                textContent: anchorNode.textContent?.trim() || '',
-                                tagName: anchorNode.tagName?.toLowerCase() || '',
-                                innerHTML: anchorNode.innerHTML || '',
-                                outerHTML: anchorNode.outerHTML || '',
-                                anchorType: change._anchorDirection === 'after' ? 'insertAfter' : 'insertBefore'
-                            };
-                        }
                         if (change._anchorDirection === 'after') {
                             anchorNode.after(changeElement);
                         } else {
                             anchorNode.before(changeElement);
                         }
                     } else {
-                        console.warn('❌ ADD preview: Could not find ID-only anchor:', change.anchorTargetId);
-                        if (!change._cachedSignature) {
-                            change._cachedSignature = null;
-                        }
+                        console.warn(`ADD preview: Anchor ID not found: ${change.anchorTargetId}`);
                         tempDiv.appendChild(changeElement);
-                    }
-                }
-                // Insert at appropriate position using indexed anchor lookup
-                else if (change.insertAfter) {
-                    const anchorNode = findNodeWithIndex(change.insertAfter, change.anchorTargetId);
-                    if (anchorNode) {
-                        // Capture stable ID if anchor has one (for hybrid resolution)
-                        if (anchorNode.dataset && anchorNode.dataset.editId) {
-                            change.anchorTargetId = anchorNode.dataset.editId;
-                        }
-                        // Cache anchor signature for reconstruction
-                        if (!change._cachedSignature) {
-                            change._cachedSignature = {
-                                textContent: anchorNode.textContent?.trim() || '',
-                                tagName: anchorNode.tagName?.toLowerCase() || '',
-                                innerHTML: anchorNode.innerHTML || '',
-                                outerHTML: anchorNode.outerHTML || '',
-                                anchorType: 'insertAfter'
-                            };
-                        }
-                        anchorNode.after(changeElement);
-                    } else {
-                        if (!change._cachedSignature) {
-                            change._cachedSignature = null;
-                        }
-                        tempDiv.appendChild(changeElement);
-                    }
-                } else if (change.insertBefore) {
-                    const anchorNode = findNodeWithIndex(change.insertBefore, change.anchorTargetId);
-                    if (anchorNode) {
-                        // Capture stable ID if anchor has one (for hybrid resolution)
-                        if (anchorNode.dataset && anchorNode.dataset.editId) {
-                            change.anchorTargetId = anchorNode.dataset.editId;
-                        }
-                        // Cache anchor signature for reconstruction
-                        if (!change._cachedSignature) {
-                            change._cachedSignature = {
-                                textContent: anchorNode.textContent?.trim() || '',
-                                tagName: anchorNode.tagName?.toLowerCase() || '',
-                                innerHTML: anchorNode.innerHTML || '',
-                                outerHTML: anchorNode.outerHTML || '',
-                                anchorType: 'insertBefore'
-                            };
-                        }
-                        anchorNode.before(changeElement);
-                    } else {
-                        console.warn('❌ ADD preview: Could not find insertBefore anchor:', change.insertBefore);
-                        // For insertBefore, prepend to document start instead of appending to end
-                        // This preserves the user's intent (wanting content BEFORE something)
-                        if (!change._cachedSignature) {
-                            change._cachedSignature = {
-                                anchorType: 'documentStart' // Mark as document start for reconstruction
-                            };
-                        }
-                        const firstChild = tempDiv.firstChild;
-                        if (firstChild) {
-                            tempDiv.insertBefore(changeElement, firstChild);
-                        } else {
-                            tempDiv.appendChild(changeElement);
-                        }
                     }
                 } else {
-                    // No anchor specified, append to end
-                    console.warn(`⚠️ ADD preview: NO ANCHOR specified (insertBefore/insertAfter both missing) - appending to END`);
-                    if (!change._cachedSignature) {
-                        change._cachedSignature = null;
-                    }
+                    // No anchor specified
+                    console.warn(`ADD preview: No anchor ID specified for change ${change.id}`);
                     tempDiv.appendChild(changeElement);
                 }
             } else if (change.type === 'modify') {
@@ -2325,59 +2201,32 @@ const Documents = {
                 }
                 changeElement.innerHTML = change.newContent || '';
 
-                // Find the original content using indexed lookup
-                const originalNode = findNodeWithIndex(change.originalContent, change.targetId);
+                // Find target using ID-only lookup
+                const originalNode = findNodeWithIndex(change.targetId);
 
                 if (originalNode) {
-                    // Capture stable ID if element has one (for hybrid resolution)
-                    if (!change.targetId && originalNode.dataset?.editId) {
-                        change.targetId = originalNode.dataset.editId;
+                    // Store original content for reconstruction if not already set
+                    if (!change.originalContent) {
+                        change.originalContent = originalNode.outerHTML;
                     }
-                    // Cache content signature for reconstruction
-                    if (!change._cachedSignature) {
-                        change._cachedSignature = {
-                            textContent: originalNode.textContent?.trim() || '',
-                            tagName: originalNode.tagName?.toLowerCase() || '',
-                            innerHTML: originalNode.innerHTML || '',
-                            outerHTML: originalNode.outerHTML || ''
-                        };
-                    }
+
                     contentIndex.markUsed(originalNode);
                     originalNode.replaceWith(changeElement);
                 } else {
-                    // If can't find exact match, append to end
-                    console.warn('❌ MODIFY preview: Could not locate content, no signature cached');
-                    if (!change._cachedSignature) {
-                        change._cachedSignature = null;
-                    }
+                    console.warn(`MODIFY preview: Target ID not found: ${change.targetId}`);
                     tempDiv.appendChild(changeElement);
                 }
             } else if (change.type === 'format') {
                 // Format change - purple indicator (formatting-only, no content change)
                 changeElement.className = 'claude-change-format';
 
-                // Find target element
-                const targetNode = findNodeWithIndex(change.originalContent, change.targetId);
+                // Find target using ID-only lookup
+                const targetNode = findNodeWithIndex(change.targetId);
 
                 if (targetNode) {
-                    // Capture stable ID if element has one
-                    if (!change.targetId && targetNode.dataset?.editId) {
-                        change.targetId = targetNode.dataset.editId;
-                    }
-
                     // Store original HTML for reject/revert
                     change._originalHTML = targetNode.innerHTML;
                     change._originalOuterHTML = targetNode.outerHTML;
-
-                    // Cache signature for reconstruction
-                    if (!change._cachedSignature) {
-                        change._cachedSignature = {
-                            textContent: targetNode.textContent?.trim() || '',
-                            tagName: targetNode.tagName?.toLowerCase() || '',
-                            innerHTML: targetNode.innerHTML || '',
-                            outerHTML: targetNode.outerHTML || ''
-                        };
-                    }
 
                     // Clone content and apply preview formatting (CSS-only simulation)
                     const previewContent = targetNode.cloneNode(true);
@@ -2387,10 +2236,7 @@ const Documents = {
                     contentIndex.markUsed(targetNode);
                     targetNode.replaceWith(changeElement);
                 } else {
-                    console.warn('FORMAT preview: Could not locate target element');
-                    if (!change._cachedSignature) {
-                        change._cachedSignature = null;
-                    }
+                    console.warn(`FORMAT preview: Target ID not found: ${change.targetId}`);
                 }
             }
 
@@ -2492,16 +2338,14 @@ const Documents = {
 
     /**
      * Build content index for O(1) node lookups during change rendering
-     * Single TreeWalker pass creates all lookup maps
+     * Single TreeWalker pass creates ID lookup map
      * @param {Element} container - DOM container to index
-     * @returns {Object} Index with byId, byNormalizedContent maps and utility methods
+     * @returns {Object} Index with byId map and utility methods
      */
     buildContentIndex(container) {
         const startTime = performance.now();
         const index = {
             byId: new Map(),
-            byNormalizedInnerHTML: new Map(),
-            byNormalizedOuterHTML: new Map(),
             usedNodes: new Set(),
 
             // Mark node as matched (prevents double-matching)
@@ -2513,14 +2357,6 @@ const Documents = {
             isUsed(node) {
                 return this.usedNodes.has(node);
             }
-        };
-
-        // Helper to add node to array-based map
-        const addToMapArray = (map, key, node) => {
-            if (!map.has(key)) {
-                map.set(key, []);
-            }
-            map.get(key).push(node);
         };
 
         // Single TreeWalker pass
@@ -2542,18 +2378,6 @@ const Documents = {
             if (node.dataset?.editId) {
                 index.byId.set(node.dataset.editId, node);
             }
-
-            // Index by normalized innerHTML
-            const normalizedInner = this.normalizeHTML(node.innerHTML);
-            if (normalizedInner) {
-                addToMapArray(index.byNormalizedInnerHTML, normalizedInner, node);
-            }
-
-            // Index by normalized outerHTML
-            const normalizedOuter = this.normalizeHTML(node.outerHTML);
-            if (normalizedOuter) {
-                addToMapArray(index.byNormalizedOuterHTML, normalizedOuter, node);
-            }
         }
 
         const elapsed = performance.now() - startTime;
@@ -2564,53 +2388,40 @@ const Documents = {
     /**
      * Find node using pre-built index (O(1) lookup)
      * @param {Object} index - Index from buildContentIndex
-     * @param {Object} change - Change object with targetId, originalContent
-     * @param {Element} container - Container for fallback search
+     * @param {Object} change - Change object with targetId or anchorTargetId
      * @returns {Element|null} Found node or null
      */
-    findNodeUsingIndex(index, change, container) {
-        // Strategy 1: By targetId (exact)
+    findNodeUsingIndex(index, change) {
+        // For MODIFY/DELETE/FORMAT: use targetId
         if (change.targetId) {
             const node = index.byId.get(change.targetId);
             if (node && !index.isUsed(node)) {
                 return node;
             }
-        }
-
-        // Strategy 2: By normalized content
-        if (change.originalContent) {
-            const normalizedContent = this.normalizeHTML(change.originalContent);
-
-            // Try innerHTML match
-            let candidates = index.byNormalizedInnerHTML.get(normalizedContent);
-            if (candidates) {
-                for (const node of candidates) {
-                    if (!index.isUsed(node)) {
-                        return node;
-                    }
-                }
-            }
-
-            // Try outerHTML match
-            candidates = index.byNormalizedOuterHTML.get(normalizedContent);
-            if (candidates) {
-                for (const node of candidates) {
-                    if (!index.isUsed(node)) {
-                        return node;
-                    }
-                }
+            if (!node) {
+                console.warn(`Target ID not found: ${change.targetId}`);
             }
         }
 
-        // Strategy 3: Fallback to recursive search (rarely needed)
-        return this.findNodeByContent(container, change.originalContent);
+        // For ADD: use anchorTargetId
+        if (change.type === 'add' && change.anchorTargetId) {
+            const node = index.byId.get(change.anchorTargetId);
+            if (node) {
+                return node;
+            }
+            console.warn(`Anchor ID not found: ${change.anchorTargetId}`);
+        }
+
+        return null;
     },
 
     /**
-     * Find a node by its content (helper for renderChangesInDocument)
-     * Uses recursive search with multiple matching strategies
+     * Find a node by its content
+     * @deprecated Use ID-based targeting (targetId, anchorTargetId) instead.
+     * This function is kept for backward compatibility but will be removed.
      */
     findNodeByContent(container, content) {
+        console.warn('DEPRECATED: findNodeByContent called. Use ID-based targeting instead.');
         if (!content) return null;
 
         // Normalize the search content for flexible matching
@@ -2620,24 +2431,16 @@ const Documents = {
         const searchNode = (node) => {
             if (!node || node.nodeType !== 1) return null; // Only element nodes
 
-            // Skip nodes inside change wrappers to prevent matching wrapped content
-            // This fixes a bug where multiple similar changes (e.g., empty lines)
-            // would all match the same wrapped content instead of their correct positions
+            // Skip nodes inside change wrappers
             if (node.closest('[data-change-id]')) return null;
 
-            // Strategy 1: Normalized innerHTML match (handles whitespace)
+            // Try normalized innerHTML match
             if (this.normalizeHTML(node.innerHTML) === normalizedContent) {
                 return node;
             }
 
-            // Strategy 2: Normalized outerHTML match (handles whitespace + attributes)
+            // Try normalized outerHTML match
             if (this.normalizeHTML(node.outerHTML) === normalizedContent) {
-                return node;
-            }
-
-            // Strategy 3: Normalized match with attributes stripped (handles attribute differences)
-            const normalizedContentNoAttrs = this.normalizeHTML(content, true);
-            if (this.normalizeHTML(node.outerHTML, true) === normalizedContentNoAttrs) {
                 return node;
             }
 
@@ -2650,63 +2453,7 @@ const Documents = {
             return null;
         };
 
-        const result = searchNode(container);
-
-        // Strategy 4: Text-content matching (ignores inner formatting)
-        // Only use if previous strategies failed, and only if match is unique
-        if (!result) {
-            const searchText = this.extractTextContent(content);
-            const searchTag = this.extractOuterTag(content);
-
-            if (searchText && searchTag && searchText.length > 10) { // Minimum length for safety
-                // Find all nodes with same outer tag and matching text content
-                const candidates = [];
-                const searchNodes = (node) => {
-                    if (node.nodeType === 1 && node.tagName.toLowerCase() === searchTag) {
-                        const nodeText = this.extractTextContent(node.outerHTML);
-                        if (nodeText === searchText) {
-                            candidates.push(node);
-                        }
-                    }
-                    for (let child of node.children) {
-                        searchNodes(child);
-                    }
-                };
-
-                searchNodes(container);
-
-                if (candidates.length === 1) {
-                    return candidates[0];
-                }
-                // If multiple candidates, too ambiguous - fall through to return null
-            }
-        }
-
-        if (!result) {
-            console.warn('Could not find anchor content:', content);
-            console.warn('Normalized search term:', normalizedContent);
-        }
-
-        return result;
-    },
-
-    /**
-     * Extract just the text content from HTML, removing all tags
-     */
-    extractTextContent(html) {
-        if (!html) return '';
-        const temp = document.createElement('div');
-        temp.innerHTML = html;
-        return temp.textContent.trim().replace(/\s+/g, ' ').toLowerCase();
-    },
-
-    /**
-     * Extract the outer tag name from HTML string
-     */
-    extractOuterTag(html) {
-        if (!html) return null;
-        const match = html.match(/^<(\w+)/);
-        return match ? match[1].toLowerCase() : null;
+        return searchNode(container);
     },
 
     /**
@@ -3019,18 +2766,16 @@ const Documents = {
 
             // Handle add-sequence type (bulk insertions)
             if (type === 'add-sequence') {
-                // Parse ID-based anchors (token-efficient format)
+                // Parse ID-based anchors (REQUIRED)
                 const insertAfterIdMatch = attributeString.match(/insertAfter-id="([^"]+)"/);
                 const insertBeforeIdMatch = attributeString.match(/insertBefore-id="([^"]+)"/);
                 const anchorTargetId = insertAfterIdMatch?.[1] || insertBeforeIdMatch?.[1];
-                // Track anchor direction for ID-only format
                 const anchorDirection = insertAfterIdMatch ? 'after' : (insertBeforeIdMatch ? 'before' : null);
 
-                // Also support full HTML anchors as fallback
-                const insertAfterMatch = attributeString.match(/insertAfter="(.*?)"(?=\s|>|$)/s);
-                const insertBeforeMatch = attributeString.match(/insertBefore="(.*?)"(?=\s|>|$)/s);
-                const insertAfter = insertAfterMatch ? insertAfterMatch[1] : undefined;
-                const insertBefore = insertBeforeMatch ? insertBeforeMatch[1] : undefined;
+                if (!anchorTargetId) {
+                    console.warn('add-sequence missing required insertAfter-id or insertBefore-id');
+                    continue;
+                }
 
                 // Parse items from sequence
                 const itemsMatch = content.match(/<items>(.*?)<\/items>/s);
@@ -3055,13 +2800,8 @@ const Documents = {
 
                         if (isFirstItem) {
                             // First item uses the original anchor
-                            change.insertAfter = insertAfter;
-                            change.insertBefore = insertBefore;
                             change.anchorTargetId = anchorTargetId;
-                            // For ID-only format, track the direction
-                            if (anchorDirection && !insertAfter && !insertBefore) {
-                                change._anchorDirection = anchorDirection;
-                            }
+                            change._anchorDirection = anchorDirection;
                             isFirstItem = false;
                         } else {
                             // Subsequent items chain to previous item
@@ -3075,62 +2815,28 @@ const Documents = {
                 continue;
             }
 
-            // Parse ID-based anchors (token-efficient format)
+            // Parse ID-based attributes (REQUIRED for all change types)
             const insertAfterIdMatch = attributeString.match(/insertAfter-id="([^"]+)"/);
             const insertBeforeIdMatch = attributeString.match(/insertBefore-id="([^"]+)"/);
-
-            // For insertAfter/insertBefore, handle nested quotes in HTML content
-            // Strategy: Look for the attribute followed by the next attribute name or end of attributes
-            // This handles cases like insertAfter="<h2 style="color: red">..." where inner quotes exist
-            const extractAttribute = (attrStr, attrName) => {
-                const startPattern = new RegExp(`${attrName}="`, 'i');
-                const startMatch = attrStr.match(startPattern);
-                if (!startMatch) return null;
-
-                const startIdx = startMatch.index + startMatch[0].length;
-
-                // Find the closing quote by checking what follows each quote character
-                for (let i = startIdx; i < attrStr.length; i++) {
-                    const char = attrStr[i];
-                    const prevChar = i > 0 ? attrStr[i - 1] : '';
-
-                    // Check each quote character to see if it's the attribute's closing quote
-                    if (char === '"' && prevChar !== '\\') {
-                        // Check if this quote is followed by a valid attribute name or end
-                        // This indicates it's the closing quote of our attribute
-                        const remaining = attrStr.substring(i + 1).trimStart();
-                        if (remaining === '' ||
-                            remaining.startsWith('>') ||
-                            /^[a-zA-Z_][a-zA-Z0-9_-]*=/.test(remaining)) {
-                            return attrStr.substring(startIdx, i);
-                        }
-                    }
-                }
-
-                // Fallback: return everything after the opening quote
-                return attrStr.substring(startIdx).replace(/".*$/, '');
-            };
-
-            const insertAfter = extractAttribute(attributeString, 'insertAfter');
-            const insertBefore = extractAttribute(attributeString, 'insertBefore');
-
-            // Extract targetId if provided (for delete/modify operations)
             const targetIdMatch = attributeString.match(/targetId="([^"]+)"/);
             const targetId = targetIdMatch ? targetIdMatch[1] : undefined;
 
-            // Use ID-based anchor if provided, otherwise fall back to content-based
+            // For ADD: use insertAfter-id or insertBefore-id
             const anchorTargetId = insertAfterIdMatch?.[1] || insertBeforeIdMatch?.[1];
+            const anchorDirection = insertAfterIdMatch ? 'after' : (insertBeforeIdMatch ? 'before' : null);
 
-            // Track anchor direction for ID-only format (when no content-based anchor)
-            let anchorDirection = undefined;
-            if (anchorTargetId && !insertAfter && !insertBefore) {
-                anchorDirection = insertAfterIdMatch ? 'after' : 'before';
+            // Validate required targeting
+            if (type === 'add' && !anchorTargetId) {
+                console.warn(`ADD change missing required insertAfter-id or insertBefore-id`);
+            }
+            if ((type === 'modify' || type === 'delete') && !targetId) {
+                console.warn(`${type.toUpperCase()} change missing required targetId`);
             }
 
+            // Parse optional <original> for verification (not used for resolution)
             const originalMatch = content.match(/<original>(.*?)<\/original>/s);
 
             // Handle multiple <new> blocks - Claude might generate separate blocks for each paragraph
-            // Collect ALL <new> blocks and combine their content
             let newContent = null;
             const newBlockRegex = /<new>(.*?)<\/new>/gs;
             const newBlocks = [];
@@ -3145,8 +2851,6 @@ const Documents = {
             const change = {
                 id: Storage.generateChangeId(),
                 type: type,
-                insertAfter: insertAfter || undefined,
-                insertBefore: insertBefore || undefined,
                 anchorTargetId: anchorTargetId || undefined,
                 _anchorDirection: anchorDirection,
                 targetId: targetId || undefined,
@@ -3159,13 +2863,11 @@ const Documents = {
         }
 
         // Resolve cross-ADD anchor dependencies
-        // When Claude uses anchors that reference other ADDs' newContent (either by ID or content),
+        // When Claude uses anchors that reference other ADDs' newContent IDs,
         // convert those to _chainedAfter relationships so they work correctly
         if (changes.length > 1) {
             // Extract IDs from all ADD newContent
             const contentIdToChangeId = new Map();
-            // Also extract normalized content signatures for content-based matching
-            const contentSignatureToChangeId = new Map();
 
             changes.forEach(change => {
                 if (change.type === 'add' && change.newContent) {
@@ -3174,85 +2876,19 @@ const Documents = {
                     for (const match of idMatches) {
                         contentIdToChangeId.set(match[1], change.id);
                     }
-
-                    // Extract content signatures for content-based anchor matching
-                    // Normalize: lowercase, collapse whitespace, extract key parts
-                    const normalizeForMatch = (html) => {
-                        if (!html) return '';
-                        return html.toLowerCase()
-                            .replace(/\s+/g, ' ')
-                            .replace(/['"]([^'"]*)['"]/g, (m, v) => `"${v.toLowerCase()}"`) // Normalize quotes
-                            .trim();
-                    };
-
-                    // Store the full newContent signature
-                    const fullSig = normalizeForMatch(change.newContent);
-                    if (fullSig) {
-                        contentSignatureToChangeId.set(fullSig, change.id);
-                    }
-
-                    // Also extract and store the opening tag signature (Claude often uses just the opening tag as anchor)
-                    // Match: <tagname ...attributes...> (first tag in content)
-                    const openingTagMatch = change.newContent.match(/^(<[a-z][a-z0-9]*\s+[^>]*>)/i);
-                    if (openingTagMatch) {
-                        const tagSig = normalizeForMatch(openingTagMatch[1]);
-                        if (tagSig && !contentSignatureToChangeId.has(tagSig)) {
-                            contentSignatureToChangeId.set(tagSig, change.id);
-                        }
-                    }
                 }
             });
 
-            // Check if any ADD anchor references another ADD's content
+            // Check if any ADD anchor references another ADD's newContent ID
             changes.forEach(change => {
-                if (change.type === 'add') {
-                    // Check ID-based anchors
-                    if (change.anchorTargetId) {
-                        const creatorChangeId = contentIdToChangeId.get(change.anchorTargetId);
-                        if (creatorChangeId && creatorChangeId !== change.id) {
-                            const inventedId = change.anchorTargetId;
-                            change._chainedAfter = creatorChangeId;
-                            delete change.anchorTargetId;
-                            delete change._anchorDirection;
-                            console.log(`🔗 Auto-chained ADD ${change.id} after ${creatorChangeId} (ID anchor "${inventedId}" is in newContent)`);
-                            return; // Already chained
-                        }
-                    }
-
-                    // Check content-based anchors
-                    const anchorContent = change.insertAfter || change.insertBefore;
-                    if (anchorContent) {
-                        const normalizeForMatch = (html) => {
-                            if (!html) return '';
-                            return html.toLowerCase()
-                                .replace(/\s+/g, ' ')
-                                .replace(/['"]([^'"]*)['"]/g, (m, v) => `"${v.toLowerCase()}"`)
-                                .trim();
-                        };
-
-                        const anchorSig = normalizeForMatch(anchorContent);
-
-                        // Check if this anchor matches another ADD's content (exact match first)
-                        let creatorChangeId = contentSignatureToChangeId.get(anchorSig);
-
-                        // If no exact match, try substring matching (anchor may be truncated or partial)
-                        if (!creatorChangeId && anchorSig.length > 20) {
-                            for (const [sig, changeId] of contentSignatureToChangeId) {
-                                // Check if anchor is a substring of any newContent, or vice versa
-                                if (sig.includes(anchorSig) || anchorSig.includes(sig)) {
-                                    creatorChangeId = changeId;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (creatorChangeId && creatorChangeId !== change.id) {
-                            const anchorPreview = anchorContent.substring(0, 60);
-                            change._chainedAfter = creatorChangeId;
-                            delete change.insertAfter;
-                            delete change.insertBefore;
-                            console.log(`🔗 Auto-chained ADD ${change.id} after ${creatorChangeId} (content anchor "${anchorPreview}..." is in newContent)`);
-                        }
+                if (change.type === 'add' && change.anchorTargetId) {
+                    const creatorChangeId = contentIdToChangeId.get(change.anchorTargetId);
+                    if (creatorChangeId && creatorChangeId !== change.id) {
+                        const inventedId = change.anchorTargetId;
+                        change._chainedAfter = creatorChangeId;
+                        delete change.anchorTargetId;
+                        delete change._anchorDirection;
+                        console.log(`Auto-chained ADD ${change.id} after ${creatorChangeId} (anchor ID "${inventedId}" is in newContent)`);
                     }
                 }
             });

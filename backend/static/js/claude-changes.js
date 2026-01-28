@@ -11,7 +11,7 @@ const ClaudeChanges = {
 
     /**
      * Content Index System
-     * Pre-builds lookup maps for O(1) node resolution instead of O(M) recursive searches.
+     * Pre-builds lookup map for O(1) node resolution by ID.
      * Call build() once before batch operations, then use findNode() for each change.
      */
     ContentIndex: {
@@ -21,7 +21,7 @@ const ClaudeChanges = {
 
         /**
          * Build index for a container (call once before batch operations)
-         * Single TreeWalker pass builds all lookup maps
+         * Single TreeWalker pass builds ID lookup map
          * @param {Element} container - DOM container to index
          * @returns {Object} The built cache for inspection/debugging
          */
@@ -30,11 +30,7 @@ const ClaudeChanges = {
             this._container = container;
             this._usedNodes = new Set();
             this._cache = {
-                byId: new Map(),
-                byNormalizedInnerHTML: new Map(),
-                byNormalizedOuterHTML: new Map(),
-                byTagAndText: new Map(),
-                byTextContent: new Map()
+                byId: new Map()
             };
 
             // Single pass using TreeWalker for efficiency
@@ -56,31 +52,6 @@ const ClaudeChanges = {
                 if (node.dataset?.editId) {
                     this._cache.byId.set(node.dataset.editId, node);
                 }
-
-                // Index by normalized innerHTML
-                const normalizedInner = Documents.normalizeHTML(node.innerHTML);
-                if (normalizedInner) {
-                    this._addToMapArray(this._cache.byNormalizedInnerHTML, normalizedInner, node);
-                }
-
-                // Index by normalized outerHTML
-                const normalizedOuter = Documents.normalizeHTML(node.outerHTML);
-                if (normalizedOuter) {
-                    this._addToMapArray(this._cache.byNormalizedOuterHTML, normalizedOuter, node);
-                }
-
-                // Index by tag + text (for signature matching)
-                const textContent = (node.textContent?.trim() || '').toLowerCase();
-                const tagName = node.tagName?.toLowerCase() || '';
-                if (tagName) {
-                    const tagTextKey = `${tagName}:${textContent}`;
-                    this._addToMapArray(this._cache.byTagAndText, tagTextKey, node);
-
-                    // Also index by text content alone for broader matching
-                    if (textContent.length > 10) {
-                        this._addToMapArray(this._cache.byTextContent, textContent, node);
-                    }
-                }
             }
 
             const elapsed = performance.now() - startTime;
@@ -89,108 +60,33 @@ const ClaudeChanges = {
         },
 
         /**
-         * Helper to add node to a Map<string, Node[]>
-         */
-        _addToMapArray(map, key, node) {
-            if (!map.has(key)) {
-                map.set(key, []);
-            }
-            map.get(key).push(node);
-        },
-
-        /**
-         * Find node using indexed lookup (O(1) per strategy)
-         * @param {Object} change - Change object with targetId, _cachedSignature, originalContent
+         * Find node using ID-only lookup (O(1))
+         * @param {Object} change - Change object with targetId or anchorTargetId
          * @returns {Object|null} { node: Element, method: string } or null
          */
         findNode(change) {
             if (!this._cache) return null;
 
-            // Strategy 1: By edit-id (exact, highest confidence)
+            // For MODIFY/DELETE/FORMAT: use targetId
             if (change.targetId) {
                 const node = this._cache.byId.get(change.targetId);
                 if (node && !this._usedNodes.has(node)) {
                     return { node, method: 'index-id' };
                 }
-            }
-
-            // Strategy 2: By cached signature (tag + text content)
-            // SKIP for ADD changes - their _cachedSignature contains the ANCHOR's signature,
-            // not the target's. Using it here would match wrong elements.
-            // ADD changes should use Strategy 4 (anchor resolution) instead.
-            if (change._cachedSignature && change.type !== 'add') {
-                const sig = change._cachedSignature;
-                const tagTextKey = `${sig.tagName}:${(sig.textContent || '').toLowerCase()}`;
-                const candidates = this._cache.byTagAndText.get(tagTextKey);
-                if (candidates) {
-                    // Find first unused candidate
-                    for (const node of candidates) {
-                        if (!this._usedNodes.has(node)) {
-                            return { node, method: 'index-signature' };
-                        }
-                    }
+                // ID not found - log warning
+                if (!node) {
+                    console.warn(`Target ID not found: ${change.targetId}`);
                 }
             }
 
-            // Strategy 3: By normalized content (innerHTML)
-            if (change.originalContent) {
-                const normalizedContent = Documents.normalizeHTML(change.originalContent);
-
-                // Try innerHTML match
-                let candidates = this._cache.byNormalizedInnerHTML.get(normalizedContent);
-                if (candidates) {
-                    for (const node of candidates) {
-                        if (!this._usedNodes.has(node)) {
-                            return { node, method: 'index-content-inner' };
-                        }
-                    }
+            // For ADD: use anchorTargetId
+            if (change.type === 'add' && change.anchorTargetId) {
+                const node = this._cache.byId.get(change.anchorTargetId);
+                if (node) {
+                    return { node, method: 'index-anchor-id' };
                 }
-
-                // Try outerHTML match
-                candidates = this._cache.byNormalizedOuterHTML.get(normalizedContent);
-                if (candidates) {
-                    for (const node of candidates) {
-                        if (!this._usedNodes.has(node)) {
-                            return { node, method: 'index-content-outer' };
-                        }
-                    }
-                }
-            }
-
-            // Strategy 4: For add changes, resolve anchor
-            if (change.type === 'add') {
-                // Try anchor by ID first (token-efficient format may only have ID)
-                if (change.anchorTargetId) {
-                    const node = this._cache.byId.get(change.anchorTargetId);
-                    if (node) {
-                        return { node, method: 'index-anchor-id' };
-                    }
-                }
-
-                // Try anchor by content
-                const anchorContent = change.insertAfter || change.insertBefore;
-                if (anchorContent) {
-                    // Check if anchorContent looks like a UUID (Claude may send just the ID)
-                    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-                    if (uuidPattern.test(anchorContent.trim())) {
-                        const node = this._cache.byId.get(anchorContent.trim());
-                        if (node) {
-                            return { node, method: 'index-anchor-id-from-content' };
-                        }
-                    }
-
-                    // Try anchor by normalized content
-                    const normalizedAnchor = Documents.normalizeHTML(anchorContent);
-                    let candidates = this._cache.byNormalizedOuterHTML.get(normalizedAnchor);
-                    if (candidates && candidates.length > 0) {
-                        return { node: candidates[0], method: 'index-anchor-content' };
-                    }
-
-                    candidates = this._cache.byNormalizedInnerHTML.get(normalizedAnchor);
-                    if (candidates && candidates.length > 0) {
-                        return { node: candidates[0], method: 'index-anchor-content' };
-                    }
-                }
+                // Anchor ID not found - log warning
+                console.warn(`Anchor ID not found: ${change.anchorTargetId}`);
             }
 
             return null;
@@ -218,8 +114,7 @@ const ClaudeChanges = {
                 this._cache.byId.delete(node.dataset.editId);
             }
 
-            // For array-based maps, we just mark as used
-            // (actual removal is expensive and unnecessary since we check usedNodes)
+            // Mark as used to prevent re-matching
             this._usedNodes.add(node);
         },
 
@@ -357,18 +252,12 @@ const ClaudeChanges = {
                     }
                 };
 
-                // Capture stable ID if element has one
+                // Capture stable ID (required for resolution)
                 if (node.dataset && node.dataset.editId) {
                     change.targetId = node.dataset.editId;
+                } else {
+                    console.warn(`Pattern match found element without data-edit-id`);
                 }
-
-                // Cache signature for reliable resolution
-                change._cachedSignature = {
-                    textContent: node.textContent?.trim() || '',
-                    tagName: node.tagName?.toLowerCase() || '',
-                    innerHTML: node.innerHTML || '',
-                    outerHTML: node.outerHTML || ''
-                };
 
                 return change;
             });
@@ -464,58 +353,13 @@ const ClaudeChanges = {
     },
 
     /**
-     * Find node in container using cached content signature
-     * Uses multiple matching strategies: textContent+tag, innerHTML, outerHTML
-     */
-    findNodeBySignature(container, signature) {
-        if (!signature || !signature.tagName) {
-            return null;
-        }
-
-        // Strategy 1: Match by textContent + tagName (fastest, works across formatting changes)
-        const candidates = Array.from(container.getElementsByTagName(signature.tagName));
-
-        for (const node of candidates) {
-            const nodeText = node.textContent?.trim() || '';
-            if (nodeText === signature.textContent) {
-                return node;
-            }
-        }
-
-        // Strategy 2: Match by innerHTML
-        for (const node of candidates) {
-            if (node.innerHTML === signature.innerHTML) {
-                return node;
-            }
-        }
-
-        // Strategy 3: Match by normalized innerHTML (handles whitespace)
-        const normalizedSignatureHTML = Documents.normalizeHTML(signature.innerHTML);
-        for (const node of candidates) {
-            if (Documents.normalizeHTML(node.innerHTML) === normalizedSignatureHTML) {
-                return node;
-            }
-        }
-
-        // Strategy 4: Match by outerHTML
-        for (const node of candidates) {
-            if (node.outerHTML === signature.outerHTML) {
-                return node;
-            }
-        }
-
-        return null;
-    },
-
-    /**
-     * Resolve change target using hybrid strategy
-     * Priority: targetId > cached signature > content matching
+     * Resolve change target using ID-only lookup
      * @param {Element} container - Container to search within
-     * @param {Object} change - The change object with targetId, _cachedSignature, originalContent
+     * @param {Object} change - The change object with targetId or anchorTargetId
      * @returns {Object} { node: Element|null, method: string }
      */
     resolveChangeTarget(container, change) {
-        // Strategy 1: ID-based (highest confidence)
+        // For MODIFY/DELETE/FORMAT: use targetId
         if (change.targetId) {
             const byId = typeof ElementIds !== 'undefined'
                 ? ElementIds.findById(container, change.targetId)
@@ -524,32 +368,12 @@ const ClaudeChanges = {
             if (byId) {
                 return { node: byId, method: 'id' };
             }
-            console.warn(`Target ID "${change.targetId}" not found, trying fallback strategies`);
+            console.warn(`Target ID not found: ${change.targetId}`);
+            return { node: null, method: 'failed' };
         }
 
-        // Strategy 2: Cached signature (from preview phase)
-        // SKIP for ADD changes - their _cachedSignature contains the ANCHOR's signature,
-        // not the target's. Using it here would match wrong elements.
-        // ADD changes should use Strategy 4 (anchor resolution) instead.
-        if (change._cachedSignature && change.type !== 'add') {
-            const bySignature = this.findNodeBySignature(container, change._cachedSignature);
-            if (bySignature) {
-                return { node: bySignature, method: 'signature' };
-            }
-        }
-
-        // Strategy 3: Content matching (fallback for backward compatibility)
-        // Also skip for ADD changes (they don't have originalContent anyway)
-        if (change.originalContent && change.type !== 'add') {
-            const byContent = Documents.findNodeByContent(container, change.originalContent);
-            if (byContent) {
-                return { node: byContent, method: 'content' };
-            }
-        }
-
-        // Strategy 4: For add changes, resolve anchor
+        // For ADD: use anchorTargetId
         if (change.type === 'add') {
-            // Try ID-based anchor resolution first (token-efficient format may only have ID)
             if (change.anchorTargetId) {
                 const anchorById = typeof ElementIds !== 'undefined'
                     ? ElementIds.findById(container, change.anchorTargetId)
@@ -558,36 +382,15 @@ const ClaudeChanges = {
                 if (anchorById) {
                     return { node: anchorById, method: 'anchor-id' };
                 }
+                console.warn(`Anchor ID not found: ${change.anchorTargetId}`);
+            } else {
+                console.warn(`ADD change missing anchorTargetId: ${change.id}`);
             }
-
-            // Fall back to content-based anchor resolution
-            const anchorContent = change.insertAfter || change.insertBefore;
-            if (anchorContent) {
-                // Check if anchorContent looks like a UUID (Claude may send just the ID)
-                const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-                if (uuidPattern.test(anchorContent.trim())) {
-                    const anchorById = typeof ElementIds !== 'undefined'
-                        ? ElementIds.findById(container, anchorContent.trim())
-                        : container.querySelector(`[data-edit-id="${anchorContent.trim()}"]`);
-                    if (anchorById) {
-                        return { node: anchorById, method: 'anchor-id-from-content' };
-                    }
-                }
-
-                const anchorByContent = Documents.findNodeByContent(container, anchorContent);
-                if (anchorByContent) {
-                    return { node: anchorByContent, method: 'anchor-content' };
-                }
-            }
+            return { node: null, method: 'failed' };
         }
 
-        // All strategies failed
-        console.warn(`Could not locate target for change ${change.id}`, {
-            hasTargetId: !!change.targetId,
-            hasCachedSignature: !!change._cachedSignature,
-            hasOriginalContent: !!change.originalContent,
-            changeType: change.type
-        });
+        // No valid targeting info
+        console.warn(`Change ${change.id} (${change.type}) missing required targeting: targetId or anchorTargetId`);
         return { node: null, method: 'failed' };
     },
 
@@ -700,7 +503,7 @@ const ClaudeChanges = {
                 // Get the corresponding ADD change to determine insert direction
                 const addChange = additions.find(c => c.id === changeId);
                 // Use last element for insertAfter, first element for insertBefore
-                const newNode = (addChange?.insertAfter || addChange?._anchorDirection === 'after')
+                const newNode = (addChange?._anchorDirection === 'after')
                     ? replacement.last
                     : replacement.first;
                 preResolvedAnchors.set(changeId, {
@@ -772,10 +575,10 @@ const ClaudeChanges = {
                     fragment.appendChild(newElement.firstChild);
                 }
 
-                // Insert based on anchor type (handle ID-only format with _anchorDirection)
-                if (change.insertAfter || change._anchorDirection === 'after') {
+                // Insert based on anchor direction
+                if (change._anchorDirection === 'after') {
                     resolution.node.after(fragment);
-                } else if (change.insertBefore || change._anchorDirection === 'before') {
+                } else {
                     resolution.node.before(fragment);
                 }
 
@@ -787,9 +590,7 @@ const ClaudeChanges = {
                 applied.push({ change, method: resolution.method });
             } else {
                 // Anchor not found - determine fallback behavior based on insert direction
-                const isInsertBefore = change.insertBefore || change._anchorDirection === 'before' ||
-                    (change._cachedSignature && change._cachedSignature.anchorType === 'insertBefore') ||
-                    (change._cachedSignature && change._cachedSignature.anchorType === 'documentStart');
+                const isInsertBefore = change._anchorDirection === 'before';
 
                 if (isInsertBefore && tempDiv.firstChild) {
                     // For insertBefore failures, prepend to document start (preserves intent)
@@ -810,13 +611,11 @@ const ClaudeChanges = {
                     }
 
                     applied.push({ change, method: 'document-start-fallback' });
-                    console.log(`⚠️ ADD: insertBefore anchor not found, prepended to document start`);
+                    console.log(`ADD: insertBefore anchor not found, prepended to document start`);
                 } else if (skipOnFailure) {
-                    const anchorPreview = (change.insertAfter || change.insertBefore || change.anchorTargetId || '').substring(0, 50);
-                    skipped.push({ change, reason: 'anchor not found' });
+                    skipped.push({ change, reason: `anchor not found: ${change.anchorTargetId}` });
                 } else {
-                    const anchorPreview = (change.insertAfter || change.insertBefore || change.anchorTargetId || '').substring(0, 50);
-                    console.error(`❌ ADD failed: Anchor not found: "${anchorPreview}..."`);
+                    console.error(`ADD failed: Anchor ID not found: ${change.anchorTargetId}`);
                     // Fallback to end of document only if not skipping
                     tempDiv.innerHTML += change.newContent;
                 }
@@ -902,11 +701,6 @@ const ClaudeChanges = {
 
         // Clear index to release memory
         this.ContentIndex.clear();
-
-        // Clear signature cache after reconstruction
-        acceptedChanges.forEach(change => {
-            delete change._cachedSignature;
-        });
 
         // Ensure all elements have data-edit-ids for subsequent agent targeting
         if (typeof ElementIds !== 'undefined') {
