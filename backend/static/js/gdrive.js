@@ -226,9 +226,9 @@ const GDrive = {
     // Reconnect - triggers re-auth with Drive scope
     async reconnect() {
         // User needs to re-authenticate to grant Drive permission
-        if (confirm('To enable Google Drive access, you need to reconnect your account. You will be logged out and redirected to Google. Continue?')) {
-            // Trigger logout and re-login to get new scope
-            window.location.href = '/auth/logout';
+        if (confirm('To enable Google Drive access, you\'ll be redirected to Google to grant permissions. Continue?')) {
+            // Go directly to OAuth login (requests Drive scope)
+            window.location.href = '/auth/login';
         }
     },
 
@@ -740,7 +740,7 @@ const GDrive = {
         if (this.isConnected) {
             if (statusText) statusText.textContent = 'Connected';
             if (statusIcon) statusIcon.textContent = '✓';
-            if (connectBtn) connectBtn.textContent = 'Reconnect Drive Access';
+            if (connectBtn) connectBtn.style.display = 'none';
             if (disconnectBtn) disconnectBtn.style.display = 'inline-block';
             if (saveToDriveBtn) saveToDriveBtn.disabled = false;
             if (importFromDriveBtn) importFromDriveBtn.disabled = false;
@@ -748,7 +748,10 @@ const GDrive = {
         } else {
             if (statusText) statusText.textContent = 'Not connected';
             if (statusIcon) statusIcon.textContent = '☁️';
-            if (connectBtn) connectBtn.textContent = 'Enable Drive Access';
+            if (connectBtn) {
+                connectBtn.style.display = 'inline-block';
+                connectBtn.textContent = 'Enable Drive Access';
+            }
             if (disconnectBtn) disconnectBtn.style.display = 'none';
             if (saveToDriveBtn) saveToDriveBtn.disabled = true;
             if (importFromDriveBtn) importFromDriveBtn.disabled = true;
