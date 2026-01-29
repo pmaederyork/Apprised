@@ -57,6 +57,12 @@ google = oauth.register(
 
 # API keys are now stored client-side in localStorage
 
+# Redirect www to apex domain
+@app.before_request
+def redirect_www():
+    if request.host.startswith('www.'):
+        return redirect(request.url.replace('://www.', '://'), code=301)
+
 # Add request logging
 @app.before_request
 def log_request():
@@ -286,6 +292,8 @@ def process_files(files):
 def auth_login():
     """Initiate Google OAuth login"""
     redirect_uri = url_for('auth_callback', _external=True)
+    logging.info(f"OAuth redirect_uri: {redirect_uri}")
+    logging.info(f"Request headers: {dict(request.headers)}")
     return google.authorize_redirect(redirect_uri)
 
 @app.route('/auth/callback')
