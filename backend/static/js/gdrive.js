@@ -795,24 +795,28 @@ const GDrive = {
                 return;
             }
 
-            // Create a folder view (use DocsView instead of FOLDERS view for mobile compatibility)
-            const folderView = new google.picker.DocsView()
-                .setSelectFolderEnabled(true)
+            // Use standard DOCS view with folder selection enabled (same as import picker)
+            const docsView = new google.picker.DocsView(google.picker.ViewId.DOCS)
                 .setIncludeFolders(true)
-                .setMimeTypes('application/vnd.google-apps.folder');
+                .setSelectFolderEnabled(true);
 
-            // Show Google Picker for folders
+            // Show Google Picker - user can navigate and select a folder
             const picker = new google.picker.PickerBuilder()
-                .addView(folderView)
+                .addView(docsView)
                 .setOAuthToken(tokenData.accessToken)
                 .setOrigin(window.location.origin)
                 .setTitle('Select default folder for new documents')
                 .setCallback((data) => {
                     if (data.action === google.picker.Action.PICKED) {
-                        const folder = data.docs[0];
-                        Storage.saveGoogleDriveFolder(folder.id, folder.name);
-                        this.updateUI();
-                        console.log('Default folder set:', folder.name, folder.id);
+                        const selected = data.docs[0];
+                        // Check if user selected a folder
+                        if (selected.mimeType === 'application/vnd.google-apps.folder') {
+                            Storage.saveGoogleDriveFolder(selected.id, selected.name);
+                            this.updateUI();
+                            console.log('Default folder set:', selected.name, selected.id);
+                        } else {
+                            alert('Please select a folder, not a file. Tip: Click the folder icon to select it.');
+                        }
                     }
                 })
                 .build();
