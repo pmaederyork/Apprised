@@ -313,15 +313,17 @@ const App = {
             if (UI.elements.modelSelect) {
                 const savedModel = Storage.getSetting('model', 'claude-sonnet-4-5-20250929');
                 UI.elements.modelSelect.value = savedModel;
-
-                // Update mobile display after loading saved model
-                if (typeof MobileSheets !== 'undefined' && MobileSheets.initModelDisplay) {
-                    MobileSheets.initModelDisplay();
-                }
-
                 UI.elements.modelSelect.addEventListener('change', (e) => {
                     Storage.saveSetting('model', e.target.value);
                 });
+
+                // Update mobile display with the loaded model name
+                if (typeof MobileSheets !== 'undefined' && MobileSheets.updateModelDisplay) {
+                    const selectedOption = UI.elements.modelSelect.options[UI.elements.modelSelect.selectedIndex];
+                    if (selectedOption) {
+                        MobileSheets.updateModelDisplay(selectedOption.textContent.trim());
+                    }
+                }
             }
 
             // Render system prompts list

@@ -768,18 +768,6 @@ const GDrive = {
         return folder ? folder.id : null;
     },
 
-    // Get folder name by ID via Drive API
-    async getFolderName(folderId) {
-        try {
-            const response = await fetch(`/drive/folder-name/${folderId}`);
-            const data = await response.json();
-            return data.success ? data.name : null;
-        } catch (error) {
-            console.error('Failed to get folder name:', error);
-            return null;
-        }
-    },
-
     // Open folder picker to select default save folder
     async pickDefaultFolder() {
         if (!this.isConnected) {
@@ -805,25 +793,23 @@ const GDrive = {
                 return;
             }
 
-            // Use exact same picker as import (no DocsView customizations)
+            // Create a folder view
+            const folderView = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+                .setSelectFolderEnabled(true)
+                .setIncludeFolders(true)
+                .setMimeTypes('application/vnd.google-apps.folder');
+
+            // Show Google Picker for folders
             const picker = new google.picker.PickerBuilder()
-                .addView(google.picker.ViewId.DOCS)
+                .addView(folderView)
                 .setOAuthToken(tokenData.accessToken)
-                .setOrigin(window.location.origin)
+                .setTitle('Select default folder for new documents')
                 .setCallback((data) => {
                     if (data.action === google.picker.Action.PICKED) {
-                        const selected = data.docs[0];
-                        // Use parent folder of selected file
-                        if (selected.parentId) {
-                            // Get folder name via API since picker doesn't provide it
-                            this.getFolderName(selected.parentId).then(folderName => {
-                                Storage.saveGoogleDriveFolder(selected.parentId, folderName || 'Selected Folder');
-                                this.updateUI();
-                                console.log('Default folder set from file parent:', folderName, selected.parentId);
-                            });
-                        } else {
-                            alert('Could not determine folder. Please select a file inside the folder you want to use.');
-                        }
+                        const folder = data.docs[0];
+                        Storage.saveGoogleDriveFolder(folder.id, folder.name);
+                        this.updateUI();
+                        console.log('Default folder set:', folder.name, folder.id);
                     }
                 })
                 .build();
