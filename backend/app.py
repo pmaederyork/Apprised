@@ -57,11 +57,11 @@ google = oauth.register(
 
 # API keys are now stored client-side in localStorage
 
-# Redirect www to apex domain
+# Redirect apex domain to www
 @app.before_request
-def redirect_www():
-    if request.host.startswith('www.'):
-        return redirect(request.url.replace('://www.', '://'), code=301)
+def redirect_to_www():
+    if request.host == 'apprised.ai':
+        return redirect(request.url.replace('://apprised.ai', '://www.apprised.ai'), code=301)
 
 # Add request logging
 @app.before_request
@@ -737,6 +737,41 @@ def drive_picker_token():
         return jsonify(response_data)
     except Exception as e:
         logging.error(f"Picker token error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/drive/folder-name/<folder_id>', methods=['GET'])
+@login_required
+def drive_folder_name(folder_id):
+    """Get folder name by ID"""
+    try:
+        token, new_jwt = get_google_token_with_auto_refresh()
+        if not token:
+            return jsonify({'success': False, 'error': 'Not connected to Google Drive'}), 401
+
+        # Get folder metadata from Drive API
+        headers = {'Authorization': f"Bearer {token['access_token']}"}
+        response = requests.get(
+            f"https://www.googleapis.com/drive/v3/files/{folder_id}",
+            headers=headers,
+            params={'fields': 'name'}
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            response_data = {'success': True, 'name': data.get('name', 'Unknown Folder')}
+
+            if new_jwt:
+                resp = make_response(jsonify(response_data))
+                resp.set_cookie('auth_token', new_jwt, max_age=7*24*60*60, httponly=True, secure=True, samesite='Lax')
+                return resp
+
+            return jsonify(response_data)
+        else:
+            return jsonify({'success': False, 'error': 'Folder not found'}), 404
+
+    except Exception as e:
+        logging.error(f"Folder name error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

@@ -444,7 +444,6 @@ const GDrive = {
             const picker = new google.picker.PickerBuilder()
                 .addView(google.picker.ViewId.DOCS)
                 .setOAuthToken(tokenData.accessToken)
-                .setOrigin(window.location.origin)
                 .setCallback(async (data) => {
                     if (data.action === google.picker.Action.PICKED) {
                         await this.handlePickerSelection(data.docs[0]);
@@ -620,7 +619,6 @@ const GDrive = {
             const picker = new google.picker.PickerBuilder()
                 .addView(google.picker.ViewId.RECENTLY_PICKED)
                 .setOAuthToken(tokenData.accessToken)
-                .setOrigin(window.location.origin)
                 .setTitle('Select a file to link')
                 .setCallback(async (data) => {
                     if (data.action === google.picker.Action.PICKED) {
@@ -770,6 +768,18 @@ const GDrive = {
         return folder ? folder.id : null;
     },
 
+    // Get folder name by ID via Drive API
+    async getFolderName(folderId) {
+        try {
+            const response = await fetch(`/drive/folder-name/${folderId}`);
+            const data = await response.json();
+            return data.success ? data.name : null;
+        } catch (error) {
+            console.error('Failed to get folder name:', error);
+            return null;
+        }
+    },
+
     // Open folder picker to select default save folder
     async pickDefaultFolder() {
         if (!this.isConnected) {
@@ -795,27 +805,24 @@ const GDrive = {
                 return;
             }
 
-            // Use standard DOCS view with folder selection enabled (same as import picker)
-            const docsView = new google.picker.DocsView(google.picker.ViewId.DOCS)
-                .setIncludeFolders(true)
-                .setSelectFolderEnabled(true);
-
-            // Show Google Picker - user can navigate and select a folder
+            // Use exact same picker as import (no DocsView customizations)
             const picker = new google.picker.PickerBuilder()
-                .addView(docsView)
+                .addView(google.picker.ViewId.DOCS)
                 .setOAuthToken(tokenData.accessToken)
                 .setOrigin(window.location.origin)
-                .setTitle('Select default folder for new documents')
                 .setCallback((data) => {
                     if (data.action === google.picker.Action.PICKED) {
                         const selected = data.docs[0];
-                        // Check if user selected a folder
-                        if (selected.mimeType === 'application/vnd.google-apps.folder') {
-                            Storage.saveGoogleDriveFolder(selected.id, selected.name);
-                            this.updateUI();
-                            console.log('Default folder set:', selected.name, selected.id);
+                        // Use parent folder of selected file
+                        if (selected.parentId) {
+                            // Get folder name via API since picker doesn't provide it
+                            this.getFolderName(selected.parentId).then(folderName => {
+                                Storage.saveGoogleDriveFolder(selected.parentId, folderName || 'Selected Folder');
+                                this.updateUI();
+                                console.log('Default folder set from file parent:', folderName, selected.parentId);
+                            });
                         } else {
-                            alert('Please select a folder, not a file. Tip: Click the folder icon to select it.');
+                            alert('Could not determine folder. Please select a file inside the folder you want to use.');
                         }
                     }
                 })
