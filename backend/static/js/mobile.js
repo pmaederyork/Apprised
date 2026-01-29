@@ -393,8 +393,16 @@ const Mobile = {
                 }, 50);
             };
 
+            // Only listen to resize - not scroll (scroll causes issues on iOS)
             window.visualViewport.addEventListener('resize', handleViewportChange);
-            window.visualViewport.addEventListener('scroll', handleViewportChange);
+
+            // Reset any scroll when iOS tries to scroll the page for keyboard
+            window.visualViewport.addEventListener('scroll', () => {
+                // Immediately reset scroll position - don't let iOS scroll the page
+                if (this.isMobileView() && window.visualViewport.offsetTop > 0) {
+                    window.scrollTo(0, 0);
+                }
+            });
 
             // Also trigger on initial load in case keyboard was already open
             handleViewportChange();
@@ -439,6 +447,13 @@ const Mobile = {
 
         // Toggle keyboard-open class for CSS
         document.body.classList.toggle('keyboard-open', isKeyboardOpen);
+
+        // Reset any page scroll - app should compress, not scroll
+        if (this.isMobileView()) {
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+        }
 
         // Auto-collapse chat when editing document (not when typing in chat)
         if (isKeyboardOpen && this.isMobileView() && this.documentOpen) {

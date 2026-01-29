@@ -18,6 +18,17 @@
 
 /* ===== Mobile Body Class Styles ===== */
 /* Applied by JavaScript when mobile detected (width < 500px) */
+
+/* Lock both html and body to prevent any page scrolling on mobile */
+html:has(body.is-mobile) {
+  position: fixed;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  /* Disable smooth scroll on mobile - interferes with keyboard handling */
+  scroll-behavior: auto !important;
+}
+
 body.is-mobile {
   overflow: hidden; /* Prevent body scroll, app handles scroll */
 }
@@ -139,6 +150,15 @@ body.is-mobile .message-input-container {
 /* When keyboard is open, remove safe area padding (keyboard covers home indicator) */
 body.is-mobile.keyboard-open .message-input-container {
   padding-bottom: 8px;
+}
+
+/* Prevent page scrolling when keyboard is open */
+body.is-mobile.keyboard-open {
+  touch-action: none;
+}
+
+body.is-mobile.keyboard-open .app-container {
+  touch-action: pan-y; /* Allow vertical scroll within app only */
 }
 
 /* Ensure chat messages area can shrink */
