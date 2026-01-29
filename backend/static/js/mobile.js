@@ -245,14 +245,13 @@ const Mobile = {
             this.setChatCollapsed(false);
         });
 
-        // Mobile close editor button
+        // Mobile close editor button - same behavior as desktop
         const mobileCloseEditorBtn = document.getElementById('mobileCloseEditorBtn');
         mobileCloseEditorBtn?.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (typeof Documents !== 'undefined' && Documents.closeDocument) {
-                Documents.closeDocument();
+            if (typeof Documents !== 'undefined' && Documents.closeEditor) {
+                Documents.closeEditor(); // Handles save, GDrive sync, sidebar, chat message, etc.
             }
-            this.setDocumentOpen(false);
         });
 
         // Mobile save button - saves to Google Drive (same as desktop)
