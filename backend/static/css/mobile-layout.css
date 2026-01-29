@@ -142,22 +142,36 @@ body.is-tablet.split-view .document-editor {
 
 /* Portrait: chat collapses to bottom bar */
 body.is-mobile.is-portrait.split-view.chat-collapsed .app-container {
-  grid-template-rows: calc(100% - var(--mobile-collapsed-chat-height)) var(--mobile-collapsed-chat-height);
+  grid-template-rows: 1fr var(--mobile-collapsed-chat-height);
 }
 
 body.is-mobile.is-portrait.split-view.chat-collapsed .chat-container {
   min-height: var(--mobile-collapsed-chat-height);
   max-height: var(--mobile-collapsed-chat-height);
+  overflow: hidden;
+}
+
+body.is-mobile.is-portrait.split-view.chat-collapsed .document-editor {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Landscape: chat collapses to left sidebar */
 body.is-mobile.is-landscape.split-view.chat-collapsed .app-container {
-  grid-template-columns: var(--mobile-collapsed-chat-height) calc(100% - var(--mobile-collapsed-chat-height));
+  grid-template-columns: var(--mobile-collapsed-chat-height) 1fr;
 }
 
 body.is-mobile.is-landscape.split-view.chat-collapsed .chat-container {
   min-width: var(--mobile-collapsed-chat-height);
   max-width: var(--mobile-collapsed-chat-height);
+  overflow: hidden;
+}
+
+body.is-mobile.is-landscape.split-view.chat-collapsed .document-editor {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* ===== Non-Grid Elements on Mobile ===== */
