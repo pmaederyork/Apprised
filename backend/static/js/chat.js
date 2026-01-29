@@ -9,6 +9,7 @@ const Chat = {
     chats: {},
     isSending: false,
     hadDocumentEditingInstructions: false,
+    isLoadingChat: false, // Flag to skip autoScroll during batch load
 
     /**
      * Check if multi-agent mode is active (more than one agent configured)
@@ -148,6 +149,9 @@ const Chat = {
     // Load an existing chat
     loadChat(chatId) {
         if (this.chats[chatId]) {
+            // Set loading flag to skip autoScroll during batch render
+            this.isLoadingChat = true;
+
             this.currentChatId = chatId;
             this.hadDocumentEditingInstructions = false;
             const chat = this.chats[chatId];
@@ -171,7 +175,8 @@ const Chat = {
                 Storage.saveChats(this.chats);
             }
 
-            // Load all messages
+            // Batch render all messages using DocumentFragment for performance
+            const fragment = document.createDocumentFragment();
             chat.messages.forEach(msg => {
                 // Extract agent info if present in message
                 const agent = (msg.agentId && msg.agentName && msg.agentColor) ? {
@@ -179,8 +184,17 @@ const Chat = {
                     name: msg.agentName,
                     color: msg.agentColor
                 } : null;
-                UI.addMessage(msg.content, msg.isUser, msg.files || [], agent);
+                // Use batch version that returns element without appending
+                const messageEl = UI.createMessageElement(msg.content, msg.isUser, msg.files || [], agent);
+                fragment.appendChild(messageEl);
             });
+
+            // Single DOM operation: append all messages at once
+            UI.elements.chatMessages.appendChild(fragment);
+
+            // Clear loading flag and scroll once at the end
+            this.isLoadingChat = false;
+            UI.scrollToBottom();
 
             // Update active chat in sidebar
             this.updateActiveChatInSidebar(chatId);

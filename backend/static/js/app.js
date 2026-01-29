@@ -15,11 +15,14 @@ const App = {
             return;
         }
 
+        const startTime = performance.now();
+
         try {
             console.log('Initializing Apprised Chat...');
-            
+
             // Initialize modules
             this.initializeModules();
+            console.log(`Modules initialized in ${(performance.now() - startTime).toFixed(0)}ms`);
             
             // Set up global event listeners
             this.bindGlobalEvents();
@@ -49,7 +52,7 @@ const App = {
             }
             
             this.state.initialized = true;
-            console.log('Apprised Chat initialized successfully');
+            console.log(`Apprised Chat initialized in ${(performance.now() - startTime).toFixed(0)}ms`);
             
         } catch (error) {
             console.error('Failed to initialize app:', error);
@@ -100,15 +103,13 @@ const App = {
             console.error('Failed to initialize MobileSheets:', error);
         }
 
-        // Initialize mobile attachments (depends on Mobile module)
-        try {
+        // Defer mobile attachments (only needed when user attaches files)
+        this.deferInit(() => {
             if (typeof MobileAttachments !== 'undefined') {
                 MobileAttachments.init();
-                console.log('MobileAttachments module initialized');
+                console.log('MobileAttachments module initialized (deferred)');
             }
-        } catch (error) {
-            console.error('Failed to initialize MobileAttachments:', error);
-        }
+        });
 
         // Initialize system prompts first (needed for chat)
         try {
@@ -134,14 +135,16 @@ const App = {
             console.error('Failed to initialize Documents:', error);
         }
 
-        // Initialize Claude changes module
-        try {
-            ClaudeChanges.bindKeyboardShortcuts();
-            this.bindClaudeChangesEvents();
-            console.log('ClaudeChanges module initialized');
-        } catch (error) {
-            console.error('Failed to initialize ClaudeChanges:', error);
-        }
+        // Defer Claude changes module (only needed when reviewing edits)
+        this.deferInit(() => {
+            try {
+                ClaudeChanges.bindKeyboardShortcuts();
+                this.bindClaudeChangesEvents();
+                console.log('ClaudeChanges module initialized (deferred)');
+            } catch (error) {
+                console.error('Failed to initialize ClaudeChanges:', error);
+            }
+        });
 
         // Initialize chat module
         try {
@@ -151,15 +154,17 @@ const App = {
             console.error('Failed to initialize Chat:', error);
         }
 
-        // Initialize moderator module (multi-agent orchestration)
-        try {
-            if (typeof Moderator !== 'undefined') {
-                Moderator.init();
-                console.log('Moderator module initialized');
+        // Defer moderator module (only needed for multi-agent mode)
+        this.deferInit(() => {
+            try {
+                if (typeof Moderator !== 'undefined') {
+                    Moderator.init();
+                    console.log('Moderator module initialized (deferred)');
+                }
+            } catch (error) {
+                console.error('Failed to initialize Moderator:', error);
             }
-        } catch (error) {
-            console.error('Failed to initialize Moderator:', error);
-        }
+        });
 
         // Initialize agents module
         try {
@@ -203,15 +208,27 @@ const App = {
             console.error('Failed to initialize GDrive:', error);
         }
 
-        // Initialize help module
-        try {
-            Help.init();
-            console.log('Help module initialized');
-        } catch (error) {
-            console.error('Failed to initialize Help:', error);
-        }
+        // Defer help module (rarely used at startup)
+        this.deferInit(() => {
+            try {
+                Help.init();
+                console.log('Help module initialized (deferred)');
+            } catch (error) {
+                console.error('Failed to initialize Help:', error);
+            }
+        });
 
         console.log('Module initialization completed');
+    },
+
+    // Defer non-critical initialization using requestIdleCallback
+    deferInit(callback) {
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(callback, { timeout: 2000 });
+        } else {
+            // Fallback for Safari
+            setTimeout(callback, 100);
+        }
     },
 
     // Bind Claude changes review panel events

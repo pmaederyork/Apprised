@@ -193,11 +193,11 @@ const GDrive = {
     },
 
     // Initialize Google Drive integration
-    async init() {
+    init() {
         if (this.initialized) return;
 
-        // Check connection status from backend
-        await this.checkConnectionStatus();
+        // Check connection status from backend (don't await - let it run in background)
+        this.checkConnectionStatus();
 
         // Load Google Picker API for file selection
         this.loadPickerAPI();

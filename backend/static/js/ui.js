@@ -140,7 +140,9 @@ const UI = {
     },
 
     // Message utilities
-    addMessage(content, isUser = false, files = [], agent = null) {
+
+    // Create message element without appending (for batch rendering)
+    createMessageElement(content, isUser = false, files = [], agent = null) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isUser ? 'user' : 'claude'}`;
 
@@ -168,7 +170,7 @@ const UI = {
 
                 const fileDiv = document.createElement('div');
                 fileDiv.className = 'message-file';
-                
+
                 if (file.type.startsWith('image/')) {
                     const img = document.createElement('img');
                     img.src = file.data;
@@ -179,21 +181,21 @@ const UI = {
                     const icon = document.createElement('span');
                     icon.className = 'message-file-icon';
                     icon.textContent = '📎';
-                    
+
                     const name = document.createElement('span');
                     name.className = 'message-file-name';
                     name.textContent = file.name;
-                    
+
                     fileDiv.appendChild(icon);
                     fileDiv.appendChild(name);
                 }
-                
+
                 filesDiv.appendChild(fileDiv);
             });
-            
+
             messageDiv.appendChild(filesDiv);
         }
-        
+
         const bubbleDiv = document.createElement('div');
         bubbleDiv.className = 'message-bubble';
 
@@ -219,18 +221,33 @@ const UI = {
         } else {
             bubbleDiv.textContent = content;
         }
-        
+
         messageDiv.appendChild(bubbleDiv);
-        
+
         // Add copy-to-document button for Claude messages when appropriate
         if (!isUser) {
             this.addCopyToDocumentButton(messageDiv, bubbleDiv);
         }
-        
+
+        // Store bubble reference for potential streaming updates
+        messageDiv._bubble = bubbleDiv;
+
+        return messageDiv;
+    },
+
+    // Add message and append to DOM (original behavior)
+    addMessage(content, isUser = false, files = [], agent = null) {
+        const messageDiv = this.createMessageElement(content, isUser, files, agent);
         this.elements.chatMessages.appendChild(messageDiv);
         this.autoScroll();
+        return messageDiv._bubble; // Return bubble for streaming updates
+    },
 
-        return bubbleDiv; // Return bubble for streaming updates
+    // Scroll to bottom immediately (for batch operations)
+    scrollToBottom() {
+        if (this.elements.chatMessages) {
+            this.elements.chatMessages.scrollTop = this.elements.chatMessages.scrollHeight;
+        }
     },
 
     addStreamingMessage(isUser = false, agent = null) {
