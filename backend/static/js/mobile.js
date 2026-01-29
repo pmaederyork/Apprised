@@ -441,43 +441,10 @@ const Mobile = {
         // Toggle keyboard-open class for CSS
         document.body.classList.toggle('keyboard-open', isKeyboardOpen);
 
-        // Log for debugging
-        console.log('Keyboard change:', isKeyboardOpen ? 'open' : 'closed', 'height:', this.keyboardHeight);
+        // CSS handles layout via --keyboard-height variable (set in setupKeyboardFallback)
+        // No direct style manipulation needed - single source of truth in CSS
 
-        // Directly adjust layouts for iOS Safari (CSS variables may not work reliably)
-        this.adjustLayoutForKeyboard(isKeyboardOpen);
-
-        // Scroll active input into view when keyboard appears
-        const activeElement = document.activeElement;
-        if (isKeyboardOpen && activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA' || activeElement.isContentEditable)) {
-            setTimeout(() => {
-                activeElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }, 150);
-        }
-    },
-
-    adjustLayoutForKeyboard(isOpen) {
-        // Get elements that need adjustment
-        const chatContainer = document.querySelector('.chat-container');
-        const appContainer = document.querySelector('.app-container');
-
-        if (isOpen && this.keyboardHeight > 0) {
-            // Apply direct styles for keyboard open state
-            if (chatContainer && document.body.classList.contains('chat-only-mode')) {
-                chatContainer.style.bottom = `${this.keyboardHeight}px`;
-            }
-
-            if (appContainer && document.body.classList.contains('split-view')) {
-                appContainer.style.height = `calc(100dvh - ${this.keyboardHeight}px)`;
-            }
-        } else {
-            // Reset to default (let CSS handle it)
-            if (chatContainer) {
-                chatContainer.style.bottom = '';
-            }
-            if (appContainer) {
-                appContainer.style.height = '';
-            }
-        }
+        // Note: Removed scrollIntoView - it was causing the whole screen to scroll
+        // iOS handles input visibility automatically when keyboard opens
     }
 };

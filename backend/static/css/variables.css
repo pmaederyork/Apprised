@@ -3,6 +3,11 @@
  * Professional CSS Variables for consistent theming
  */
 
+html {
+  /* Background color for areas outside app (e.g., behind keyboard on mobile) */
+  background-color: var(--color-primary-light, #eff6ff);
+}
+
 :root {
   /* ===== Base Font Size ===== */
   font-size: 16px;  /* Explicit base font size for consistent scaling */
@@ -221,6 +226,11 @@
   --scrollbar-track: #292524;
   --scrollbar-thumb: #57534e;
   --scrollbar-thumb-hover: #78716c;
+}
+
+/* Dark mode html background (for area behind keyboard on mobile) */
+html[data-theme="dark"] {
+  background-color: #1c1917; /* gray-900 - matches dark theme */
 }
 
 /* ===== Scrollbar Styling ===== */

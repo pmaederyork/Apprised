@@ -60,7 +60,8 @@ body.is-mobile .sidebar {
   max-width: 320px;
   background: var(--color-sidebar-bg, #1a1a1a);
   transform: translateX(-100%);
-  transition: transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
+  transition: transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1),
+              visibility 0s 300ms; /* Hide after transform completes */
   will-change: transform;
   z-index: 999;
   display: flex !important;
@@ -69,11 +70,15 @@ body.is-mobile .sidebar {
   -webkit-overflow-scrolling: touch;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  visibility: hidden; /* Prevent showing during scroll bounce */
 }
 
 /* Drawer open state */
 body.is-mobile .sidebar.drawer-open {
   transform: translateX(0);
+  visibility: visible;
+  transition: transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1),
+              visibility 0s 0s; /* Show immediately */
 }
 
 /* Sidebar content adjustments for drawer */

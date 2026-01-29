@@ -51,6 +51,14 @@ body.is-mobile {
   position: fixed;
   width: 100%;
   height: 100%;
+  overscroll-behavior: none; /* Prevent elastic scroll bounce */
+}
+
+/* Prevent overscroll on main containers */
+body.is-mobile .app-container,
+body.is-mobile .chat-container,
+body.is-mobile .document-editor {
+  overscroll-behavior: contain; /* Contain scroll within element */
 }
 
 body.is-mobile * {

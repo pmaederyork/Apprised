@@ -79,16 +79,21 @@ body.is-mobile .theme-selector-trigger:active {
     background: var(--color-bg-white);
     border-radius: 16px 16px 0 0;
     transform: translateY(100%);
-    transition: transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
+    transition: transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1),
+                visibility 0s 300ms; /* Hide after transform completes */
     will-change: transform;
     z-index: 2100;
     display: flex;
     flex-direction: column;
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    visibility: hidden; /* Prevent showing during scroll bounce */
 }
 
 .bottom-sheet.open {
     transform: translateY(0);
+    visibility: visible;
+    transition: transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1),
+                visibility 0s 0s; /* Show immediately */
 }
 
 .bottom-sheet.dragging {
@@ -271,12 +276,17 @@ body.is-mobile .theme-selector-trigger:active {
     display: flex;
     flex-direction: column;
     transform: translateX(100%);
-    transition: transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1);
+    transition: transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1),
+                visibility 0s 300ms; /* Hide after transform completes */
     will-change: transform;
+    visibility: hidden; /* Prevent showing during scroll bounce */
 }
 
 .mobile-fullscreen-modal.open {
     transform: translateX(0);
+    visibility: visible;
+    transition: transform 300ms cubic-bezier(0.4, 0.0, 0.2, 1),
+                visibility 0s 0s; /* Show immediately */
 }
 
 .fullscreen-modal-header {
