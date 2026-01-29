@@ -2,6 +2,7 @@
 
 import anthropic
 from flask import Flask, render_template, request, jsonify, Response, redirect, url_for, make_response
+from werkzeug.middleware.proxy_fix import ProxyFix
 import json
 import os
 import base64
@@ -27,6 +28,9 @@ logging.basicConfig(
 app = Flask(__name__,
             static_folder='static',
             template_folder='templates')
+
+# Trust proxy headers (for Railway, Vercel, etc.)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 # Configuration
 app.config['SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-secret-key-change-in-production')
