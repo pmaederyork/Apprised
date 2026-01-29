@@ -444,6 +444,7 @@ const GDrive = {
             const picker = new google.picker.PickerBuilder()
                 .addView(google.picker.ViewId.DOCS)
                 .setOAuthToken(tokenData.accessToken)
+                .setOrigin(window.location.origin)
                 .setCallback(async (data) => {
                     if (data.action === google.picker.Action.PICKED) {
                         await this.handlePickerSelection(data.docs[0]);
@@ -619,6 +620,7 @@ const GDrive = {
             const picker = new google.picker.PickerBuilder()
                 .addView(google.picker.ViewId.RECENTLY_PICKED)
                 .setOAuthToken(tokenData.accessToken)
+                .setOrigin(window.location.origin)
                 .setTitle('Select a file to link')
                 .setCallback(async (data) => {
                     if (data.action === google.picker.Action.PICKED) {
@@ -793,8 +795,8 @@ const GDrive = {
                 return;
             }
 
-            // Create a folder view
-            const folderView = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+            // Create a folder view (use DocsView instead of FOLDERS view for mobile compatibility)
+            const folderView = new google.picker.DocsView()
                 .setSelectFolderEnabled(true)
                 .setIncludeFolders(true)
                 .setMimeTypes('application/vnd.google-apps.folder');
@@ -803,6 +805,7 @@ const GDrive = {
             const picker = new google.picker.PickerBuilder()
                 .addView(folderView)
                 .setOAuthToken(tokenData.accessToken)
+                .setOrigin(window.location.origin)
                 .setTitle('Select default folder for new documents')
                 .setCallback((data) => {
                     if (data.action === google.picker.Action.PICKED) {
