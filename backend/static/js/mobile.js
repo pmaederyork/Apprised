@@ -441,10 +441,18 @@ const Mobile = {
         // Toggle keyboard-open class for CSS
         document.body.classList.toggle('keyboard-open', isKeyboardOpen);
 
+        // Auto-collapse chat when editing document (not when typing in chat)
+        if (isKeyboardOpen && this.isMobileView() && this.documentOpen) {
+            const activeElement = document.activeElement;
+            const documentEditor = document.querySelector('.document-editor');
+            const isEditingDocument = documentEditor && documentEditor.contains(activeElement);
+
+            if (isEditingDocument && !this.chatCollapsed) {
+                this.setChatCollapsed(true);
+            }
+        }
+
         // CSS handles layout via --keyboard-height variable (set in setupKeyboardFallback)
         // No direct style manipulation needed - single source of truth in CSS
-
-        // Note: Removed scrollIntoView - it was causing the whole screen to scroll
-        // iOS handles input visibility automatically when keyboard opens
     }
 };

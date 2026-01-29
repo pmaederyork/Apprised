@@ -39,9 +39,9 @@ body.is-mobile.split-view .app-container {
 }
 
 /* ===== Portrait Split View ===== */
-/* Editor top 60%, chat bottom 40% */
+/* Editor top 50%, chat bottom 50% */
 body.is-mobile.is-portrait.split-view .app-container {
-  grid-template-rows: 60% 40%;
+  grid-template-rows: 50% 50%;
   grid-template-columns: 1fr;
   grid-template-areas:
     "editor"
