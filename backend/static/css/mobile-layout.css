@@ -24,11 +24,12 @@ body.is-mobile.chat-only-mode .chat-container {
   body.is-mobile.chat-only-mode .chat-container {
     /* Container extends to TRUE screen edges - no safe area gaps */
     position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important; /* True bottom of screen */
-    height: auto !important;
+    inset: 0 !important; /* Shorthand for top/right/bottom/left: 0 */
+    /* Use dvh for full viewport height including home indicator area */
+    width: 100% !important;
+    height: 100vh !important;
+    height: 100dvh !important; /* Modern browsers */
+    min-height: -webkit-fill-available; /* iOS fallback */
     /* Side padding for landscape notch */
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
@@ -71,11 +72,12 @@ body.is-mobile.split-view .app-container {
   body.is-mobile.split-view .app-container {
     /* Container fills TRUE screen edges */
     position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    height: auto !important;
+    inset: 0 !important;
+    /* Use dvh for full viewport height including home indicator area */
+    width: 100% !important;
+    height: 100vh !important;
+    height: 100dvh !important; /* Modern browsers */
+    min-height: -webkit-fill-available; /* iOS fallback */
     /* NO padding on container - elements handle their own safe areas */
     padding: 0 !important;
     /* Ensure background fills entire space */

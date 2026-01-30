@@ -70,21 +70,35 @@ body.is-mobile {
 /* ===== Standalone PWA Mode ===== */
 /* Additional handling when launched from home screen */
 @media (display-mode: standalone) {
-  /* Root elements fill entire screen */
-  html, body {
-    /* Ensure background fills entire viewport including notch area */
+  /* Root elements fill entire screen including safe area */
+  html {
+    /* Ensure background fills entire viewport including notch/home indicator area */
     background: var(--color-bg-white);
     /* Aggressively prevent any page scroll in standalone mode */
     position: fixed !important;
     overflow: hidden !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
+    inset: 0 !important;
+    /* Use dvh for true viewport height on iOS - includes home indicator area */
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important; /* Modern browsers - true dynamic viewport */
+    min-height: 0 !important;
+    max-height: none !important;
+    /* Fallback for older iOS that doesn't support dvh */
+    min-height: -webkit-fill-available;
+  }
+
+  body {
+    background: var(--color-bg-white);
+    position: fixed !important;
+    overflow: hidden !important;
+    inset: 0 !important;
     width: 100% !important;
     height: 100% !important;
-    min-height: 0 !important; /* Override main.css min-height: 100vh */
+    min-height: 0 !important;
     max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   html[data-theme="dark"], html[data-theme="dark"] body {
@@ -94,10 +108,7 @@ body.is-mobile {
   /* App container fills entire screen - elements handle their own safe areas */
   .app-container {
     position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
+    inset: 0 !important;
     width: 100% !important;
     height: 100% !important;
     min-height: 0 !important;

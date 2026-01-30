@@ -102,6 +102,10 @@ body.is-mobile .sidebar .sidebar-footer {
   body.is-mobile .sidebar {
     top: 0 !important;
     bottom: 0 !important;
+    /* Use dvh for full viewport height including home indicator area */
+    height: 100vh !important;
+    height: 100dvh !important; /* Modern browsers */
+    min-height: -webkit-fill-available; /* iOS fallback */
     padding: 0 !important;
   }
 
