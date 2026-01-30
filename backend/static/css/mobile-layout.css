@@ -19,15 +19,13 @@ body.is-mobile.chat-only-mode .chat-container {
   transition: bottom 0.15s ease-out;
 }
 
-/* Standalone PWA mode: respect safe areas */
+/* Standalone PWA mode: add padding for safe areas */
 @media (display-mode: standalone) {
   body.is-mobile.chat-only-mode .chat-container {
-    top: env(safe-area-inset-top, 0px);
-    left: env(safe-area-inset-left, 0px);
-    right: env(safe-area-inset-right, 0px);
-    width: auto;
-    /* Bottom is just keyboard height - no extra safe area calc */
-    /* The home indicator area is handled by the message input padding */
+    /* Keep top: 0 from base rule, use padding for safe area */
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
 }
 
@@ -56,22 +54,14 @@ body.is-mobile.split-view .app-container {
 @media (display-mode: standalone) {
   body.is-mobile.split-view .app-container {
     position: fixed;
-    top: env(safe-area-inset-top, 0px);
-    left: env(safe-area-inset-left, 0px);
-    right: env(safe-area-inset-right, 0px);
+    top: 0;
+    left: 0;
+    right: 0;
     bottom: var(--keyboard-height, 0px);
     height: auto;
     padding: 0;
+    padding-top: env(safe-area-inset-top, 0px); /* Push content below notch */
     transition: bottom 0.15s ease-out;
-  }
-
-  /* When keyboard opens, editor stays at half viewport, chat shrinks to fit */
-  body.is-mobile.is-portrait.split-view.keyboard-open .app-container {
-    grid-template-rows: 50dvh 1fr;
-  }
-
-  body.is-mobile.is-landscape.split-view.keyboard-open .app-container {
-    grid-template-columns: 50dvw 1fr;
   }
 }
 
