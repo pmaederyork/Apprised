@@ -511,49 +511,73 @@ const Mobile = {
     /**
      * Pre-emptively resize layout on focus BEFORE iOS decides to scroll.
      * iOS scrolls the page when it thinks a focused input will be hidden by the keyboard.
-     * By applying the estimated keyboard height immediately on focus (capture phase),
+     * By applying the estimated keyboard height immediately on touch/focus (capture phase),
      * the input moves up before iOS checks, so iOS doesn't scroll.
      */
     setupPreemptiveResize() {
-        document.addEventListener('focusin', (e) => {
+        // Cache keyboard height at init - no calculation during touch/focus
+        this._cachedKeyboardHeight = this.getEstimatedKeyboardHeight();
+        this._cachedLandscapeKeyboardHeight = 200;
+
+        // Also update cache on orientation change
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                this._cachedKeyboardHeight = this.getEstimatedKeyboardHeight();
+            }, 100);
+        });
+
+        // Helper to check if element is a text input (textarea, input, or contenteditable)
+        const isTextInput = (el) => {
+            if (!el) return false;
+            return el.tagName === 'TEXTAREA' ||
+                   el.tagName === 'INPUT' ||
+                   el.isContentEditable ||
+                   el.closest('[contenteditable="true"]');
+        };
+
+        // Helper to apply keyboard height immediately
+        const applyKeyboardHeight = () => {
+            const height = this.isLandscape() ? this._cachedLandscapeKeyboardHeight : this._cachedKeyboardHeight;
+            document.documentElement.style.setProperty('--keyboard-height', `${height}px`);
+            document.body.classList.add('keyboard-open', 'keyboard-animating');
+            this._lastKeyboardHeight = height;
+            this.keyboardHeight = height;
+
+            clearTimeout(this._keyboardAnimationTimer);
+            this._keyboardAnimationTimer = setTimeout(() => {
+                document.body.classList.remove('keyboard-animating');
+            }, 350);
+        };
+
+        // FASTEST: touchstart fires before focus
+        // Handle ALL text inputs (chat and document editor)
+        document.addEventListener('touchstart', (e) => {
             if (!this.isMobileView()) return;
 
             const target = e.target;
-            const isTextInput = target.tagName === 'TEXTAREA' ||
-                               target.tagName === 'INPUT' ||
-                               target.isContentEditable;
+            if (!isTextInput(target)) return;
 
-            if (!isTextInput) return;
+            applyKeyboardHeight();
+        }, { capture: true, passive: true });
 
-            // Only pre-resize for inputs in chat area (bottom of screen)
-            // Document editor is higher up, so iOS doesn't scroll for it
-            const chatContainer = document.querySelector('.chat-container');
-            const isInChat = chatContainer?.contains(target);
+        // Backup: focusin for non-touch scenarios (keyboard navigation, etc.)
+        document.addEventListener('focusin', (e) => {
+            if (!this.isMobileView()) return;
+            if (this._lastKeyboardHeight > 50) return; // Already applied via touchstart
 
-            if (isInChat) {
-                // Get device-specific estimate (recalculate each time for orientation changes)
-                const estimatedHeight = this.getEstimatedKeyboardHeight();
+            const target = e.target;
+            if (!isTextInput(target)) return;
 
-                // Apply estimated height IMMEDIATELY in capture phase
-                // This happens before iOS's scroll calculation
-                this.startKeyboardAnimation();
-                this.updateKeyboardHeight(estimatedHeight);
-            }
-        }, { capture: true }); // Capture phase runs before bubble phase
+            applyKeyboardHeight();
+        }, { capture: true });
 
         document.addEventListener('focusout', (e) => {
             if (!this.isMobileView()) return;
 
             // Small delay to check if focus moved to another text input
-            // (e.g., tabbing between fields shouldn't close keyboard)
             setTimeout(() => {
                 const active = document.activeElement;
-                const isTextInput = active?.tagName === 'TEXTAREA' ||
-                                   active?.tagName === 'INPUT' ||
-                                   active?.isContentEditable;
-
-                // Only reset if focus left all text inputs
-                if (!isTextInput) {
+                if (!isTextInput(active)) {
                     this.updateKeyboardHeight(0);
                 }
             }, 50);
