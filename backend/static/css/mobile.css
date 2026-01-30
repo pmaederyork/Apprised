@@ -73,7 +73,7 @@ body.is-mobile {
   /* Root elements fill entire screen including safe area */
   html {
     /* Ensure background fills entire viewport including notch/home indicator area */
-    background: var(--color-bg-white);
+    background: var(--color-bg-white) !important;
     /* Aggressively prevent any page scroll in standalone mode */
     position: fixed !important;
     overflow: hidden !important;
@@ -89,7 +89,7 @@ body.is-mobile {
   }
 
   body {
-    background: var(--color-bg-white);
+    background: var(--color-bg-white) !important;
     position: fixed !important;
     overflow: hidden !important;
     inset: 0 !important;
@@ -101,8 +101,27 @@ body.is-mobile {
     padding: 0 !important;
   }
 
+  /* Dark mode - must use !important to override and match content background */
   html[data-theme="dark"], html[data-theme="dark"] body {
-    background: #1c1917;
+    background: var(--gray-900, #1c1917) !important;
+  }
+
+  /* Fill the bottom safe area with background as fallback */
+  /* Content now extends into this area functionally */
+  body::after {
+    content: '';
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: env(safe-area-inset-bottom, 0px);
+    background: var(--color-bg-white);
+    z-index: -1; /* Behind all content - just fills any gap */
+    pointer-events: none;
+  }
+
+  [data-theme="dark"] body::after {
+    background: var(--gray-900, #1c1917);
   }
 
   /* App container fills entire screen - elements handle their own safe areas */

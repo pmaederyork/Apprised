@@ -268,9 +268,13 @@ body.is-mobile .chat-input-container {
         min-height: calc(var(--mobile-header-height, 48px) + env(safe-area-inset-top, 0px));
     }
 
-    /* Input container includes home indicator area */
+    /* Input container - use the safe area functionally (no extra padding) */
+    /* Content sits lower, closer to the home indicator */
     body.is-mobile .chat-input-container {
-        padding-bottom: env(safe-area-inset-bottom, 12px);
+        /* Small padding just for visual comfort, not full safe area */
+        padding-bottom: 8px;
+        /* Ensure background fills to edge */
+        background: var(--color-bg-white) !important;
     }
 }
 

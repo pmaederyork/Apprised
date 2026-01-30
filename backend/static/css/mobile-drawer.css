@@ -96,7 +96,7 @@ body.is-mobile .sidebar .sidebar-footer {
   box-sizing: border-box;
 }
 
-/* Standalone PWA: sidebar extends to true screen edge, content has safe area padding */
+/* Standalone PWA: sidebar extends to true screen edge, content uses safe area */
 @media (display-mode: standalone) {
   /* Sidebar background goes to true screen edges - no gap at bottom */
   body.is-mobile .sidebar {
@@ -115,9 +115,12 @@ body.is-mobile .sidebar .sidebar-footer {
     min-height: calc(var(--mobile-header-height, 48px) + env(safe-area-inset-top, 0px));
   }
 
-  /* Footer content padded for home indicator */
+  /* Footer uses safe area functionally - content sits lower */
   body.is-mobile .sidebar .sidebar-footer {
-    padding-bottom: env(safe-area-inset-bottom, 12px);
+    /* Minimal padding - content extends into safe area */
+    padding-bottom: 8px;
+    /* Ensure background fills to edge */
+    background: var(--color-sidebar-bg) !important;
   }
 }
 
