@@ -11,12 +11,19 @@ body.is-mobile.chat-only-mode .chat-container {
   top: env(safe-area-inset-top, 0px); /* Respect notch in standalone PWA mode */
   left: env(safe-area-inset-left, 0px);
   right: env(safe-area-inset-right, 0px);
-  bottom: var(--keyboard-height, 0px); /* Shrink from bottom when keyboard opens */
+  bottom: calc(var(--keyboard-height, 0px) + env(safe-area-inset-bottom, 0px)); /* Account for home indicator when keyboard closed */
   height: auto;
   width: auto;
   display: flex;
   flex-direction: column;
-  transition: bottom 0.15s ease-out, top 0.15s ease-out;
+  transition: bottom 0.15s ease-out;
+  /* Prevent content from scrolling under notch */
+  overflow: hidden;
+}
+
+/* When keyboard is open, remove bottom safe area (keyboard covers it) */
+body.is-mobile.chat-only-mode.keyboard-open .chat-container {
+  bottom: var(--keyboard-height, 0px);
 }
 
 body.is-mobile.chat-only-mode .document-editor {
@@ -38,6 +45,24 @@ body.is-mobile.split-view .app-container {
   transition: height 0.15s ease-out;
   /* Safe areas handled by padding in mobile.css */
   box-sizing: border-box;
+}
+
+/* Standalone PWA mode: ensure proper safe area handling in split view */
+@media (display-mode: standalone) {
+  body.is-mobile.split-view .app-container {
+    /* In standalone mode, use fixed positioning like chat-only for consistent safe area handling */
+    position: fixed;
+    top: env(safe-area-inset-top, 0px);
+    left: env(safe-area-inset-left, 0px);
+    right: env(safe-area-inset-right, 0px);
+    bottom: calc(var(--keyboard-height, 0px) + env(safe-area-inset-bottom, 0px));
+    height: auto;
+    padding: 0; /* Safe areas handled by fixed positioning */
+  }
+
+  body.is-mobile.split-view.keyboard-open .app-container {
+    bottom: var(--keyboard-height, 0px);
+  }
 }
 
 /* ===== Portrait Split View ===== */
