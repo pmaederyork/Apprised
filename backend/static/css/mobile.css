@@ -67,6 +67,19 @@ body.is-mobile {
   background: var(--color-bg-white);
 }
 
+/* ===== Standalone PWA Mode ===== */
+/* Additional handling when launched from home screen */
+@media (display-mode: standalone) {
+  html, body {
+    /* Ensure background fills entire viewport including notch area */
+    background: var(--color-bg-white);
+  }
+
+  html[data-theme="dark"], html[data-theme="dark"] body {
+    background: #1c1917;
+  }
+}
+
 /* Prevent overscroll on main containers */
 body.is-mobile .app-container,
 body.is-mobile .chat-container,

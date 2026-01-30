@@ -8,15 +8,15 @@
 /* Full-screen chat when no document is open */
 body.is-mobile.chat-only-mode .chat-container {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: env(safe-area-inset-top, 0px); /* Respect notch in standalone PWA mode */
+  left: env(safe-area-inset-left, 0px);
+  right: env(safe-area-inset-right, 0px);
   bottom: var(--keyboard-height, 0px); /* Shrink from bottom when keyboard opens */
   height: auto;
-  width: 100%;
+  width: auto;
   display: flex;
   flex-direction: column;
-  transition: bottom 0.15s ease-out;
+  transition: bottom 0.15s ease-out, top 0.15s ease-out;
 }
 
 body.is-mobile.chat-only-mode .document-editor {
@@ -36,6 +36,8 @@ body.is-mobile.split-view .app-container {
   height: calc(100dvh - var(--keyboard-height, 0px)); /* Shrink for keyboard */
   overflow: hidden;
   transition: height 0.15s ease-out;
+  /* Safe areas handled by padding in mobile.css */
+  box-sizing: border-box;
 }
 
 /* ===== Portrait Split View ===== */
