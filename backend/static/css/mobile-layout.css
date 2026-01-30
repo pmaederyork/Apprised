@@ -8,15 +8,13 @@
 /* Full-screen chat when no document is open */
 body.is-mobile.chat-only-mode .chat-container {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: var(--keyboard-height, 0px);
+  inset: 0; /* Fill entire viewport */
   height: auto;
   width: 100%;
   display: flex;
   flex-direction: column;
-  /* No transition on bottom - iOS keyboard needs instant response to prevent double-render */
+  /* Keyboard handled via padding, not position changes - avoids layout reflow */
+  padding-bottom: var(--keyboard-height, 0px);
 }
 
 /* Standalone PWA mode: container fills entire screen, content handles safe areas */
@@ -24,7 +22,7 @@ body.is-mobile.chat-only-mode .chat-container {
   body.is-mobile.chat-only-mode .chat-container {
     /* Container extends to TRUE screen edges - no safe area gaps */
     position: fixed !important;
-    inset: 0 !important; /* Shorthand for top/right/bottom/left: 0 */
+    inset: 0 !important;
     /* Use dvh for full viewport height including home indicator area */
     width: 100% !important;
     height: 100vh !important;
@@ -33,16 +31,10 @@ body.is-mobile.chat-only-mode .chat-container {
     /* Side padding for landscape notch */
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
-    /* NO top/bottom padding - header and input handle safe areas */
     padding-top: 0;
-    padding-bottom: 0;
+    /* Bottom padding already handled by base rule via --keyboard-height */
     /* Ensure background fills entire space */
     background: var(--color-bg-white) !important;
-  }
-
-  /* When keyboard open, add padding at bottom instead of moving container */
-  body.is-mobile.chat-only-mode.keyboard-open .chat-container {
-    padding-bottom: var(--keyboard-height, 0px);
   }
 }
 
@@ -62,8 +54,8 @@ body.is-mobile.split-view .app-container {
   box-sizing: border-box;
   height: 100vh;
   height: 100dvh;
-  height: calc(100dvh - var(--keyboard-height, 0px));
-  /* No transition on height - iOS keyboard needs instant response */
+  /* Keyboard handled via padding, not height changes - avoids layout reflow */
+  padding-bottom: var(--keyboard-height, 0px);
   /* Safe areas handled by padding in mobile.css */
 }
 
@@ -78,15 +70,12 @@ body.is-mobile.split-view .app-container {
     height: 100vh !important;
     height: 100dvh !important; /* Modern browsers */
     min-height: -webkit-fill-available; /* iOS fallback */
-    /* NO padding on container - elements handle their own safe areas */
-    padding: 0 !important;
+    /* Side padding only - bottom handled by base rule via --keyboard-height */
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: 0 !important;
     /* Ensure background fills entire space */
     background: var(--color-bg-white) !important;
-  }
-
-  /* When keyboard open, add padding at bottom */
-  body.is-mobile.split-view.keyboard-open .app-container {
-    padding-bottom: var(--keyboard-height, 0px) !important;
   }
 }
 
@@ -248,6 +237,35 @@ body.is-mobile .chat-container,
 body.is-mobile .document-editor {
   transition: min-height 300ms ease-out, max-height 300ms ease-out,
               min-width 300ms ease-out, max-width 300ms ease-out;
+}
+
+/* ===== Keyboard Animation Performance ===== */
+/* Disable ALL transitions during keyboard open/close for instant response */
+body.is-mobile.keyboard-animating,
+body.is-mobile.keyboard-animating *,
+body.is-mobile.keyboard-animating *::before,
+body.is-mobile.keyboard-animating *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* GPU acceleration hints for keyboard-affected elements */
+body.is-mobile.chat-only-mode .chat-container {
+  will-change: padding-bottom;
+  contain: layout style;
+}
+
+body.is-mobile.split-view .app-container {
+  will-change: padding-bottom;
+}
+
+body.is-mobile .chat-input-container {
+  contain: layout style;
+}
+
+body.is-mobile .chat-messages {
+  will-change: contents;
+  contain: layout paint; /* Not 'strict' - size containment breaks flex scrolling */
 }
 
 /* ===== Desktop Override ===== */

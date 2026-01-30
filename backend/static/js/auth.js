@@ -222,6 +222,10 @@ const Auth = {
             UI.elements.userNameFooter.textContent = displayName;
         }
 
+        // Only bind event handlers once
+        if (this._userMenuHandlersBound) return;
+        this._userMenuHandlersBound = true;
+
         // Bind click handler for user profile to toggle menu
         if (UI.elements.userProfile) {
             UI.elements.userProfile.addEventListener('click', (e) => {

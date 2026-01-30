@@ -94,6 +94,8 @@ body.is-mobile .sidebar .sidebar-footer {
   padding: 12px;
   min-height: auto;
   box-sizing: border-box;
+  position: relative; /* Required for user-menu-dropdown absolute positioning */
+  overflow: visible; /* Allow dropdown to extend above footer */
 }
 
 /* Standalone PWA: sidebar extends to true screen edge, content uses safe area */
@@ -121,6 +123,7 @@ body.is-mobile .sidebar .sidebar-footer {
     padding-bottom: 8px;
     /* Ensure background fills to edge */
     background: var(--color-sidebar-bg) !important;
+    position: relative; /* Required for user-menu-dropdown absolute positioning */
   }
 }
 

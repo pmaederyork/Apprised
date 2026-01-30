@@ -356,17 +356,16 @@ const Mobile = {
     },
 
     initKeyboardHandling() {
+        // Track keyboard state for animation class
+        this._keyboardAnimating = false;
+        this._lastKeyboardHeight = 0;
+
         // Use VirtualKeyboard API if available (Chrome on Android)
         if ('virtualKeyboard' in navigator) {
             navigator.virtualKeyboard.overlaysContent = true;
 
             navigator.virtualKeyboard.addEventListener('geometrychange', (e) => {
-                this.keyboardHeight = e.target.boundingRect.height;
-                document.documentElement.style.setProperty(
-                    '--keyboard-height',
-                    `${this.keyboardHeight}px`
-                );
-                this.handleKeyboardChange();
+                this.updateKeyboardHeight(e.target.boundingRect.height);
             });
         } else {
             // Fallback: listen for visual viewport changes (Safari/older browsers)
@@ -375,103 +374,43 @@ const Mobile = {
     },
 
     setupKeyboardFallback() {
-        // Track visual viewport changes for Safari/older browsers
-        if (window.visualViewport) {
-            let debounceTimer;
+        if (!window.visualViewport) return;
 
-            const handleViewportChange = () => {
-                // Debounce rapid changes (iOS Safari fires many events)
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => {
-                    const keyboardHeight = window.innerHeight - window.visualViewport.height;
-                    this.keyboardHeight = Math.max(0, keyboardHeight);
-                    document.documentElement.style.setProperty(
-                        '--keyboard-height',
-                        `${this.keyboardHeight}px`
-                    );
-                    this.handleKeyboardChange();
-                }, 50);
-            };
+        // Single, simple handler for viewport resize
+        const handleViewportResize = () => {
+            const keyboardHeight = Math.max(0, window.innerHeight - window.visualViewport.height);
+            this.updateKeyboardHeight(keyboardHeight);
+        };
 
-            // Only listen to resize - not scroll (scroll causes issues on iOS)
-            window.visualViewport.addEventListener('resize', handleViewportChange);
+        // Listen only to resize - this is the reliable signal for keyboard
+        window.visualViewport.addEventListener('resize', handleViewportResize);
 
-            // Reset any scroll when iOS tries to scroll the page for keyboard
-            window.visualViewport.addEventListener('scroll', () => {
-                // Immediately reset scroll position - don't let iOS scroll the page
-                if (this.isMobileView()) {
-                    // Always reset scroll in standalone PWA mode or when viewport is offset
-                    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                                         window.navigator.standalone === true;
-                    if (isStandalone || window.visualViewport.offsetTop > 0) {
-                        window.scrollTo(0, 0);
-                        document.documentElement.scrollTop = 0;
-                        document.body.scrollTop = 0;
-                    }
-                }
-            });
-
-            // Also trigger on initial load in case keyboard was already open
-            handleViewportChange();
-        }
-
-        // Fallback for browsers without visualViewport - use focus/blur on inputs
-        document.addEventListener('focusin', (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
-                // Immediately reset scroll to prevent iOS default scroll-to-input behavior
-                if (this.isMobileView()) {
-                    window.scrollTo(0, 0);
-                    document.documentElement.scrollTop = 0;
-                    document.body.scrollTop = 0;
-                }
-
-                // Assume keyboard will open, give iOS time to show it
-                setTimeout(() => {
-                    if (window.visualViewport) {
-                        const keyboardHeight = window.innerHeight - window.visualViewport.height;
-                        if (keyboardHeight > 50) {
-                            this.keyboardHeight = keyboardHeight;
-                            document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
-                            this.handleKeyboardChange();
-                        }
-                    }
-                    // Reset scroll again after keyboard animation
-                    if (this.isMobileView()) {
-                        window.scrollTo(0, 0);
-                    }
-                }, 300);
-            }
-        });
-
-        document.addEventListener('focusout', (e) => {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
-                // Keyboard likely closing
-                setTimeout(() => {
-                    if (window.visualViewport) {
-                        const keyboardHeight = window.innerHeight - window.visualViewport.height;
-                        if (keyboardHeight < 50) {
-                            this.keyboardHeight = 0;
-                            document.documentElement.style.setProperty('--keyboard-height', '0px');
-                            this.handleKeyboardChange();
-                        }
-                    }
-                }, 100);
-            }
-        });
+        // Initial check
+        handleViewportResize();
     },
 
-    handleKeyboardChange() {
-        const isKeyboardOpen = this.keyboardHeight > 50; // Threshold to detect real keyboard
+    updateKeyboardHeight(newHeight) {
+        // Only update if height actually changed significantly
+        const heightDelta = Math.abs(newHeight - this._lastKeyboardHeight);
+        if (heightDelta < 10) return;
 
-        // Toggle keyboard-open class for CSS
-        document.body.classList.toggle('keyboard-open', isKeyboardOpen);
+        const wasOpen = this._lastKeyboardHeight > 50;
+        const isOpening = newHeight > 50 && !wasOpen;
+        const isClosing = newHeight <= 50 && wasOpen;
 
-        // Reset any page scroll - app should compress, not scroll
-        if (this.isMobileView()) {
-            window.scrollTo(0, 0);
-            document.documentElement.scrollTop = 0;
-            document.body.scrollTop = 0;
+        // Start animation mode - disable all transitions
+        if (isOpening || isClosing) {
+            this.startKeyboardAnimation();
         }
+
+        // Update the CSS variable immediately (no debounce)
+        this.keyboardHeight = newHeight;
+        this._lastKeyboardHeight = newHeight;
+        document.documentElement.style.setProperty('--keyboard-height', `${newHeight}px`);
+
+        // Update keyboard-open class
+        const isKeyboardOpen = newHeight > 50;
+        document.body.classList.toggle('keyboard-open', isKeyboardOpen);
 
         // Auto-collapse chat when editing document (not when typing in chat)
         if (isKeyboardOpen && this.isMobileView() && this.documentOpen) {
@@ -483,8 +422,21 @@ const Mobile = {
                 this.setChatCollapsed(true);
             }
         }
+    },
 
-        // CSS handles layout via --keyboard-height variable (set in setupKeyboardFallback)
-        // No direct style manipulation needed - single source of truth in CSS
+    startKeyboardAnimation() {
+        // Add class to disable all transitions during keyboard animation
+        if (this._keyboardAnimating) return;
+
+        this._keyboardAnimating = true;
+        document.body.classList.add('keyboard-animating');
+
+        // Remove animation class after iOS keyboard animation completes (~300ms)
+        // Use slightly longer to ensure animation is fully done
+        clearTimeout(this._keyboardAnimationTimer);
+        this._keyboardAnimationTimer = setTimeout(() => {
+            this._keyboardAnimating = false;
+            document.body.classList.remove('keyboard-animating');
+        }, 350);
     }
 };

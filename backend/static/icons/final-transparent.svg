@@ -1,0 +1,27 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lineRG" gradientUnits="userSpaceOnUse" x1="256" y1="115" x2="125" y2="345">
+      <stop offset="0%" style="stop-color:#EA4335"/>
+      <stop offset="100%" style="stop-color:#34A853"/>
+    </linearGradient>
+    <linearGradient id="lineRB" gradientUnits="userSpaceOnUse" x1="256" y1="115" x2="387" y2="345">
+      <stop offset="0%" style="stop-color:#EA4335"/>
+      <stop offset="100%" style="stop-color:#4285F4"/>
+    </linearGradient>
+    <linearGradient id="lineGB" gradientUnits="userSpaceOnUse" x1="125" y1="345" x2="387" y2="345">
+      <stop offset="0%" style="stop-color:#34A853"/>
+      <stop offset="100%" style="stop-color:#4285F4"/>
+    </linearGradient>
+    <clipPath id="iosClip">
+      <rect width="512" height="512" rx="114" ry="114"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#iosClip)">
+    <line x1="256" y1="115" x2="125" y2="345" stroke="url(#lineRG)" stroke-width="14" stroke-linecap="round"/>
+    <line x1="256" y1="115" x2="387" y2="345" stroke="url(#lineRB)" stroke-width="14" stroke-linecap="round"/>
+    <line x1="125" y1="345" x2="387" y2="345" stroke="url(#lineGB)" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="256" cy="115" r="52" fill="#EA4335"/>
+    <circle cx="125" cy="345" r="52" fill="#34A853"/>
+    <circle cx="387" cy="345" r="52" fill="#4285F4"/>
+  </g>
+</svg>

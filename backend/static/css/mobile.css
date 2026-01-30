@@ -216,13 +216,15 @@ body.is-mobile select {
 /* Note: .message-input-container class doesn't exist in HTML */
 /* Bottom safe area is handled by .chat-input-container in mobile-panels.css */
 
-/* Prevent page scrolling when keyboard is open */
+/* Keyboard open state - let layout naturally compress, don't fight scroll */
 body.is-mobile.keyboard-open {
-  touch-action: none;
+  /* Allow normal touch interactions */
+  touch-action: manipulation;
 }
 
 body.is-mobile.keyboard-open .app-container {
-  touch-action: pan-y; /* Allow vertical scroll within app only */
+  /* Content scrolls normally within containers */
+  touch-action: pan-y;
 }
 
 /* Ensure chat messages area can shrink */
@@ -235,7 +237,7 @@ body.is-mobile .chat-messages {
 /* Bottom sheets should appear above keyboard */
 body.is-mobile .bottom-sheet {
   bottom: var(--keyboard-height, 0px);
-  transition: bottom 0.15s ease-out;
+  /* No transition - keyboard animation class handles this */
 }
 
 /* Modals with inputs should be scrollable when keyboard is up */

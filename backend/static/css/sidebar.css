@@ -22,7 +22,7 @@
 }
 
 .app-logo {
-    height: 28px;
+    height: 36px;
     width: auto;
     object-fit: contain;
 }
@@ -103,7 +103,8 @@
 /* User Menu Dropdown */
 .user-menu-dropdown {
     position: absolute;
-    bottom: 72px;
+    bottom: 100%; /* Position above the footer dynamically */
+    margin-bottom: 8px;
     left: 12px;
     right: 12px;
     background: var(--color-bg-white);
