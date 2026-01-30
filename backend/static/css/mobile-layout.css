@@ -64,6 +64,15 @@ body.is-mobile.split-view .app-container {
     padding: 0;
     transition: bottom 0.15s ease-out;
   }
+
+  /* When keyboard opens, editor stays at half viewport, chat shrinks to fit */
+  body.is-mobile.is-portrait.split-view.keyboard-open .app-container {
+    grid-template-rows: 50dvh 1fr;
+  }
+
+  body.is-mobile.is-landscape.split-view.keyboard-open .app-container {
+    grid-template-columns: 50dvw 1fr;
+  }
 }
 
 /* ===== Portrait Split View ===== */
