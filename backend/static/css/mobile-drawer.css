@@ -68,8 +68,7 @@ body.is-mobile .sidebar {
   flex-direction: column;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Safe areas handled by header/footer individually for alignment */
   visibility: hidden; /* Prevent showing during scroll bounce */
 }
 
@@ -82,9 +81,28 @@ body.is-mobile .sidebar.drawer-open {
 }
 
 /* Sidebar content adjustments for drawer */
+/* Match mobile chat header height for visual alignment */
 body.is-mobile .sidebar .sidebar-header {
-  padding: 16px;
+  padding: 8px 12px;
+  min-height: var(--mobile-header-height, 48px);
   border-bottom: 1px solid var(--color-border);
+}
+
+/* Sidebar footer - match chat input container height */
+body.is-mobile .sidebar .sidebar-footer {
+  padding: 8px 12px;
+  min-height: auto;
+}
+
+/* Standalone PWA: add safe areas to header/footer to align with chat */
+@media (display-mode: standalone) {
+  body.is-mobile .sidebar .sidebar-header {
+    padding-top: max(8px, env(safe-area-inset-top));
+  }
+
+  body.is-mobile .sidebar .sidebar-footer {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
 }
 
 /* Ensure sidebar sections are scrollable */
