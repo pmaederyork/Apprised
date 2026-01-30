@@ -8,22 +8,27 @@
 /* Full-screen chat when no document is open */
 body.is-mobile.chat-only-mode .chat-container {
   position: fixed;
-  top: env(safe-area-inset-top, 0px); /* Respect notch in standalone PWA mode */
-  left: env(safe-area-inset-left, 0px);
-  right: env(safe-area-inset-right, 0px);
-  bottom: calc(var(--keyboard-height, 0px) + env(safe-area-inset-bottom, 0px)); /* Account for home indicator when keyboard closed */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: var(--keyboard-height, 0px);
   height: auto;
-  width: auto;
+  width: 100%;
   display: flex;
   flex-direction: column;
   transition: bottom 0.15s ease-out;
-  /* Prevent content from scrolling under notch */
-  overflow: hidden;
 }
 
-/* When keyboard is open, remove bottom safe area (keyboard covers it) */
-body.is-mobile.chat-only-mode.keyboard-open .chat-container {
-  bottom: var(--keyboard-height, 0px);
+/* Standalone PWA mode: respect safe areas */
+@media (display-mode: standalone) {
+  body.is-mobile.chat-only-mode .chat-container {
+    top: env(safe-area-inset-top, 0px);
+    left: env(safe-area-inset-left, 0px);
+    right: env(safe-area-inset-right, 0px);
+    width: auto;
+    /* Bottom is just keyboard height - no extra safe area calc */
+    /* The home indicator area is handled by the message input padding */
+  }
 }
 
 body.is-mobile.chat-only-mode .document-editor {
@@ -38,30 +43,26 @@ body.is-mobile.chat-only-mode .system-prompt-editor {
 /* Grid layout for when document is open */
 body.is-mobile.split-view .app-container {
   display: grid;
-  height: 100vh;
-  height: 100dvh; /* Dynamic viewport height - accounts for mobile browser chrome */
-  height: calc(100dvh - var(--keyboard-height, 0px)); /* Shrink for keyboard */
   overflow: hidden;
+  box-sizing: border-box;
+  height: 100vh;
+  height: 100dvh;
+  height: calc(100dvh - var(--keyboard-height, 0px));
   transition: height 0.15s ease-out;
   /* Safe areas handled by padding in mobile.css */
-  box-sizing: border-box;
 }
 
-/* Standalone PWA mode: ensure proper safe area handling in split view */
+/* Standalone PWA mode: use fixed positioning for split view too */
 @media (display-mode: standalone) {
   body.is-mobile.split-view .app-container {
-    /* In standalone mode, use fixed positioning like chat-only for consistent safe area handling */
     position: fixed;
     top: env(safe-area-inset-top, 0px);
     left: env(safe-area-inset-left, 0px);
     right: env(safe-area-inset-right, 0px);
-    bottom: calc(var(--keyboard-height, 0px) + env(safe-area-inset-bottom, 0px));
-    height: auto;
-    padding: 0; /* Safe areas handled by fixed positioning */
-  }
-
-  body.is-mobile.split-view.keyboard-open .app-container {
     bottom: var(--keyboard-height, 0px);
+    height: auto;
+    padding: 0;
+    transition: bottom 0.15s ease-out;
   }
 }
 

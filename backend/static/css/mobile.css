@@ -104,11 +104,21 @@ body.is-mobile textarea {
 }
 
 /* Safe Area Insets - iOS notch and home indicator support */
+/* In regular browser mode, env() returns 0 (browser handles safe areas) */
+/* In standalone PWA mode, env() returns actual values */
 body.is-mobile .app-container {
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* In standalone PWA split-view, don't use padding - use explicit positioning instead */
+/* The grid fills the viewport and each panel handles its own safe areas */
+@media (display-mode: standalone) {
+  body.is-mobile.split-view .app-container {
+    padding: 0;
+  }
 }
 
 /* ===== Utility Classes ===== */
