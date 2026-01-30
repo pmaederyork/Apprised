@@ -371,6 +371,9 @@ const Mobile = {
             // Fallback: listen for visual viewport changes (Safari/older browsers)
             this.setupKeyboardFallback();
         }
+
+        // Pre-emptively resize on focus to prevent iOS auto-scroll
+        this.setupPreemptiveResize();
     },
 
     setupKeyboardFallback() {
@@ -438,5 +441,122 @@ const Mobile = {
             this._keyboardAnimating = false;
             document.body.classList.remove('keyboard-animating');
         }, 350);
+    },
+
+    /**
+     * Estimate keyboard height based on device characteristics.
+     * iOS keyboard heights vary by device model and screen size.
+     */
+    getEstimatedKeyboardHeight() {
+        const screenHeight = window.screen.height;
+        const screenWidth = window.screen.width;
+        const isLandscape = window.innerWidth > window.innerHeight;
+
+        // Use portrait dimensions for consistent detection
+        const portraitHeight = Math.max(screenHeight, screenWidth);
+
+        // Landscape keyboards are shorter
+        if (isLandscape) {
+            return 200; // Landscape keyboard is much shorter
+        }
+
+        // Detect iOS device by screen dimensions (in points)
+        // Heights include QuickType suggestion bar (~44px)
+
+        // iPhone SE (1st gen) - 568pt height
+        if (portraitHeight <= 568) {
+            return 298; // 253 + 45 QuickType
+        }
+
+        // iPhone SE (2nd/3rd), 6, 7, 8 - 667pt height
+        if (portraitHeight <= 667) {
+            return 306; // 260 + 46 QuickType
+        }
+
+        // iPhone 6+, 7+, 8+ - 736pt height
+        if (portraitHeight <= 736) {
+            return 315; // 271 + 44 QuickType
+        }
+
+        // iPhone X, XS, 11 Pro, 12 mini, 13 mini - 812pt height
+        if (portraitHeight <= 812) {
+            return 336; // 291 + 45 QuickType
+        }
+
+        // iPhone XR, 11 - 896pt height (LCD, thicker bezels)
+        // iPhone XS Max, 11 Pro Max - 896pt height
+        if (portraitHeight <= 896) {
+            return 346; // 301 + 45 QuickType
+        }
+
+        // iPhone 12, 12 Pro, 13, 13 Pro, 14, 14 Pro, 15, 15 Pro - 844-852pt
+        if (portraitHeight <= 852) {
+            return 336; // 291 + 45 QuickType
+        }
+
+        // iPhone 12 Pro Max, 13 Pro Max, 14 Plus, 14 Pro Max, 15 Plus, 15 Pro Max - 926-932pt
+        if (portraitHeight <= 932) {
+            return 346; // 301 + 45 QuickType
+        }
+
+        // iPhone 16 Pro Max and future larger devices
+        if (portraitHeight > 932) {
+            return 356; // Slightly larger for bigger screens
+        }
+
+        // Default fallback - use a safe larger value
+        return 346;
+    },
+
+    /**
+     * Pre-emptively resize layout on focus BEFORE iOS decides to scroll.
+     * iOS scrolls the page when it thinks a focused input will be hidden by the keyboard.
+     * By applying the estimated keyboard height immediately on focus (capture phase),
+     * the input moves up before iOS checks, so iOS doesn't scroll.
+     */
+    setupPreemptiveResize() {
+        document.addEventListener('focusin', (e) => {
+            if (!this.isMobileView()) return;
+
+            const target = e.target;
+            const isTextInput = target.tagName === 'TEXTAREA' ||
+                               target.tagName === 'INPUT' ||
+                               target.isContentEditable;
+
+            if (!isTextInput) return;
+
+            // Only pre-resize for inputs in chat area (bottom of screen)
+            // Document editor is higher up, so iOS doesn't scroll for it
+            const chatContainer = document.querySelector('.chat-container');
+            const isInChat = chatContainer?.contains(target);
+
+            if (isInChat) {
+                // Get device-specific estimate (recalculate each time for orientation changes)
+                const estimatedHeight = this.getEstimatedKeyboardHeight();
+
+                // Apply estimated height IMMEDIATELY in capture phase
+                // This happens before iOS's scroll calculation
+                this.startKeyboardAnimation();
+                this.updateKeyboardHeight(estimatedHeight);
+            }
+        }, { capture: true }); // Capture phase runs before bubble phase
+
+        document.addEventListener('focusout', (e) => {
+            if (!this.isMobileView()) return;
+
+            // Small delay to check if focus moved to another text input
+            // (e.g., tabbing between fields shouldn't close keyboard)
+            setTimeout(() => {
+                const active = document.activeElement;
+                const isTextInput = active?.tagName === 'TEXTAREA' ||
+                                   active?.tagName === 'INPUT' ||
+                                   active?.isContentEditable;
+
+                // Only reset if focus left all text inputs
+                if (!isTextInput) {
+                    this.updateKeyboardHeight(0);
+                }
+            }, 50);
+        }, { capture: true });
     }
 };
