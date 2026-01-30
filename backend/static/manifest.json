@@ -3,7 +3,7 @@
   "short_name": "Apprised",
   "description": "Multi-Agent AI Conversations with document collaboration",
   "display": "standalone",
-  "start_url": "/app",
+  "start_url": "/",
   "background_color": "#000000",
   "theme_color": "#000000",
   "icons": [
