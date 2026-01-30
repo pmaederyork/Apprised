@@ -86,22 +86,34 @@ body.is-mobile .sidebar .sidebar-header {
   padding: 8px 12px;
   min-height: var(--mobile-header-height, 48px);
   border-bottom: 1px solid var(--color-border);
+  box-sizing: border-box;
 }
 
-/* Sidebar footer - match chat input container height */
+/* Sidebar footer - match chat input container */
 body.is-mobile .sidebar .sidebar-footer {
-  padding: 8px 12px;
+  padding: 12px;
   min-height: auto;
+  box-sizing: border-box;
 }
 
-/* Standalone PWA: add safe areas to header/footer to align with chat */
+/* Standalone PWA: sidebar extends to true screen edge, content has safe area padding */
 @media (display-mode: standalone) {
-  body.is-mobile .sidebar .sidebar-header {
-    padding-top: max(8px, env(safe-area-inset-top));
+  /* Sidebar background goes to true screen edges - no gap at bottom */
+  body.is-mobile .sidebar {
+    top: 0 !important;
+    bottom: 0 !important;
+    padding: 0 !important;
   }
 
+  /* Header content padded for notch - includes safe area in min-height */
+  body.is-mobile .sidebar .sidebar-header {
+    padding-top: env(safe-area-inset-top, 8px);
+    min-height: calc(var(--mobile-header-height, 48px) + env(safe-area-inset-top, 0px));
+  }
+
+  /* Footer content padded for home indicator */
   body.is-mobile .sidebar .sidebar-footer {
-    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom, 12px);
   }
 }
 

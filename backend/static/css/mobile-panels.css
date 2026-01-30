@@ -244,19 +244,34 @@ body.is-mobile .chat-messages {
 /* ===== Safe Area Adjustments ===== */
 /* Editor header handles top safe area for split-view mode */
 body.is-mobile .mobile-editor-header {
-    padding-top: max(8px, env(safe-area-inset-top));
-}
-
-/* Chat header handles top safe area in chat-only mode (standalone PWA) */
-@media (display-mode: standalone) {
-    body.is-mobile.chat-only-mode .chat-header {
-        padding-top: max(8px, env(safe-area-inset-top));
-    }
+    padding-top: 8px;
+    box-sizing: border-box;
 }
 
 /* Input container handles bottom safe area */
 body.is-mobile .chat-input-container {
-    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    padding: 12px;
+    box-sizing: border-box;
+}
+
+/* Standalone PWA: safe areas included in element heights */
+@media (display-mode: standalone) {
+    /* Editor header includes notch area */
+    body.is-mobile .mobile-editor-header {
+        padding-top: env(safe-area-inset-top, 8px);
+        min-height: calc(var(--mobile-header-height, 48px) + env(safe-area-inset-top, 0px));
+    }
+
+    /* Chat header includes notch area in chat-only mode */
+    body.is-mobile.chat-only-mode .chat-header {
+        padding-top: env(safe-area-inset-top, 8px);
+        min-height: calc(var(--mobile-header-height, 48px) + env(safe-area-inset-top, 0px));
+    }
+
+    /* Input container includes home indicator area */
+    body.is-mobile .chat-input-container {
+        padding-bottom: env(safe-area-inset-bottom, 12px);
+    }
 }
 
 /* When keyboard is open, reduce bottom padding (keyboard covers home indicator) */

@@ -19,13 +19,29 @@ body.is-mobile.chat-only-mode .chat-container {
   /* No transition on bottom - iOS keyboard needs instant response to prevent double-render */
 }
 
-/* Standalone PWA mode: add padding for safe areas */
+/* Standalone PWA mode: container fills entire screen, content handles safe areas */
 @media (display-mode: standalone) {
   body.is-mobile.chat-only-mode .chat-container {
-    /* Top safe area handled by chat-header padding in mobile-panels.css */
+    /* Container extends to TRUE screen edges - no safe area gaps */
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important; /* True bottom of screen */
+    height: auto !important;
+    /* Side padding for landscape notch */
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
-    /* Bottom safe area handled by chat-input-container */
+    /* NO top/bottom padding - header and input handle safe areas */
+    padding-top: 0;
+    padding-bottom: 0;
+    /* Ensure background fills entire space */
+    background: var(--color-bg-white) !important;
+  }
+
+  /* When keyboard open, add padding at bottom instead of moving container */
+  body.is-mobile.chat-only-mode.keyboard-open .chat-container {
+    padding-bottom: var(--keyboard-height, 0px);
   }
 }
 
@@ -53,16 +69,22 @@ body.is-mobile.split-view .app-container {
 /* Standalone PWA mode: use fixed positioning for split view too */
 @media (display-mode: standalone) {
   body.is-mobile.split-view .app-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: var(--keyboard-height, 0px);
-    height: auto;
-    padding: 0;
-    /* Top safe area handled by mobile-editor-header padding in mobile-panels.css */
-    /* Bottom safe area handled by chat-input-container */
-    /* No transition - iOS keyboard needs instant response to prevent double-render */
+    /* Container fills TRUE screen edges */
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    height: auto !important;
+    /* NO padding on container - elements handle their own safe areas */
+    padding: 0 !important;
+    /* Ensure background fills entire space */
+    background: var(--color-bg-white) !important;
+  }
+
+  /* When keyboard open, add padding at bottom */
+  body.is-mobile.split-view.keyboard-open .app-container {
+    padding-bottom: var(--keyboard-height, 0px) !important;
   }
 }
 

@@ -70,20 +70,40 @@ body.is-mobile {
 /* ===== Standalone PWA Mode ===== */
 /* Additional handling when launched from home screen */
 @media (display-mode: standalone) {
+  /* Root elements fill entire screen */
   html, body {
     /* Ensure background fills entire viewport including notch area */
     background: var(--color-bg-white);
     /* Aggressively prevent any page scroll in standalone mode */
     position: fixed !important;
     overflow: hidden !important;
-    width: 100% !important;
-    height: 100% !important;
     top: 0 !important;
     left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important; /* Override main.css min-height: 100vh */
+    max-height: none !important;
   }
 
   html[data-theme="dark"], html[data-theme="dark"] body {
     background: #1c1917;
+  }
+
+  /* App container fills entire screen - elements handle their own safe areas */
+  .app-container {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 }
 
