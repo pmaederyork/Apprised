@@ -399,8 +399,15 @@ const Mobile = {
             // Reset any scroll when iOS tries to scroll the page for keyboard
             window.visualViewport.addEventListener('scroll', () => {
                 // Immediately reset scroll position - don't let iOS scroll the page
-                if (this.isMobileView() && window.visualViewport.offsetTop > 0) {
-                    window.scrollTo(0, 0);
+                if (this.isMobileView()) {
+                    // Always reset scroll in standalone PWA mode or when viewport is offset
+                    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                                         window.navigator.standalone === true;
+                    if (isStandalone || window.visualViewport.offsetTop > 0) {
+                        window.scrollTo(0, 0);
+                        document.documentElement.scrollTop = 0;
+                        document.body.scrollTop = 0;
+                    }
                 }
             });
 
@@ -411,6 +418,13 @@ const Mobile = {
         // Fallback for browsers without visualViewport - use focus/blur on inputs
         document.addEventListener('focusin', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+                // Immediately reset scroll to prevent iOS default scroll-to-input behavior
+                if (this.isMobileView()) {
+                    window.scrollTo(0, 0);
+                    document.documentElement.scrollTop = 0;
+                    document.body.scrollTop = 0;
+                }
+
                 // Assume keyboard will open, give iOS time to show it
                 setTimeout(() => {
                     if (window.visualViewport) {
@@ -420,6 +434,10 @@ const Mobile = {
                             document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
                             this.handleKeyboardChange();
                         }
+                    }
+                    // Reset scroll again after keyboard animation
+                    if (this.isMobileView()) {
+                        window.scrollTo(0, 0);
                     }
                 }, 300);
             }

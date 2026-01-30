@@ -7,6 +7,7 @@ const GDrive = {
     isConnected: false,
     initialized: false,
     pickerApiLoaded: false,
+    pickerLoadFailed: false,
 
     /**
      * Process Google Docs HTML for proper display
@@ -193,16 +194,18 @@ const GDrive = {
     },
 
     // Initialize Google Drive integration
-    init() {
+    async init() {
         if (this.initialized) return;
 
-        // Check connection status from backend (don't await - let it run in background)
-        this.checkConnectionStatus();
+        // Mark as initialized early to prevent double-init
+        this.initialized = true;
+
+        // Check connection status from backend - await to ensure accurate UI
+        await this.checkConnectionStatus();
 
         // Load Google Picker API for file selection
         this.loadPickerAPI();
 
-        this.initialized = true;
         console.log('GDrive module initialized');
     },
 
@@ -215,12 +218,19 @@ const GDrive = {
             if (data.success) {
                 this.isConnected = data.connected;
                 Storage.saveGoogleDriveConnected(data.connected);
-                this.updateUI();
+            } else {
+                // API returned error - treat as not connected
+                this.isConnected = false;
+                Storage.saveGoogleDriveConnected(false);
             }
         } catch (error) {
             console.error('Failed to check Drive status:', error);
+            // Network error or auth issue - treat as not connected
             this.isConnected = false;
+            Storage.saveGoogleDriveConnected(false);
         }
+        // Always update UI with current status
+        this.updateUI();
     },
 
     // Reconnect - triggers re-auth with Drive scope
@@ -425,6 +435,11 @@ const GDrive = {
             return;
         }
 
+        if (this.pickerLoadFailed) {
+            alert('Google Picker failed to load. This can happen in standalone app mode or with strict privacy settings. Try opening the app in your regular browser instead.');
+            return;
+        }
+
         if (!this.pickerApiLoaded) {
             alert('Google Picker is still loading. Please try again in a moment.');
             return;
@@ -539,12 +554,43 @@ const GDrive = {
 
         const script = document.createElement('script');
         script.src = 'https://apis.google.com/js/api.js';
+
+        // Timeout for script load (10 seconds)
+        const timeout = setTimeout(() => {
+            if (!this.pickerApiLoaded) {
+                console.warn('Google Picker API load timed out');
+                this.pickerLoadFailed = true;
+            }
+        }, 10000);
+
         script.onload = () => {
-            gapi.load('picker', () => {
-                this.pickerApiLoaded = true;
-                console.log('Google Picker API loaded');
-            });
+            try {
+                gapi.load('picker', {
+                    callback: () => {
+                        clearTimeout(timeout);
+                        this.pickerApiLoaded = true;
+                        this.pickerLoadFailed = false;
+                        console.log('Google Picker API loaded');
+                    },
+                    onerror: () => {
+                        clearTimeout(timeout);
+                        console.error('Failed to load Google Picker module');
+                        this.pickerLoadFailed = true;
+                    }
+                });
+            } catch (error) {
+                clearTimeout(timeout);
+                console.error('Error initializing Google API:', error);
+                this.pickerLoadFailed = true;
+            }
         };
+
+        script.onerror = () => {
+            clearTimeout(timeout);
+            console.error('Failed to load Google APIs script');
+            this.pickerLoadFailed = true;
+        };
+
         document.head.appendChild(script);
     },
 
@@ -597,6 +643,11 @@ const GDrive = {
     async relinkDocument(documentId) {
         if (!this.isConnected) {
             alert('Google Drive is not connected. Please enable Drive access in Settings.');
+            return;
+        }
+
+        if (this.pickerLoadFailed) {
+            alert('Google Picker failed to load. This can happen in standalone app mode or with strict privacy settings. Try opening the app in your regular browser instead.');
             return;
         }
 
@@ -778,6 +829,11 @@ const GDrive = {
             if (proceed) {
                 this.reconnect();
             }
+            return;
+        }
+
+        if (this.pickerLoadFailed) {
+            alert('Google Picker failed to load. This can happen in standalone app mode or with strict privacy settings. Try opening the app in your regular browser instead.');
             return;
         }
 

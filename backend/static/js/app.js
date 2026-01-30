@@ -198,11 +198,15 @@ const App = {
             console.error('Failed to initialize Settings:', error);
         }
 
-        // Initialize Google Drive module
+        // Initialize Google Drive module (async - don't block other modules)
         try {
             if (typeof GDrive !== 'undefined') {
-                GDrive.init();
-                console.log('GDrive module initialized');
+                // Run async but don't await - status will update UI when ready
+                GDrive.init().then(() => {
+                    console.log('GDrive module initialized');
+                }).catch(error => {
+                    console.error('Failed to initialize GDrive:', error);
+                });
             }
         } catch (error) {
             console.error('Failed to initialize GDrive:', error);
@@ -439,8 +443,8 @@ async function startApp() {
     if (isAuthenticated) {
         App.init();
 
-        // Update user menu (including avatar) after DOM is fully initialized
-        // This prevents race condition on hard refresh
+        // Update user menu again after full init (ensures it's visible even if
+        // showMainApp() was called before all DOM elements were ready)
         Auth.updateUserMenu();
     }
 }

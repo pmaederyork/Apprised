@@ -73,6 +73,13 @@ body.is-mobile {
   html, body {
     /* Ensure background fills entire viewport including notch area */
     background: var(--color-bg-white);
+    /* Aggressively prevent any page scroll in standalone mode */
+    position: fixed !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    height: 100% !important;
+    top: 0 !important;
+    left: 0 !important;
   }
 
   html[data-theme="dark"], html[data-theme="dark"] body {
@@ -106,19 +113,12 @@ body.is-mobile textarea {
 /* Safe Area Insets - iOS notch and home indicator support */
 /* In regular browser mode, env() returns 0 (browser handles safe areas) */
 /* In standalone PWA mode, env() returns actual values */
+/* Note: Individual elements (headers, input containers) handle their own safe areas */
+/* to avoid double-padding issues */
 body.is-mobile .app-container {
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
-}
-
-/* In standalone PWA split-view, don't use padding - use explicit positioning instead */
-/* The grid fills the viewport and each panel handles its own safe areas */
-@media (display-mode: standalone) {
-  body.is-mobile.split-view .app-container {
-    padding: 0;
-  }
+  /* Top/bottom handled by individual elements to avoid stacking */
 }
 
 /* ===== Utility Classes ===== */
@@ -163,17 +163,8 @@ body.is-mobile select {
   touch-action: manipulation;
 }
 
-/* Message input area - safe area when no keyboard */
-body.is-mobile .message-input-container {
-  margin-bottom: 0;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  transition: padding-bottom 0.15s ease-out;
-}
-
-/* When keyboard is open, remove safe area padding (keyboard covers home indicator) */
-body.is-mobile.keyboard-open .message-input-container {
-  padding-bottom: 8px;
-}
+/* Note: .message-input-container class doesn't exist in HTML */
+/* Bottom safe area is handled by .chat-input-container in mobile-panels.css */
 
 /* Prevent page scrolling when keyboard is open */
 body.is-mobile.keyboard-open {

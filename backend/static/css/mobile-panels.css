@@ -242,10 +242,24 @@ body.is-mobile .chat-messages {
 }
 
 /* ===== Safe Area Adjustments ===== */
+/* Editor header handles top safe area for split-view mode */
 body.is-mobile .mobile-editor-header {
     padding-top: max(8px, env(safe-area-inset-top));
 }
 
+/* Chat header handles top safe area in chat-only mode (standalone PWA) */
+@media (display-mode: standalone) {
+    body.is-mobile.chat-only-mode .chat-header {
+        padding-top: max(8px, env(safe-area-inset-top));
+    }
+}
+
+/* Input container handles bottom safe area */
 body.is-mobile .chat-input-container {
     padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+
+/* When keyboard is open, reduce bottom padding (keyboard covers home indicator) */
+body.is-mobile.keyboard-open .chat-input-container {
+    padding-bottom: 8px;
 }
