@@ -27,6 +27,8 @@ html:has(body.is-mobile) {
   height: 100%;
   /* Disable smooth scroll on mobile - interferes with keyboard handling */
   scroll-behavior: auto !important;
+  /* Prevent touch-based page scroll - only internal containers should scroll */
+  touch-action: none;
 }
 
 body.is-mobile {
@@ -210,7 +212,18 @@ body.is-mobile input,
 body.is-mobile textarea,
 body.is-mobile select {
   font-size: 16px !important;
+  /* Allow normal touch interactions on inputs */
   touch-action: manipulation;
+}
+
+/* Re-enable touch scrolling for internal scrollable containers */
+body.is-mobile .chat-input-container,
+body.is-mobile .document-editor-content,
+body.is-mobile .editor-content,
+body.is-mobile .sidebar-content,
+body.is-mobile .modal-content,
+body.is-mobile [contenteditable="true"] {
+  touch-action: pan-y;
 }
 
 /* Note: .message-input-container class doesn't exist in HTML */
@@ -232,6 +245,8 @@ body.is-mobile .chat-messages {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* Re-enable touch scrolling for this container */
+  touch-action: pan-y;
 }
 
 /* Bottom sheets should appear above keyboard */

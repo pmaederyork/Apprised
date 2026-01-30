@@ -37,6 +37,7 @@ const Mobile = {
         this.bindEvents();
         this.bindPanelEvents();
         this.initKeyboardHandling();
+        this.setupScrollLock();
         this.applyBodyClasses();
         this.updateLayoutClasses();
 
@@ -356,67 +357,163 @@ const Mobile = {
     },
 
     initKeyboardHandling() {
-        // Track keyboard state for animation class
-        this._keyboardAnimating = false;
+        // Track keyboard state
         this._lastKeyboardHeight = 0;
+        this._keyboardAnimationFrame = null;
+        this._pendingKeyboardHeight = null;
 
         // Use VirtualKeyboard API if available (Chrome on Android)
         if ('virtualKeyboard' in navigator) {
             navigator.virtualKeyboard.overlaysContent = true;
 
             navigator.virtualKeyboard.addEventListener('geometrychange', (e) => {
-                this.updateKeyboardHeight(e.target.boundingRect.height);
+                this.scheduleKeyboardUpdate(e.target.boundingRect.height);
             });
         } else {
             // Fallback: listen for visual viewport changes (Safari/older browsers)
             this.setupKeyboardFallback();
         }
-
-        // Pre-emptively resize on focus to prevent iOS auto-scroll
-        this.setupPreemptiveResize();
     },
 
     setupKeyboardFallback() {
         if (!window.visualViewport) return;
 
-        // Single, simple handler for viewport resize
+        // Handler for viewport resize - fires during keyboard animation
         const handleViewportResize = () => {
             const keyboardHeight = Math.max(0, window.innerHeight - window.visualViewport.height);
-            this.updateKeyboardHeight(keyboardHeight);
+            this.scheduleKeyboardUpdate(keyboardHeight);
         };
 
-        // Listen only to resize - this is the reliable signal for keyboard
+        // Listen to resize for keyboard height changes
         window.visualViewport.addEventListener('resize', handleViewportResize);
+
+        // Polling fallback for smooth animation
+        // iOS visualViewport.resize may not fire every frame during keyboard animation
+        // Poll at 60fps during focus transitions to ensure smooth tracking
+        let pollingInterval = null;
+
+        const startPolling = () => {
+            if (pollingInterval || !this.isMobileView()) return;
+            pollingInterval = setInterval(handleViewportResize, 16); // ~60fps
+            // Stop polling after keyboard animation completes (500ms max)
+            setTimeout(stopPolling, 500);
+        };
+
+        const stopPolling = () => {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        };
+
+        // Start polling on focus events (keyboard may open)
+        document.addEventListener('focusin', (e) => {
+            const target = e.target;
+            const isTextInput = target.tagName === 'TEXTAREA' ||
+                               target.tagName === 'INPUT' ||
+                               target.isContentEditable;
+            if (isTextInput) {
+                startPolling();
+            }
+        }, { capture: true, passive: true });
+
+        // Start polling on blur too (keyboard may close)
+        document.addEventListener('focusout', () => {
+            startPolling();
+        }, { capture: true, passive: true });
 
         // Initial check
         handleViewportResize();
     },
 
-    updateKeyboardHeight(newHeight) {
-        // Only update if height actually changed significantly
-        const heightDelta = Math.abs(newHeight - this._lastKeyboardHeight);
-        if (heightDelta < 10) return;
+    /**
+     * Schedule keyboard height update via RAF for smooth animation.
+     * Multiple rapid events are batched into a single frame update.
+     */
+    scheduleKeyboardUpdate(newHeight) {
+        this._pendingKeyboardHeight = newHeight;
 
-        const wasOpen = this._lastKeyboardHeight > 50;
-        const isOpening = newHeight > 50 && !wasOpen;
-        const isClosing = newHeight <= 50 && wasOpen;
+        // Batch updates using RAF for smooth animation
+        if (!this._keyboardAnimationFrame) {
+            this._keyboardAnimationFrame = requestAnimationFrame(() => {
+                this._keyboardAnimationFrame = null;
+                if (this._pendingKeyboardHeight !== null) {
+                    this.updateKeyboardHeight(this._pendingKeyboardHeight);
+                    this._pendingKeyboardHeight = null;
+                }
+            });
+        }
+    },
 
-        // Start animation mode - disable all transitions
-        if (isOpening || isClosing) {
-            this.startKeyboardAnimation();
+    /**
+     * Lock window-level scroll on mobile.
+     * iOS can scroll the page when keyboard opens to show focused input.
+     * We handle keyboard via --keyboard-height CSS, so this scroll is unwanted.
+     * This lock prevents the header from ever leaving the screen.
+     */
+    setupScrollLock() {
+        // Always lock window scroll on mobile - only internal containers should scroll
+        const lockScroll = () => {
+            if (!this.isMobileView()) return;
+            if (window.scrollX !== 0 || window.scrollY !== 0) {
+                window.scrollTo(0, 0);
+            }
+        };
+
+        // Catch any window scroll and reset immediately
+        window.addEventListener('scroll', lockScroll, { passive: true });
+
+        // Also catch visualViewport scroll (iOS keyboard-induced panning)
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('scroll', () => {
+                if (!this.isMobileView()) return;
+                // offsetTop > 0 means iOS has panned the viewport
+                if (window.visualViewport.offsetTop > 0) {
+                    window.scrollTo(0, 0);
+                }
+            }, { passive: true });
         }
 
-        // Update the CSS variable immediately (no debounce)
+        // Initial reset
+        lockScroll();
+    },
+
+    updateKeyboardHeight(newHeight) {
+        // Round to avoid subpixel issues
+        newHeight = Math.round(newHeight);
+
+        // Skip if no meaningful change (< 5px avoids flicker from tiny variations)
+        if (Math.abs(newHeight - this._lastKeyboardHeight) < 5) return;
+
+        const wasOpen = this._lastKeyboardHeight > 50;
+        const isKeyboardOpen = newHeight > 50;
+        const isOpening = isKeyboardOpen && !wasOpen;
+        const isClosing = !isKeyboardOpen && wasOpen;
+
+        // Update state
         this.keyboardHeight = newHeight;
         this._lastKeyboardHeight = newHeight;
+
+        // Update CSS variable - this drives all layout changes
         document.documentElement.style.setProperty('--keyboard-height', `${newHeight}px`);
 
-        // Update keyboard-open class
-        const isKeyboardOpen = newHeight > 50;
-        document.body.classList.toggle('keyboard-open', isKeyboardOpen);
+        // Update keyboard-open class only on state transitions (not during animation)
+        if (isOpening) {
+            document.body.classList.add('keyboard-open');
+            this.onKeyboardOpen();
+        } else if (isClosing) {
+            document.body.classList.remove('keyboard-open');
+            this.onKeyboardClose();
+        }
+    },
 
+    /**
+     * Called when keyboard starts opening.
+     * Handle any side effects here (not during animation).
+     */
+    onKeyboardOpen() {
         // Auto-collapse chat when editing document (not when typing in chat)
-        if (isKeyboardOpen && this.isMobileView() && this.documentOpen) {
+        if (this.isMobileView() && this.documentOpen) {
             const activeElement = document.activeElement;
             const documentEditor = document.querySelector('.document-editor');
             const isEditingDocument = documentEditor && documentEditor.contains(activeElement);
@@ -427,160 +524,10 @@ const Mobile = {
         }
     },
 
-    startKeyboardAnimation() {
-        // Add class to disable all transitions during keyboard animation
-        if (this._keyboardAnimating) return;
-
-        this._keyboardAnimating = true;
-        document.body.classList.add('keyboard-animating');
-
-        // Remove animation class after iOS keyboard animation completes (~300ms)
-        // Use slightly longer to ensure animation is fully done
-        clearTimeout(this._keyboardAnimationTimer);
-        this._keyboardAnimationTimer = setTimeout(() => {
-            this._keyboardAnimating = false;
-            document.body.classList.remove('keyboard-animating');
-        }, 350);
-    },
-
     /**
-     * Estimate keyboard height based on device characteristics.
-     * iOS keyboard heights vary by device model and screen size.
+     * Called when keyboard finishes closing.
      */
-    getEstimatedKeyboardHeight() {
-        const screenHeight = window.screen.height;
-        const screenWidth = window.screen.width;
-        const isLandscape = window.innerWidth > window.innerHeight;
-
-        // Use portrait dimensions for consistent detection
-        const portraitHeight = Math.max(screenHeight, screenWidth);
-
-        // Landscape keyboards are shorter
-        if (isLandscape) {
-            return 200; // Landscape keyboard is much shorter
-        }
-
-        // Detect iOS device by screen dimensions (in points)
-        // Heights include QuickType suggestion bar (~44px)
-
-        // iPhone SE (1st gen) - 568pt height
-        if (portraitHeight <= 568) {
-            return 298; // 253 + 45 QuickType
-        }
-
-        // iPhone SE (2nd/3rd), 6, 7, 8 - 667pt height
-        if (portraitHeight <= 667) {
-            return 306; // 260 + 46 QuickType
-        }
-
-        // iPhone 6+, 7+, 8+ - 736pt height
-        if (portraitHeight <= 736) {
-            return 315; // 271 + 44 QuickType
-        }
-
-        // iPhone X, XS, 11 Pro, 12 mini, 13 mini - 812pt height
-        if (portraitHeight <= 812) {
-            return 336; // 291 + 45 QuickType
-        }
-
-        // iPhone XR, 11 - 896pt height (LCD, thicker bezels)
-        // iPhone XS Max, 11 Pro Max - 896pt height
-        if (portraitHeight <= 896) {
-            return 346; // 301 + 45 QuickType
-        }
-
-        // iPhone 12, 12 Pro, 13, 13 Pro, 14, 14 Pro, 15, 15 Pro - 844-852pt
-        if (portraitHeight <= 852) {
-            return 336; // 291 + 45 QuickType
-        }
-
-        // iPhone 12 Pro Max, 13 Pro Max, 14 Plus, 14 Pro Max, 15 Plus, 15 Pro Max - 926-932pt
-        if (portraitHeight <= 932) {
-            return 346; // 301 + 45 QuickType
-        }
-
-        // iPhone 16 Pro Max and future larger devices
-        if (portraitHeight > 932) {
-            return 356; // Slightly larger for bigger screens
-        }
-
-        // Default fallback - use a safe larger value
-        return 346;
-    },
-
-    /**
-     * Pre-emptively resize layout on focus BEFORE iOS decides to scroll.
-     * iOS scrolls the page when it thinks a focused input will be hidden by the keyboard.
-     * By applying the estimated keyboard height immediately on touch/focus (capture phase),
-     * the input moves up before iOS checks, so iOS doesn't scroll.
-     */
-    setupPreemptiveResize() {
-        // Cache keyboard height at init - no calculation during touch/focus
-        this._cachedKeyboardHeight = this.getEstimatedKeyboardHeight();
-        this._cachedLandscapeKeyboardHeight = 200;
-
-        // Also update cache on orientation change
-        window.addEventListener('orientationchange', () => {
-            setTimeout(() => {
-                this._cachedKeyboardHeight = this.getEstimatedKeyboardHeight();
-            }, 100);
-        });
-
-        // Helper to check if element is a text input (textarea, input, or contenteditable)
-        const isTextInput = (el) => {
-            if (!el) return false;
-            return el.tagName === 'TEXTAREA' ||
-                   el.tagName === 'INPUT' ||
-                   el.isContentEditable ||
-                   el.closest('[contenteditable="true"]');
-        };
-
-        // Helper to apply keyboard height immediately
-        const applyKeyboardHeight = () => {
-            const height = this.isLandscape() ? this._cachedLandscapeKeyboardHeight : this._cachedKeyboardHeight;
-            document.documentElement.style.setProperty('--keyboard-height', `${height}px`);
-            document.body.classList.add('keyboard-open', 'keyboard-animating');
-            this._lastKeyboardHeight = height;
-            this.keyboardHeight = height;
-
-            clearTimeout(this._keyboardAnimationTimer);
-            this._keyboardAnimationTimer = setTimeout(() => {
-                document.body.classList.remove('keyboard-animating');
-            }, 350);
-        };
-
-        // FASTEST: touchstart fires before focus
-        // Handle ALL text inputs (chat and document editor)
-        document.addEventListener('touchstart', (e) => {
-            if (!this.isMobileView()) return;
-
-            const target = e.target;
-            if (!isTextInput(target)) return;
-
-            applyKeyboardHeight();
-        }, { capture: true, passive: true });
-
-        // Backup: focusin for non-touch scenarios (keyboard navigation, etc.)
-        document.addEventListener('focusin', (e) => {
-            if (!this.isMobileView()) return;
-            if (this._lastKeyboardHeight > 50) return; // Already applied via touchstart
-
-            const target = e.target;
-            if (!isTextInput(target)) return;
-
-            applyKeyboardHeight();
-        }, { capture: true });
-
-        document.addEventListener('focusout', (e) => {
-            if (!this.isMobileView()) return;
-
-            // Small delay to check if focus moved to another text input
-            setTimeout(() => {
-                const active = document.activeElement;
-                if (!isTextInput(active)) {
-                    this.updateKeyboardHeight(0);
-                }
-            }, 50);
-        }, { capture: true });
+    onKeyboardClose() {
+        // Could restore chat collapsed state here if needed
     }
 };

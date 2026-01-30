@@ -240,32 +240,38 @@ body.is-mobile .document-editor {
 }
 
 /* ===== Keyboard Animation Performance ===== */
-/* Disable ALL transitions during keyboard open/close for instant response */
-body.is-mobile.keyboard-animating,
-body.is-mobile.keyboard-animating *,
-body.is-mobile.keyboard-animating *::before,
-body.is-mobile.keyboard-animating *::after {
-  transition: none !important;
-  animation: none !important;
-}
-
 /* GPU acceleration hints for keyboard-affected elements */
+/* These elements resize when --keyboard-height changes */
 body.is-mobile.chat-only-mode .chat-container {
   will-change: padding-bottom;
+  /* Contain layout to prevent reflow from propagating */
   contain: layout style;
 }
 
 body.is-mobile.split-view .app-container {
   will-change: padding-bottom;
-}
-
-body.is-mobile .chat-input-container {
   contain: layout style;
 }
 
+/* Input container should be layer-promoted for smooth resize */
+body.is-mobile .chat-input-container {
+  contain: layout style;
+  /* Ensure it's on its own compositing layer */
+  transform: translateZ(0);
+}
+
+/* Chat messages area - allow efficient repaints during scroll */
 body.is-mobile .chat-messages {
-  will-change: contents;
-  contain: layout paint; /* Not 'strict' - size containment breaks flex scrolling */
+  contain: layout paint;
+  /* Hint that size may change (parent resizes with keyboard) */
+  will-change: scroll-position;
+}
+
+/* Document editor content area */
+body.is-mobile .editor-content,
+body.is-mobile .document-editor-content {
+  contain: layout paint;
+  will-change: scroll-position;
 }
 
 /* ===== Desktop Override ===== */

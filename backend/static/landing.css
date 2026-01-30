@@ -413,47 +413,16 @@ nav {
     margin: 0 auto;
 }
 
-/* Screenshot image styles now on .screenshot-wrapper */
-
-.showcase-image {
-    text-align: center;
-}
-
-/* Screenshot wrapper for logo overlay */
-.screenshot-wrapper {
-    position: relative;
-    display: inline-block;
+.showcase-image img {
     width: 80%;
-}
-
-.screenshot-wrapper img:first-child {
-    width: 100%;
     height: auto;
     border-radius: 12px;
     border: 2px solid var(--cosmic-purple-light);
     box-shadow: 0 0 60px rgba(124, 58, 237, 0.3), 0 0 120px rgba(124, 58, 237, 0.15), 0 25px 50px rgba(0, 0, 0, 0.5);
 }
 
-/* Black box to cover old logo + new logo overlay */
-.logo-overlay {
-    position: absolute;
-    /* Position in top-left where logo appears in screenshot */
-    top: 1.8%;
-    left: 0.8%;
-    width: 9%;
-    height: 4.5%;
-    background: #1c1917; /* Match the dark sidebar background */
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding-left: 0.5%;
-    border-radius: 2px;
-}
-
-.overlay-logo {
-    height: 80%;
-    width: auto;
-    object-fit: contain;
+.showcase-image {
+    text-align: center;
 }
 
 /* CTA Section */
@@ -633,11 +602,7 @@ nav {
         padding: 1.5rem 1rem 3rem;
     }
 
-    .screenshot-wrapper {
-        width: 95%;
-    }
-
-    .screenshot-wrapper img:first-child {
+    .showcase-image img {
         border-radius: 8px;
     }
 

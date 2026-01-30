@@ -43,6 +43,8 @@ body.is-mobile .hamburger-btn {
   pointer-events: none;
   transition: opacity 300ms ease;
   z-index: 998;
+  /* Prevent scroll but allow tap to close */
+  touch-action: none;
 }
 
 .drawer-backdrop.visible {
@@ -68,6 +70,8 @@ body.is-mobile .sidebar {
   flex-direction: column;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* Re-enable touch scrolling within drawer */
+  touch-action: pan-y;
   /* Safe areas handled by header/footer individually for alignment */
   visibility: hidden; /* Prevent showing during scroll bounce */
 }
