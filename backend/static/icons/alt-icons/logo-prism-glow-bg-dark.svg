@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgDarkG" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0C0C0C"/>
+      <stop offset="100%" style="stop-color:#1A1A1A"/>
+    </linearGradient>
+    <linearGradient id="glowLeftD" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4"/>
+      <stop offset="100%" style="stop-color:#0891B2"/>
+    </linearGradient>
+    <linearGradient id="glowRightD" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#22D3EE"/>
+      <stop offset="100%" style="stop-color:#06B6D4"/>
+    </linearGradient>
+    <linearGradient id="innerGlowD" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#67E8F9"/>
+      <stop offset="100%" style="stop-color:#A5F3FC"/>
+    </linearGradient>
+    <filter id="glowD">
+      <feGaussianBlur stdDeviation="12" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="80" fill="url(#bgDarkG)"/>
+  <path d="M256 85 L125 400 L256 320 Z" fill="url(#glowLeftD)"/>
+  <path d="M256 85 L387 400 L256 320 Z" fill="url(#glowRightD)"/>
+  <path d="M256 155 L195 320 L256 285 L317 320 Z" fill="url(#innerGlowD)" filter="url(#glowD)" opacity="0.85"/>
+</svg>
