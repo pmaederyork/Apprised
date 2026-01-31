@@ -829,6 +829,321 @@ def drive_disconnect():
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+# ============================================
+# DATA API ENDPOINTS (User-scoped CRUD)
+# ============================================
+
+@app.route('/api/user', methods=['GET'])
+@login_required
+def api_get_user():
+    """Get current user info"""
+    user = get_current_user()
+    return jsonify(user.to_dict())
+
+
+# --- Chats API ---
+
+@app.route('/api/chats', methods=['GET'])
+@login_required
+def api_get_chats():
+    """Get all chats for current user"""
+    user = get_current_user()
+    chats = Chat.query.filter_by(user_id=user.id).order_by(Chat.created_at.desc()).all()
+    return jsonify([chat.to_dict() for chat in chats])
+
+
+@app.route('/api/chats/<client_id>', methods=['GET'])
+@login_required
+def api_get_chat(client_id):
+    """Get a specific chat by client_id"""
+    user = get_current_user()
+    chat = Chat.query.filter_by(user_id=user.id, client_id=client_id).first()
+    if not chat:
+        return jsonify({'error': 'Chat not found'}), 404
+    return jsonify(chat.to_dict())
+
+
+@app.route('/api/chats', methods=['POST'])
+@login_required
+def api_create_chat():
+    """Create a new chat"""
+    user = get_current_user()
+    data = request.json
+
+    # Check for duplicate client_id
+    existing = Chat.query.filter_by(user_id=user.id, client_id=data.get('client_id') or data.get('id')).first()
+    if existing:
+        return jsonify({'error': 'Chat with this client_id already exists'}), 409
+
+    chat = Chat.from_dict(data, user.id)
+    db.session.add(chat)
+    db.session.commit()
+    return jsonify(chat.to_dict()), 201
+
+
+@app.route('/api/chats/<client_id>', methods=['PUT'])
+@login_required
+def api_update_chat(client_id):
+    """Update an existing chat"""
+    user = get_current_user()
+    chat = Chat.query.filter_by(user_id=user.id, client_id=client_id).first()
+    if not chat:
+        return jsonify({'error': 'Chat not found'}), 404
+
+    data = request.json
+    if 'title' in data:
+        chat.title = data['title']
+    if 'messages' in data:
+        chat.messages = data['messages']
+    if 'agents' in data:
+        chat.agents = data['agents']
+    if 'turns' in data:
+        chat.turns = data['turns']
+
+    db.session.commit()
+    return jsonify(chat.to_dict())
+
+
+@app.route('/api/chats/<client_id>', methods=['DELETE'])
+@login_required
+def api_delete_chat(client_id):
+    """Delete a chat"""
+    user = get_current_user()
+    chat = Chat.query.filter_by(user_id=user.id, client_id=client_id).first()
+    if not chat:
+        return jsonify({'error': 'Chat not found'}), 404
+
+    db.session.delete(chat)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+# --- Documents API ---
+
+@app.route('/api/documents', methods=['GET'])
+@login_required
+def api_get_documents():
+    """Get all documents for current user"""
+    user = get_current_user()
+    documents = Document.query.filter_by(user_id=user.id).order_by(Document.last_modified.desc()).all()
+    return jsonify([doc.to_dict() for doc in documents])
+
+
+@app.route('/api/documents/<client_id>', methods=['GET'])
+@login_required
+def api_get_document(client_id):
+    """Get a specific document by client_id"""
+    user = get_current_user()
+    doc = Document.query.filter_by(user_id=user.id, client_id=client_id).first()
+    if not doc:
+        return jsonify({'error': 'Document not found'}), 404
+    return jsonify(doc.to_dict())
+
+
+@app.route('/api/documents', methods=['POST'])
+@login_required
+def api_create_document():
+    """Create a new document"""
+    user = get_current_user()
+    data = request.json
+
+    existing = Document.query.filter_by(user_id=user.id, client_id=data.get('client_id') or data.get('id')).first()
+    if existing:
+        return jsonify({'error': 'Document with this client_id already exists'}), 409
+
+    doc = Document.from_dict(data, user.id)
+    db.session.add(doc)
+    db.session.commit()
+    return jsonify(doc.to_dict()), 201
+
+
+@app.route('/api/documents/<client_id>', methods=['PUT'])
+@login_required
+def api_update_document(client_id):
+    """Update an existing document"""
+    user = get_current_user()
+    doc = Document.query.filter_by(user_id=user.id, client_id=client_id).first()
+    if not doc:
+        return jsonify({'error': 'Document not found'}), 404
+
+    data = request.json
+    if 'title' in data:
+        doc.title = data['title']
+    if 'content' in data:
+        doc.content = data['content']
+    if 'driveFileId' in data:
+        doc.drive_file_id = data['driveFileId']
+    if 'lastModified' in data:
+        doc.last_modified = data['lastModified']
+
+    db.session.commit()
+    return jsonify(doc.to_dict())
+
+
+@app.route('/api/documents/<client_id>', methods=['DELETE'])
+@login_required
+def api_delete_document(client_id):
+    """Delete a document"""
+    user = get_current_user()
+    doc = Document.query.filter_by(user_id=user.id, client_id=client_id).first()
+    if not doc:
+        return jsonify({'error': 'Document not found'}), 404
+
+    db.session.delete(doc)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+# --- System Prompts API ---
+
+@app.route('/api/system-prompts', methods=['GET'])
+@login_required
+def api_get_system_prompts():
+    """Get all system prompts for current user"""
+    user = get_current_user()
+    prompts = SystemPrompt.query.filter_by(user_id=user.id).order_by(SystemPrompt.sort_order).all()
+    return jsonify([p.to_dict() for p in prompts])
+
+
+@app.route('/api/system-prompts/<client_id>', methods=['GET'])
+@login_required
+def api_get_system_prompt(client_id):
+    """Get a specific system prompt by client_id"""
+    user = get_current_user()
+    prompt = SystemPrompt.query.filter_by(user_id=user.id, client_id=client_id).first()
+    if not prompt:
+        return jsonify({'error': 'System prompt not found'}), 404
+    return jsonify(prompt.to_dict())
+
+
+@app.route('/api/system-prompts', methods=['POST'])
+@login_required
+def api_create_system_prompt():
+    """Create a new system prompt"""
+    user = get_current_user()
+    data = request.json
+
+    existing = SystemPrompt.query.filter_by(user_id=user.id, client_id=data.get('client_id') or data.get('id')).first()
+    if existing:
+        return jsonify({'error': 'System prompt with this client_id already exists'}), 409
+
+    prompt = SystemPrompt.from_dict(data, user.id)
+    db.session.add(prompt)
+    db.session.commit()
+    return jsonify(prompt.to_dict()), 201
+
+
+@app.route('/api/system-prompts/<client_id>', methods=['PUT'])
+@login_required
+def api_update_system_prompt(client_id):
+    """Update an existing system prompt"""
+    user = get_current_user()
+    prompt = SystemPrompt.query.filter_by(user_id=user.id, client_id=client_id).first()
+    if not prompt:
+        return jsonify({'error': 'System prompt not found'}), 404
+
+    data = request.json
+    if 'name' in data:
+        prompt.name = data['name']
+    if 'content' in data:
+        prompt.content = data['content']
+    if 'sortOrder' in data:
+        prompt.sort_order = data['sortOrder']
+
+    db.session.commit()
+    return jsonify(prompt.to_dict())
+
+
+@app.route('/api/system-prompts/<client_id>', methods=['DELETE'])
+@login_required
+def api_delete_system_prompt(client_id):
+    """Delete a system prompt"""
+    user = get_current_user()
+    prompt = SystemPrompt.query.filter_by(user_id=user.id, client_id=client_id).first()
+    if not prompt:
+        return jsonify({'error': 'System prompt not found'}), 404
+
+    db.session.delete(prompt)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+# --- Agents API ---
+
+@app.route('/api/agents', methods=['GET'])
+@login_required
+def api_get_agents():
+    """Get all agents for current user"""
+    user = get_current_user()
+    agents = Agent.query.filter_by(user_id=user.id).order_by(Agent.sort_order).all()
+    return jsonify([a.to_dict() for a in agents])
+
+
+@app.route('/api/agents/<client_id>', methods=['GET'])
+@login_required
+def api_get_agent(client_id):
+    """Get a specific agent by client_id"""
+    user = get_current_user()
+    agent = Agent.query.filter_by(user_id=user.id, client_id=client_id).first()
+    if not agent:
+        return jsonify({'error': 'Agent not found'}), 404
+    return jsonify(agent.to_dict())
+
+
+@app.route('/api/agents', methods=['POST'])
+@login_required
+def api_create_agent():
+    """Create a new agent"""
+    user = get_current_user()
+    data = request.json
+
+    existing = Agent.query.filter_by(user_id=user.id, client_id=data.get('client_id') or data.get('id')).first()
+    if existing:
+        return jsonify({'error': 'Agent with this client_id already exists'}), 409
+
+    agent = Agent.from_dict(data, user.id)
+    db.session.add(agent)
+    db.session.commit()
+    return jsonify(agent.to_dict()), 201
+
+
+@app.route('/api/agents/<client_id>', methods=['PUT'])
+@login_required
+def api_update_agent(client_id):
+    """Update an existing agent"""
+    user = get_current_user()
+    agent = Agent.query.filter_by(user_id=user.id, client_id=client_id).first()
+    if not agent:
+        return jsonify({'error': 'Agent not found'}), 404
+
+    data = request.json
+    if 'name' in data:
+        agent.name = data['name']
+    if 'systemPromptId' in data:
+        agent.system_prompt_id = data['systemPromptId']
+    if 'color' in data:
+        agent.color = data['color']
+    if 'sortOrder' in data:
+        agent.sort_order = data['sortOrder']
+
+    db.session.commit()
+    return jsonify(agent.to_dict())
+
+
+@app.route('/api/agents/<client_id>', methods=['DELETE'])
+@login_required
+def api_delete_agent(client_id):
+    """Delete an agent"""
+    user = get_current_user()
+    agent = Agent.query.filter_by(user_id=user.id, client_id=client_id).first()
+    if not agent:
+        return jsonify({'error': 'Agent not found'}), 404
+
+    db.session.delete(agent)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
 # Health check endpoint
 @app.route('/health')
 def health():
