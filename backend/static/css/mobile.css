@@ -14,9 +14,9 @@
   --mobile-header-height: 48px;
   --mobile-collapsed-chat-height: 44px;
   /* Keyboard handling variables */
-  --keyboard-offset: 0px;
   --composer-height: 68px;
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-top: env(safe-area-inset-top, 0px);
 }
 
 /* ===== Mobile Body Class Styles ===== */
@@ -163,8 +163,6 @@ body.is-mobile .chat-messages {
   /* Scroll containment for iOS keyboard */
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  /* Dynamic padding - JS updates --keyboard-offset */
-  padding-bottom: calc(var(--composer-height, 68px) + var(--keyboard-offset, 0px) + var(--safe-area-bottom, 0px) + 12px);
 }
 
 /* Modals with inputs should be scrollable */

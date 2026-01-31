@@ -142,6 +142,30 @@ body.is-mobile .chat-header {
     gap: 8px;
 }
 
+/* Chat-only mode: GPU layer hints for smooth transforms */
+body.is-mobile.chat-only-mode .chat-container {
+    /* Force GPU layer for smooth transforms */
+    will-change: transform, height;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+body.is-mobile.chat-only-mode .chat-header {
+    flex-shrink: 0;
+    background: var(--color-chat-header-bg, var(--color-bg-secondary));
+}
+
+body.is-mobile.chat-only-mode .chat-messages {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+body.is-mobile.chat-only-mode .chat-input-container {
+    flex-shrink: 0;
+}
+
 /* Collapse button hidden on desktop */
 .chat-collapse-btn {
     display: none;
@@ -253,9 +277,6 @@ body.is-mobile .chat-input-container {
     padding: 12px;
     padding-bottom: calc(12px + var(--safe-area-bottom, 0px));
     box-sizing: border-box;
-    /* Keyboard-aware positioning via transform */
-    transform: translateY(calc(-1 * var(--keyboard-offset, 0px)));
-    transition: transform 0.1s ease-out;
     /* Ensure proper stacking */
     position: relative;
     z-index: 10;
@@ -280,6 +301,11 @@ body.is-mobile .chat-input-container {
     body.is-mobile .chat-input-container {
         padding-bottom: 6px;
         background: var(--color-bg-white) !important;
+    }
+
+    /* Input container safe area in chat-only mode */
+    body.is-mobile.chat-only-mode .chat-input-container {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 }
 

@@ -1,105 +1,145 @@
 /**
  * iOS Keyboard Handler
- * Uses visualViewport API for bulletproof keyboard offset handling.
+ * Uses visualViewport API to keep the chat interface visible when keyboard opens.
+ *
+ * On iOS Safari, the keyboard doesn't resize the layout viewport - it scrolls
+ * the page instead. This causes position:fixed elements to move off-screen.
+ *
+ * Solution: Resize and reposition the chat-container to match the visual viewport.
+ * The internal flex layout then automatically adjusts header/messages/input.
  */
 const MobileKeyboard = {
     initialized: false,
-    rafId: null,
-    lastOffset: 0,
-    composerEl: null,
-    messageListEl: null,
-    stuckCount: 0,
-    lastOffsetTop: 0,
+    pendingUpdate: false,
+    appContainerEl: null,
+    chatContainerEl: null,
+    messagesEl: null,
+    inputEl: null,
 
     init() {
         if (this.initialized) return;
         if (typeof Mobile !== 'undefined' && !Mobile.isMobileView()) return;
+        if (!window.visualViewport) return;
 
-        this.composerEl = document.querySelector('.chat-input-container');
-        this.messageListEl = document.querySelector('.chat-messages');
+        // Cache DOM elements
+        this.appContainerEl = document.querySelector('.app-container');
+        this.chatContainerEl = document.querySelector('.chat-container');
+        this.messagesEl = document.querySelector('.chat-messages');
+        this.inputEl = document.querySelector('.chat-input-container');
 
-        if (!this.composerEl) return;
+        if (!this.chatContainerEl) return;
 
         this.bindEvents();
         this.measureComposer();
+        this.update(); // Initial positioning
         this.initialized = true;
         console.log('MobileKeyboard module initialized');
     },
 
     bindEvents() {
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', () => this.scheduleUpdate());
-            window.visualViewport.addEventListener('scroll', () => this.scheduleUpdate());
-        } else {
-            window.addEventListener('resize', () => this.scheduleUpdate());
+        const vv = window.visualViewport;
+
+        // Throttled viewport change handler
+        const onViewportChange = () => {
+            if (this.pendingUpdate) return;
+            this.pendingUpdate = true;
+            requestAnimationFrame(() => {
+                this.pendingUpdate = false;
+                this.update();
+            });
+        };
+
+        vv.addEventListener('resize', onViewportChange);
+        vv.addEventListener('scroll', onViewportChange);
+
+        // iOS 26.0 workaround: force reset on input blur
+        if (this.inputEl) {
+            this.inputEl.addEventListener('focusout', () => this.handleFocusOut());
+        }
+
+        // Handle orientation changes
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => this.update(), 200);
+        });
+
+        // Measure composer on resize (for dynamic height changes)
+        if (this.inputEl && window.ResizeObserver) {
+            new ResizeObserver(() => this.measureComposer()).observe(this.inputEl);
         }
 
         document.fonts?.ready?.then(() => this.measureComposer());
-
-        this.composerEl.addEventListener('focusin', () => {
-            this.measureComposer();
-            setTimeout(() => this.scheduleUpdate(), 100);
-        });
-
-        this.composerEl.addEventListener('focusout', () => {
-            setTimeout(() => this.scheduleUpdate(), 100);
-        });
-
-        if (window.ResizeObserver) {
-            new ResizeObserver(() => this.measureComposer()).observe(this.composerEl);
-        }
     },
 
     measureComposer() {
-        if (!this.composerEl) return;
-        const height = this.composerEl.getBoundingClientRect().height;
+        if (!this.inputEl) return;
+        const height = this.inputEl.getBoundingClientRect().height;
         document.documentElement.style.setProperty('--composer-height', `${height}px`);
     },
 
-    scheduleUpdate() {
-        if (this.rafId) return;
-        this.rafId = requestAnimationFrame(() => {
-            this.rafId = null;
-            this.update();
-        });
-    },
-
     update() {
-        if (!window.visualViewport || !this.composerEl) return;
-
         const vv = window.visualViewport;
-        const visibleBottom = vv.height + vv.offsetTop;
-        const layoutBottom = window.innerHeight;
-        const overlap = Math.max(0, layoutBottom - visibleBottom);
+        if (!vv) return;
 
-        // Stuck offsetTop detection (iOS 26 bug)
-        if (vv.offsetTop === this.lastOffsetTop && vv.offsetTop !== 0 && overlap === 0) {
-            this.stuckCount++;
-            if (this.stuckCount > 10) {
-                // Force recalc - offsetTop stuck after keyboard dismiss
-                document.documentElement.style.setProperty('--keyboard-offset', '0px');
-                this.lastOffset = 0;
-                return;
+        // Calculate keyboard offset
+        const offsetTop = vv.offsetTop;
+        const keyboardHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        const keyboardVisible = keyboardHeight > 100;
+
+        // Determine which container to resize based on mode
+        const isChatOnlyMode = document.body.classList.contains('chat-only-mode');
+        const isSplitView = document.body.classList.contains('split-view');
+
+        // In chat-only mode, resize chat-container
+        // In split-view mode, resize app-container
+        const targetEl = isChatOnlyMode ? this.chatContainerEl :
+                         isSplitView ? this.appContainerEl : null;
+
+        if (!targetEl) return;
+
+        if (keyboardVisible) {
+            // Resize container to fit visual viewport
+            // Use setProperty with 'important' to override PWA standalone CSS
+            targetEl.style.setProperty('height', `${vv.height}px`, 'important');
+            targetEl.style.setProperty('top', `${offsetTop}px`, 'important');
+            targetEl.style.setProperty('bottom', 'auto', 'important');
+
+            // Auto-scroll messages to bottom
+            if (this.messagesEl) {
+                this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
             }
         } else {
-            this.stuckCount = 0;
-        }
-        this.lastOffsetTop = vv.offsetTop;
-
-        if (overlap !== this.lastOffset) {
-            this.lastOffset = overlap;
-            document.documentElement.style.setProperty('--keyboard-offset', `${overlap}px`);
-
-            // Scroll to keep latest messages visible
-            if (overlap > 0 && this.messageListEl) {
-                this.messageListEl.scrollTop = this.messageListEl.scrollHeight;
+            // Reset all containers - remove inline important styles
+            // This handles mode switches (e.g., closing doc while keyboard was open)
+            if (this.chatContainerEl) {
+                this.chatContainerEl.style.removeProperty('height');
+                this.chatContainerEl.style.removeProperty('top');
+                this.chatContainerEl.style.removeProperty('bottom');
+            }
+            if (this.appContainerEl) {
+                this.appContainerEl.style.removeProperty('height');
+                this.appContainerEl.style.removeProperty('top');
+                this.appContainerEl.style.removeProperty('bottom');
             }
         }
     },
 
-    // For external calls (e.g., orientation change)
+    handleFocusOut() {
+        // iOS 26.0 bug: offsetTop may not reset after keyboard dismissal
+        setTimeout(() => {
+            const vv = window.visualViewport;
+            if (vv && vv.offsetTop > 0 && vv.height >= window.innerHeight - 50) {
+                // Keyboard should be closed but offsetTop is stuck
+                // Force a scroll correction
+                window.scrollBy(0, -1);
+                window.scrollBy(0, 1);
+            }
+            this.update();
+        }, 150);
+    },
+
+    // Called by Mobile module on orientation change
     forceUpdate() {
-        this.scheduleUpdate();
-        setTimeout(() => this.scheduleUpdate(), 200);
+        this.update();
+        setTimeout(() => this.update(), 200);
     }
 };
