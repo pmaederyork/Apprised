@@ -16,7 +16,6 @@ const Mobile = {
     documentOpen: false,
     chatCollapsed: false,
     toolbarExpanded: false,
-    keyboardHeight: 0,
     reviewMode: false,
 
     /**
@@ -36,8 +35,6 @@ const Mobile = {
         this.detectDevice();
         this.bindEvents();
         this.bindPanelEvents();
-        this.initKeyboardHandling();
-        this.setupScrollLock();
         this.applyBodyClasses();
         this.updateLayoutClasses();
 
@@ -354,180 +351,5 @@ const Mobile = {
                 titleEl.textContent = title || 'Untitled';
             }
         }
-    },
-
-    initKeyboardHandling() {
-        // Track keyboard state
-        this._lastKeyboardHeight = 0;
-        this._keyboardAnimationFrame = null;
-        this._pendingKeyboardHeight = null;
-
-        // Use VirtualKeyboard API if available (Chrome on Android)
-        if ('virtualKeyboard' in navigator) {
-            navigator.virtualKeyboard.overlaysContent = true;
-
-            navigator.virtualKeyboard.addEventListener('geometrychange', (e) => {
-                this.scheduleKeyboardUpdate(e.target.boundingRect.height);
-            });
-        } else {
-            // Fallback: listen for visual viewport changes (Safari/older browsers)
-            this.setupKeyboardFallback();
-        }
-    },
-
-    setupKeyboardFallback() {
-        if (!window.visualViewport) return;
-
-        // Handler for viewport resize - fires during keyboard animation
-        const handleViewportResize = () => {
-            const keyboardHeight = Math.max(0, window.innerHeight - window.visualViewport.height);
-            this.scheduleKeyboardUpdate(keyboardHeight);
-        };
-
-        // Listen to resize for keyboard height changes
-        window.visualViewport.addEventListener('resize', handleViewportResize);
-
-        // Polling fallback for smooth animation
-        // iOS visualViewport.resize may not fire every frame during keyboard animation
-        // Poll at 60fps during focus transitions to ensure smooth tracking
-        let pollingInterval = null;
-
-        const startPolling = () => {
-            if (pollingInterval || !this.isMobileView()) return;
-            pollingInterval = setInterval(handleViewportResize, 16); // ~60fps
-            // Stop polling after keyboard animation completes (500ms max)
-            setTimeout(stopPolling, 500);
-        };
-
-        const stopPolling = () => {
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-                pollingInterval = null;
-            }
-        };
-
-        // Start polling on focus events (keyboard may open)
-        document.addEventListener('focusin', (e) => {
-            const target = e.target;
-            const isTextInput = target.tagName === 'TEXTAREA' ||
-                               target.tagName === 'INPUT' ||
-                               target.isContentEditable;
-            if (isTextInput) {
-                startPolling();
-            }
-        }, { capture: true, passive: true });
-
-        // Start polling on blur too (keyboard may close)
-        document.addEventListener('focusout', () => {
-            startPolling();
-        }, { capture: true, passive: true });
-
-        // Initial check
-        handleViewportResize();
-    },
-
-    /**
-     * Schedule keyboard height update via RAF for smooth animation.
-     * Multiple rapid events are batched into a single frame update.
-     */
-    scheduleKeyboardUpdate(newHeight) {
-        this._pendingKeyboardHeight = newHeight;
-
-        // Batch updates using RAF for smooth animation
-        if (!this._keyboardAnimationFrame) {
-            this._keyboardAnimationFrame = requestAnimationFrame(() => {
-                this._keyboardAnimationFrame = null;
-                if (this._pendingKeyboardHeight !== null) {
-                    this.updateKeyboardHeight(this._pendingKeyboardHeight);
-                    this._pendingKeyboardHeight = null;
-                }
-            });
-        }
-    },
-
-    /**
-     * Lock window-level scroll on mobile.
-     * iOS can scroll the page when keyboard opens to show focused input.
-     * We handle keyboard via --keyboard-height CSS, so this scroll is unwanted.
-     * This lock prevents the header from ever leaving the screen.
-     */
-    setupScrollLock() {
-        // Always lock window scroll on mobile - only internal containers should scroll
-        const lockScroll = () => {
-            if (!this.isMobileView()) return;
-            if (window.scrollX !== 0 || window.scrollY !== 0) {
-                window.scrollTo(0, 0);
-            }
-        };
-
-        // Catch any window scroll and reset immediately
-        window.addEventListener('scroll', lockScroll, { passive: true });
-
-        // Also catch visualViewport scroll (iOS keyboard-induced panning)
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('scroll', () => {
-                if (!this.isMobileView()) return;
-                // offsetTop > 0 means iOS has panned the viewport
-                if (window.visualViewport.offsetTop > 0) {
-                    window.scrollTo(0, 0);
-                }
-            }, { passive: true });
-        }
-
-        // Initial reset
-        lockScroll();
-    },
-
-    updateKeyboardHeight(newHeight) {
-        // Round to avoid subpixel issues
-        newHeight = Math.round(newHeight);
-
-        // Skip if no meaningful change (< 5px avoids flicker from tiny variations)
-        if (Math.abs(newHeight - this._lastKeyboardHeight) < 5) return;
-
-        const wasOpen = this._lastKeyboardHeight > 50;
-        const isKeyboardOpen = newHeight > 50;
-        const isOpening = isKeyboardOpen && !wasOpen;
-        const isClosing = !isKeyboardOpen && wasOpen;
-
-        // Update state
-        this.keyboardHeight = newHeight;
-        this._lastKeyboardHeight = newHeight;
-
-        // Update CSS variable - this drives all layout changes
-        document.documentElement.style.setProperty('--keyboard-height', `${newHeight}px`);
-
-        // Update keyboard-open class only on state transitions (not during animation)
-        if (isOpening) {
-            document.body.classList.add('keyboard-open');
-            this.onKeyboardOpen();
-        } else if (isClosing) {
-            document.body.classList.remove('keyboard-open');
-            this.onKeyboardClose();
-        }
-    },
-
-    /**
-     * Called when keyboard starts opening.
-     * Handle any side effects here (not during animation).
-     */
-    onKeyboardOpen() {
-        // Auto-collapse chat when editing document (not when typing in chat)
-        if (this.isMobileView() && this.documentOpen) {
-            const activeElement = document.activeElement;
-            const documentEditor = document.querySelector('.document-editor');
-            const isEditingDocument = documentEditor && documentEditor.contains(activeElement);
-
-            if (isEditingDocument && !this.chatCollapsed) {
-                this.setChatCollapsed(true);
-            }
-        }
-    },
-
-    /**
-     * Called when keyboard finishes closing.
-     */
-    onKeyboardClose() {
-        // Could restore chat collapsed state here if needed
     }
 };

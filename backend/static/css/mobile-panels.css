@@ -278,7 +278,3 @@ body.is-mobile .chat-input-container {
     }
 }
 
-/* When keyboard is open, reduce bottom padding (keyboard covers home indicator) */
-body.is-mobile.keyboard-open .chat-input-container {
-    padding-bottom: 8px;
-}

@@ -13,27 +13,10 @@
   --mobile-sidebar-width: 80%;
   --mobile-header-height: 48px;
   --mobile-collapsed-chat-height: 44px;
-  --keyboard-height: 0px;
 }
 
 /* ===== Mobile Body Class Styles ===== */
 /* Applied by JavaScript when mobile detected (width < 500px) */
-
-/* Lock both html and body to prevent any page scrolling on mobile */
-html:has(body.is-mobile) {
-  position: fixed;
-  overflow: hidden;
-  width: 100%;
-  height: 100%;
-  /* Disable smooth scroll on mobile - interferes with keyboard handling */
-  scroll-behavior: auto !important;
-  /* Prevent touch-based page scroll - only internal containers should scroll */
-  touch-action: none;
-}
-
-body.is-mobile {
-  overflow: hidden; /* Prevent body scroll, app handles scroll */
-}
 
 body.is-mobile .sidebar {
   display: none; /* Hidden by default on mobile, shown via drawer */
@@ -58,84 +41,25 @@ body.is-mobile.is-landscape {
 }
 
 /* ===== Mobile Viewport Constraints ===== */
-/* These use media query because they affect html/body before JS runs */
 body.is-mobile {
-  /* Prevent iOS Safari bounce/overscroll effect */
-  position: fixed;
-  width: 100%;
-  height: 100%;
   overscroll-behavior: none; /* Prevent elastic scroll bounce */
-  /* Use neutral background to prevent blue showing during scroll/keyboard */
   background: var(--color-bg-white);
 }
 
 /* ===== Standalone PWA Mode ===== */
 /* Additional handling when launched from home screen */
 @media (display-mode: standalone) {
-  /* Root elements fill entire screen including safe area */
   html {
-    /* Ensure background fills entire viewport including notch/home indicator area */
     background: var(--color-bg-white) !important;
-    /* Aggressively prevent any page scroll in standalone mode */
-    position: fixed !important;
-    overflow: hidden !important;
-    inset: 0 !important;
-    /* Use dvh for true viewport height on iOS - includes home indicator area */
-    width: 100vw !important;
-    height: 100vh !important;
-    height: 100dvh !important; /* Modern browsers - true dynamic viewport */
-    min-height: 0 !important;
-    max-height: none !important;
-    /* Fallback for older iOS that doesn't support dvh */
-    min-height: -webkit-fill-available;
   }
 
   body {
     background: var(--color-bg-white) !important;
-    position: fixed !important;
-    overflow: hidden !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
   }
 
-  /* Dark mode - must use !important to override and match content background */
+  /* Dark mode */
   html[data-theme="dark"], html[data-theme="dark"] body {
     background: var(--gray-900, #1c1917) !important;
-  }
-
-  /* Fill the bottom safe area with background as fallback */
-  /* Content now extends into this area functionally */
-  body::after {
-    content: '';
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: env(safe-area-inset-bottom, 0px);
-    background: var(--color-bg-white);
-    z-index: -1; /* Behind all content - just fills any gap */
-    pointer-events: none;
-  }
-
-  [data-theme="dark"] body::after {
-    background: var(--gray-900, #1c1917);
-  }
-
-  /* App container fills entire screen - elements handle their own safe areas */
-  .app-container {
-    position: fixed !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
   }
 }
 
@@ -192,21 +116,7 @@ body.is-mobile .show-mobile {
   display: block !important;
 }
 
-/* ===== Mobile Keyboard Handling ===== */
-/**
- * SINGLE SOURCE OF TRUTH FOR KEYBOARD BEHAVIOR
- *
- * The --keyboard-height CSS variable is set by JavaScript (mobile.js)
- * when the virtual keyboard opens/closes.
- *
- * How it works:
- * 1. JS detects keyboard via visualViewport API
- * 2. JS sets --keyboard-height on :root
- * 3. JS adds/removes 'keyboard-open' class on body
- * 4. Layout-specific CSS (mobile-layout.css) uses --keyboard-height to shrink containers
- * 5. This file handles universal keyboard concerns (zoom, safe areas, etc.)
- */
-
+/* ===== Mobile Input Handling ===== */
 /* Prevent iOS zoom on input focus - requires 16px minimum font-size */
 body.is-mobile input,
 body.is-mobile textarea,
@@ -226,20 +136,6 @@ body.is-mobile [contenteditable="true"] {
   touch-action: pan-y;
 }
 
-/* Note: .message-input-container class doesn't exist in HTML */
-/* Bottom safe area is handled by .chat-input-container in mobile-panels.css */
-
-/* Keyboard open state - let layout naturally compress, don't fight scroll */
-body.is-mobile.keyboard-open {
-  /* Allow normal touch interactions */
-  touch-action: manipulation;
-}
-
-body.is-mobile.keyboard-open .app-container {
-  /* Content scrolls normally within containers */
-  touch-action: pan-y;
-}
-
 /* Ensure chat messages area can shrink */
 body.is-mobile .chat-messages {
   flex: 1;
@@ -249,14 +145,8 @@ body.is-mobile .chat-messages {
   touch-action: pan-y;
 }
 
-/* Bottom sheets should appear above keyboard */
-body.is-mobile .bottom-sheet {
-  bottom: var(--keyboard-height, 0px);
-  /* No transition - keyboard animation class handles this */
-}
-
-/* Modals with inputs should be scrollable when keyboard is up */
+/* Modals with inputs should be scrollable */
 body.is-mobile .modal-content {
-  max-height: calc(100vh - var(--keyboard-height, 0px) - 40px);
+  max-height: calc(100vh - 40px);
   overflow-y: auto;
 }

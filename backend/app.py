@@ -77,6 +77,9 @@ def log_response(response):
 @app.after_request
 def add_security_headers(response):
     """Add security headers to all responses"""
+    # Check if we're in production (not localhost)
+    is_production = 'localhost' not in app.config.get('APP_URL', '') and '127.0.0.1' not in app.config.get('APP_URL', '')
+
     # Content Security Policy - allows self and required external domains
     csp = (
         "default-src 'self'; "
@@ -89,9 +92,13 @@ def add_security_headers(response):
         "base-uri 'self'; "
         "form-action 'self' https://accounts.google.com; "
         "frame-src https://accounts.google.com https://drive.google.com https://docs.google.com; "
-        "frame-ancestors 'none'; "
-        "upgrade-insecure-requests;"
+        "frame-ancestors 'none';"
     )
+
+    # Only upgrade to HTTPS in production
+    if is_production:
+        csp += " upgrade-insecure-requests;"
+
     response.headers['Content-Security-Policy'] = csp
 
     # Additional security headers
@@ -841,4 +848,4 @@ def health():
 application = app
 
 if __name__ == "__main__":
-    app.run(debug=False, host='127.0.0.1', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=5000)
