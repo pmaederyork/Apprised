@@ -359,6 +359,7 @@ input.chat-title:focus {
 
 /* Message actions */
 .message-actions {
+    display: none; /* Hidden for now */
     margin-top: 8px;
     margin-left: 4px;
 }
