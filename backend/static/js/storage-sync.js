@@ -7,6 +7,7 @@ const StorageSync = {
     isSyncing: false,
     syncErrors: [],
     initialized: false,
+    migrationComplete: false,
 
     /**
      * Initialize by fetching all data from server and populating localStorage cache
@@ -25,6 +26,24 @@ const StorageSync = {
                 this.fetchFromServer('/api/system-prompts'),
                 this.fetchFromServer('/api/agents')
             ]);
+
+            // Check if server is empty but localStorage has data (migration needed)
+            const serverEmpty = chats.length === 0 && documents.length === 0 &&
+                               systemPrompts.length === 0 && agents.length === 0;
+            const localData = this.getLocalStorageData();
+            const hasLocalData = localData.chats.length > 0 || localData.documents.length > 0 ||
+                                localData.systemPrompts.length > 0;
+
+            if (serverEmpty && hasLocalData) {
+                this.hideSyncIndicator();
+                // Offer migration
+                const shouldMigrate = await this.showMigrationPrompt(localData);
+                if (shouldMigrate) {
+                    await this.performMigration(localData);
+                    // Re-fetch from server after migration
+                    return this.init();
+                }
+            }
 
             // Convert arrays to objects keyed by client_id for localStorage format
             const chatsObj = {};
@@ -92,6 +111,290 @@ const StorageSync = {
             this.initialized = true;
             return false;
         }
+    },
+
+    // ========== Migration Methods ==========
+
+    /**
+     * Get existing data from localStorage for migration check
+     */
+    getLocalStorageData() {
+        const parseJSON = (key) => {
+            try {
+                return JSON.parse(localStorage.getItem(key) || '{}');
+            } catch {
+                return {};
+            }
+        };
+
+        const chats = Object.values(parseJSON('chats'));
+        const documents = Object.values(parseJSON('documents'));
+        const systemPrompts = Object.values(parseJSON('systemPrompts'));
+
+        return { chats, documents, systemPrompts };
+    },
+
+    /**
+     * Show migration prompt to user
+     * Returns true if user wants to migrate, false to skip
+     */
+    showMigrationPrompt(localData) {
+        return new Promise((resolve) => {
+            const chatCount = localData.chats.length;
+            const docCount = localData.documents.length;
+            const promptCount = localData.systemPrompts.length;
+
+            const itemList = [];
+            if (chatCount > 0) itemList.push(`${chatCount} chat${chatCount > 1 ? 's' : ''}`);
+            if (docCount > 0) itemList.push(`${docCount} document${docCount > 1 ? 's' : ''}`);
+            if (promptCount > 0) itemList.push(`${promptCount} system prompt${promptCount > 1 ? 's' : ''}`);
+
+            // Create modal
+            const modal = document.createElement('div');
+            modal.id = 'migration-modal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.6);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10002;
+            `;
+
+            modal.innerHTML = `
+                <div style="
+                    background: var(--bg-primary, white);
+                    border-radius: 12px;
+                    padding: 24px;
+                    max-width: 420px;
+                    width: 90%;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                ">
+                    <h2 style="margin: 0 0 12px 0; font-size: 18px; color: var(--text-primary, #333);">
+                        Import Local Data?
+                    </h2>
+                    <p style="margin: 0 0 16px 0; color: var(--text-secondary, #666); font-size: 14px; line-height: 1.5;">
+                        Found existing data on this device: <strong>${itemList.join(', ')}</strong>.
+                    </p>
+                    <p style="margin: 0 0 20px 0; color: var(--text-secondary, #666); font-size: 14px; line-height: 1.5;">
+                        Would you like to import this data to your cloud account? You'll be able to access it from any device.
+                    </p>
+                    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                        <button id="migration-skip" style="
+                            padding: 10px 20px;
+                            border: 1px solid var(--border-color, #ddd);
+                            background: transparent;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 14px;
+                            color: var(--text-secondary, #666);
+                        ">Skip</button>
+                        <button id="migration-import" style="
+                            padding: 10px 20px;
+                            border: none;
+                            background: var(--primary-color, #007bff);
+                            color: white;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 14px;
+                            font-weight: 500;
+                        ">Import Data</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            document.getElementById('migration-skip').onclick = () => {
+                modal.remove();
+                resolve(false);
+            };
+
+            document.getElementById('migration-import').onclick = () => {
+                modal.remove();
+                resolve(true);
+            };
+        });
+    },
+
+    /**
+     * Perform migration - upload all localStorage data to server
+     */
+    async performMigration(localData) {
+        try {
+            this.showSyncIndicator('Importing data...');
+            console.log('Starting migration...', localData);
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            // Migrate system prompts first (agents may reference them)
+            for (const prompt of localData.systemPrompts) {
+                try {
+                    await this.saveToServer('/api/system-prompts', 'POST', {
+                        client_id: prompt.id,
+                        id: prompt.id,
+                        name: prompt.name,
+                        content: prompt.content || '',
+                        sortOrder: prompt.sortOrder || prompt.order || 0,
+                        createdAt: prompt.createdAt || Date.now()
+                    });
+                    successCount++;
+                } catch (error) {
+                    console.error('Failed to migrate system prompt:', prompt.id, error);
+                    errorCount++;
+                }
+            }
+
+            // Migrate documents
+            for (const doc of localData.documents) {
+                try {
+                    await this.saveToServer('/api/documents', 'POST', {
+                        client_id: doc.id,
+                        id: doc.id,
+                        title: doc.title,
+                        content: doc.content || '',
+                        driveFileId: doc.driveFileId,
+                        createdAt: doc.createdAt || Date.now(),
+                        lastModified: doc.lastModified || Date.now()
+                    });
+                    successCount++;
+                } catch (error) {
+                    console.error('Failed to migrate document:', doc.id, error);
+                    errorCount++;
+                }
+            }
+
+            // Migrate chats
+            for (const chat of localData.chats) {
+                try {
+                    await this.saveToServer('/api/chats', 'POST', {
+                        client_id: chat.id,
+                        id: chat.id,
+                        title: chat.title,
+                        messages: chat.messages || [],
+                        agents: chat.agents || [],
+                        turns: chat.turns || 'auto',
+                        created_at: chat.createdAt || Date.now()
+                    });
+                    successCount++;
+                } catch (error) {
+                    console.error('Failed to migrate chat:', chat.id, error);
+                    errorCount++;
+                }
+            }
+
+            this.hideSyncIndicator();
+
+            if (errorCount === 0) {
+                // Success - clear localStorage (except API keys and settings)
+                this.clearMigratedData();
+                this.migrationComplete = true;
+                this.showMigrationSuccess(successCount);
+                console.log(`Migration complete: ${successCount} items imported`);
+            } else {
+                // Partial failure - keep localStorage, show warning
+                this.showMigrationPartialError(successCount, errorCount);
+                console.warn(`Migration partial: ${successCount} succeeded, ${errorCount} failed`);
+            }
+
+            return errorCount === 0;
+
+        } catch (error) {
+            console.error('Migration failed:', error);
+            this.hideSyncIndicator();
+            this.showMigrationError();
+            return false;
+        }
+    },
+
+    /**
+     * Clear migrated data from localStorage (keep API keys and settings)
+     */
+    clearMigratedData() {
+        // Only clear data that was migrated
+        localStorage.removeItem('chats');
+        localStorage.removeItem('documents');
+        localStorage.removeItem('systemPrompts');
+        localStorage.removeItem('agents');
+        localStorage.removeItem('claudeChanges');
+        localStorage.removeItem('lastOpenDocumentId');
+        localStorage.removeItem('activeSystemPromptId');
+        // Keep: anthropicApiKey, appSettings, googleDriveConnected
+        console.log('Migrated data cleared from localStorage');
+    },
+
+    /**
+     * Show migration success notification
+     */
+    showMigrationSuccess(count) {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #059669;
+            color: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 10001;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            animation: slideIn 0.3s ease-out;
+        `;
+        notification.textContent = `Successfully imported ${count} items to your cloud account!`;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 5000);
+    },
+
+    /**
+     * Show migration partial error
+     */
+    showMigrationPartialError(success, failed) {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #f59e0b;
+            color: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 10001;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        `;
+        notification.textContent = `Imported ${success} items. ${failed} items failed and remain in local storage.`;
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 7000);
+    },
+
+    /**
+     * Show migration error
+     */
+    showMigrationError() {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #dc3545;
+            color: white;
+            padding: 16px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 10001;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        `;
+        notification.textContent = 'Import failed. Your local data is preserved. Please try again later.';
+        document.body.appendChild(notification);
+        setTimeout(() => notification.remove(), 7000);
     },
 
     /**
