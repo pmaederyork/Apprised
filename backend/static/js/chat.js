@@ -243,7 +243,9 @@ const Chat = {
 
     // Add welcome message
     addWelcomeMessage() {
-        UI.addMessage("Hello! I'm Claude. Ask me anything and I'll do my best to help you.", false, false);
+        const firstName = Auth.user?.name ? Auth.user.name.split(' ')[0] : '';
+        const greeting = firstName ? `Hello ${firstName}, how can I help?` : 'Hello, how can I help?';
+        UI.addMessage(greeting, false, false);
     },
 
     // Update active chat styling in sidebar
