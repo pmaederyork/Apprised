@@ -29,7 +29,8 @@ class Document(db.Model):
             'content': self.content or '',
             'driveFileId': self.drive_file_id,
             'createdAt': self.created_at,
-            'lastModified': self.last_modified
+            'lastModified': self.last_modified,
+            'updated_at': int(self.updated_at.timestamp() * 1000) if self.updated_at else self.last_modified
         }
 
     @classmethod

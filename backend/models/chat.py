@@ -30,7 +30,8 @@ class Chat(db.Model):
             'messages': self.messages or [],
             'agents': self.agents or [],
             'turns': self.turns,
-            'created_at': self.created_at
+            'created_at': self.created_at,
+            'updated_at': int(self.updated_at.timestamp() * 1000) if self.updated_at else self.created_at
         }
 
     @classmethod

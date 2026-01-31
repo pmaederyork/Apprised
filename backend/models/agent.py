@@ -28,7 +28,8 @@ class Agent(db.Model):
             'systemPromptId': self.system_prompt_id,
             'color': self.color,
             'sortOrder': self.sort_order,
-            'createdAt': self.created_at
+            'createdAt': self.created_at,
+            'updated_at': int(self.updated_at.timestamp() * 1000) if self.updated_at else self.created_at
         }
 
     @classmethod

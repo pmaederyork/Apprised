@@ -4,9 +4,10 @@
  */
 const SystemPrompts = {
     // State management
+    // NOTE: Initialize empty - data loaded in init() after StorageSync completes
     state: {
-        systemPrompts: Storage.getSystemPrompts(),
-        activeSystemPromptId: Storage.getActiveSystemPromptId(),
+        systemPrompts: {},
+        activeSystemPromptId: null,
         isEditingSystemPrompt: false,
         editingSystemPromptId: null,
         autoSaveTimeout: null,
@@ -15,6 +16,10 @@ const SystemPrompts = {
 
     // Initialize system prompts functionality
     init() {
+        // Load from localStorage (populated by StorageSync before this runs)
+        this.state.systemPrompts = Storage.getSystemPrompts();
+        this.state.activeSystemPromptId = Storage.getActiveSystemPromptId();
+
         // Add order field to legacy prompts (backwards compatibility)
         let needsSave = false;
         const prompts = Object.values(this.state.systemPrompts);

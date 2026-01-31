@@ -451,19 +451,12 @@ async function startApp() {
     // Only initialize main app if user is fully authenticated
     if (isAuthenticated) {
         // Initialize storage sync - fetch data from server
+        // StorageSync populates localStorage with server data before modules init
+        // Modules now initialize state in their init() method (not at parse time)
         if (typeof StorageSync !== 'undefined') {
             try {
                 await StorageSync.init();
                 console.log('StorageSync initialized - data synced from server');
-
-                // Refresh modules that may have cached stale localStorage data at script load time.
-                // SystemPrompts caches state when the script parses (before StorageSync runs),
-                // so we need to update it with the fresh server data before App.init() renders.
-                if (typeof SystemPrompts !== 'undefined') {
-                    SystemPrompts.state.systemPrompts = Storage.getSystemPrompts();
-                    SystemPrompts.state.activeSystemPromptId = Storage.getActiveSystemPromptId();
-                    console.log('SystemPrompts state refreshed from synced storage');
-                }
             } catch (error) {
                 console.error('StorageSync init failed, using localStorage:', error);
             }

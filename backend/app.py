@@ -1144,6 +1144,39 @@ def api_delete_agent(client_id):
     return jsonify({'success': True})
 
 
+# --- Sync Status API ---
+
+@app.route('/api/sync-status', methods=['GET'])
+@login_required
+def api_sync_status():
+    """Get the latest updated_at timestamp for each data type.
+    Used by client polling to detect changes from other devices.
+    """
+    user = get_current_user()
+
+    # Get max updated_at for each type using SQL aggregation
+    from sqlalchemy import func
+
+    # Get latest timestamps (or 0 if no data)
+    chat_latest = db.session.query(func.max(Chat.updated_at)).filter(Chat.user_id == user.id).scalar()
+    doc_latest = db.session.query(func.max(Document.updated_at)).filter(Document.user_id == user.id).scalar()
+    prompt_latest = db.session.query(func.max(SystemPrompt.updated_at)).filter(SystemPrompt.user_id == user.id).scalar()
+    agent_latest = db.session.query(func.max(Agent.updated_at)).filter(Agent.user_id == user.id).scalar()
+
+    # Convert to Unix timestamps (milliseconds) or 0 if no data
+    def to_timestamp(dt):
+        if dt is None:
+            return 0
+        return int(dt.timestamp() * 1000)
+
+    return jsonify({
+        'chats': to_timestamp(chat_latest),
+        'documents': to_timestamp(doc_latest),
+        'systemPrompts': to_timestamp(prompt_latest),
+        'agents': to_timestamp(agent_latest)
+    })
+
+
 # Health check endpoint
 @app.route('/health')
 def health():

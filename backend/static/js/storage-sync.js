@@ -54,7 +54,8 @@ const StorageSync = {
                     messages: chat.messages || [],
                     agents: chat.agents || [],
                     turns: chat.turns || 'auto',
-                    createdAt: chat.created_at
+                    createdAt: chat.created_at,
+                    updated_at: chat.updated_at
                 };
             });
 
@@ -66,7 +67,8 @@ const StorageSync = {
                     content: doc.content || '',
                     driveFileId: doc.driveFileId,
                     createdAt: doc.createdAt,
-                    lastModified: doc.lastModified
+                    lastModified: doc.lastModified,
+                    updated_at: doc.updated_at
                 };
             });
 
@@ -77,7 +79,8 @@ const StorageSync = {
                     name: p.name,
                     content: p.content || '',
                     sortOrder: p.sortOrder || 0,
-                    createdAt: p.createdAt
+                    createdAt: p.createdAt,
+                    updated_at: p.updated_at
                 };
             });
 
@@ -89,7 +92,8 @@ const StorageSync = {
                     systemPromptId: a.systemPromptId,
                     color: a.color,
                     sortOrder: a.sortOrder || 0,
-                    createdAt: a.createdAt
+                    createdAt: a.createdAt,
+                    updated_at: a.updated_at
                 };
             });
 
@@ -102,13 +106,22 @@ const StorageSync = {
             this.initialized = true;
             this.hideSyncIndicator();
             console.log('StorageSync initialized - data loaded from server');
+
+            // Initialize sync status timestamps from fetched data
+            this.initializeSyncStatus(chats, documents, systemPrompts, agents);
+
+            // Start real-time polling for cross-device sync
+            this.startPolling();
+
             return true;
 
         } catch (error) {
             console.error('StorageSync init failed:', error);
             this.hideSyncIndicator();
-            // Don't block app - use localStorage data if available
-            this.initialized = true;
+            // Don't set initialized = true on failure
+            // This prevents stale localStorage data from being saved to server
+            // StorageSync methods check initialized before syncing
+            this.initFailed = true;
             return false;
         }
     },
@@ -457,11 +470,18 @@ const StorageSync = {
                 created_at: chatData.createdAt || Date.now()
             };
 
+            let result;
             if (exists) {
-                await this.saveToServer(`/api/chats/${chatId}`, 'PUT', payload);
+                result = await this.saveToServer(`/api/chats/${chatId}`, 'PUT', payload);
             } else {
-                await this.saveToServer('/api/chats', 'POST', payload);
+                result = await this.saveToServer('/api/chats', 'POST', payload);
             }
+
+            // Update local sync status with server's updated_at
+            if (result && result.updated_at) {
+                this.updateLocalSyncStatus('chats', result.updated_at);
+            }
+
             return true;
         } catch (error) {
             console.error('Failed to sync chat:', error);
@@ -505,11 +525,18 @@ const StorageSync = {
                 lastModified: docData.lastModified || Date.now()
             };
 
+            let result;
             if (exists) {
-                await this.saveToServer(`/api/documents/${docId}`, 'PUT', payload);
+                result = await this.saveToServer(`/api/documents/${docId}`, 'PUT', payload);
             } else {
-                await this.saveToServer('/api/documents', 'POST', payload);
+                result = await this.saveToServer('/api/documents', 'POST', payload);
             }
+
+            // Update local sync status with server's updated_at
+            if (result && result.updated_at) {
+                this.updateLocalSyncStatus('documents', result.updated_at);
+            }
+
             return true;
         } catch (error) {
             console.error('Failed to sync document:', error);
@@ -552,11 +579,18 @@ const StorageSync = {
                 createdAt: promptData.createdAt || Date.now()
             };
 
+            let result;
             if (exists) {
-                await this.saveToServer(`/api/system-prompts/${promptId}`, 'PUT', payload);
+                result = await this.saveToServer(`/api/system-prompts/${promptId}`, 'PUT', payload);
             } else {
-                await this.saveToServer('/api/system-prompts', 'POST', payload);
+                result = await this.saveToServer('/api/system-prompts', 'POST', payload);
             }
+
+            // Update local sync status with server's updated_at
+            if (result && result.updated_at) {
+                this.updateLocalSyncStatus('systemPrompts', result.updated_at);
+            }
+
             return true;
         } catch (error) {
             console.error('Failed to sync system prompt:', error);
@@ -600,11 +634,18 @@ const StorageSync = {
                 createdAt: agentData.createdAt || Date.now()
             };
 
+            let result;
             if (exists) {
-                await this.saveToServer(`/api/agents/${agentId}`, 'PUT', payload);
+                result = await this.saveToServer(`/api/agents/${agentId}`, 'PUT', payload);
             } else {
-                await this.saveToServer('/api/agents', 'POST', payload);
+                result = await this.saveToServer('/api/agents', 'POST', payload);
             }
+
+            // Update local sync status with server's updated_at
+            if (result && result.updated_at) {
+                this.updateLocalSyncStatus('agents', result.updated_at);
+            }
+
             return true;
         } catch (error) {
             console.error('Failed to sync agent:', error);
@@ -741,6 +782,286 @@ const StorageSync = {
                     await this.saveAgent(err.id, agents[err.id]);
                 }
             }
+        }
+    },
+
+    // ========== Real-Time Polling ==========
+
+    pollingInterval: null,
+    lastSyncStatus: null,
+    POLL_INTERVAL_MS: 5000, // 5 seconds
+
+    /**
+     * Initialize sync status timestamps from fetched data
+     */
+    initializeSyncStatus(chats, documents, systemPrompts, agents) {
+        const getMaxTimestamp = (items) => {
+            let max = 0;
+            for (const item of items) {
+                if (item.updated_at && item.updated_at > max) {
+                    max = item.updated_at;
+                }
+            }
+            return max;
+        };
+
+        const status = {
+            chats: getMaxTimestamp(chats),
+            documents: getMaxTimestamp(documents),
+            systemPrompts: getMaxTimestamp(systemPrompts),
+            agents: getMaxTimestamp(agents)
+        };
+
+        localStorage.setItem('syncStatus', JSON.stringify(status));
+        console.log('StorageSync: Initialized sync status timestamps');
+    },
+
+    /**
+     * Start polling for updates from other devices
+     */
+    startPolling() {
+        if (this.pollingInterval) return; // Already polling
+
+        console.log('StorageSync: Starting real-time polling');
+
+        // Listen for visibility changes
+        document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
+
+        // Start polling if tab is visible
+        if (!document.hidden) {
+            this.pollingInterval = setInterval(() => this.checkForUpdates(), this.POLL_INTERVAL_MS);
+        }
+    },
+
+    /**
+     * Stop polling
+     */
+    stopPolling() {
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = null;
+        }
+        document.removeEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
+        console.log('StorageSync: Stopped polling');
+    },
+
+    /**
+     * Handle tab visibility changes - pause/resume polling
+     */
+    handleVisibilityChange() {
+        if (document.hidden) {
+            // Tab hidden - stop polling to save resources
+            if (this.pollingInterval) {
+                clearInterval(this.pollingInterval);
+                this.pollingInterval = null;
+                console.log('StorageSync: Paused polling (tab hidden)');
+            }
+        } else {
+            // Tab visible - resume polling and check immediately
+            if (!this.pollingInterval) {
+                this.checkForUpdates(); // Check immediately when tab becomes visible
+                this.pollingInterval = setInterval(() => this.checkForUpdates(), this.POLL_INTERVAL_MS);
+                console.log('StorageSync: Resumed polling (tab visible)');
+            }
+        }
+    },
+
+    /**
+     * Check server for updates and sync if newer
+     */
+    async checkForUpdates() {
+        if (!this.initialized || this.isSyncing) return;
+
+        try {
+            const serverStatus = await this.fetchFromServer('/api/sync-status');
+
+            // Compare with local timestamps stored in localStorage
+            const localStatus = this.getLocalSyncStatus();
+
+            let hasUpdates = false;
+            const typesToRefresh = [];
+
+            // Check each data type
+            if (serverStatus.chats > localStatus.chats) {
+                typesToRefresh.push('chats');
+                hasUpdates = true;
+            }
+            if (serverStatus.documents > localStatus.documents) {
+                typesToRefresh.push('documents');
+                hasUpdates = true;
+            }
+            if (serverStatus.systemPrompts > localStatus.systemPrompts) {
+                typesToRefresh.push('systemPrompts');
+                hasUpdates = true;
+            }
+            if (serverStatus.agents > localStatus.agents) {
+                typesToRefresh.push('agents');
+                hasUpdates = true;
+            }
+
+            if (hasUpdates) {
+                console.log('StorageSync: Detected updates from other device:', typesToRefresh);
+                await this.refreshFromServer(typesToRefresh);
+            }
+
+        } catch (error) {
+            // Silent fail - don't spam console on network errors
+            // Will retry on next poll interval
+        }
+    },
+
+    /**
+     * Get local sync timestamps from localStorage
+     */
+    getLocalSyncStatus() {
+        try {
+            const status = JSON.parse(localStorage.getItem('syncStatus') || '{}');
+            return {
+                chats: status.chats || 0,
+                documents: status.documents || 0,
+                systemPrompts: status.systemPrompts || 0,
+                agents: status.agents || 0
+            };
+        } catch {
+            return { chats: 0, documents: 0, systemPrompts: 0, agents: 0 };
+        }
+    },
+
+    /**
+     * Update local sync timestamps
+     */
+    updateLocalSyncStatus(type, timestamp) {
+        try {
+            const status = this.getLocalSyncStatus();
+            status[type] = timestamp;
+            localStorage.setItem('syncStatus', JSON.stringify(status));
+        } catch (error) {
+            console.warn('Failed to update sync status:', error);
+        }
+    },
+
+    /**
+     * Refresh specific data types from server and update UI
+     */
+    async refreshFromServer(types) {
+        this.isSyncing = true;
+
+        try {
+            for (const type of types) {
+                if (type === 'chats') {
+                    const chats = await this.fetchFromServer('/api/chats');
+                    const chatsObj = {};
+                    let maxTimestamp = 0;
+                    chats.forEach(chat => {
+                        chatsObj[chat.client_id] = {
+                            id: chat.client_id,
+                            title: chat.title,
+                            messages: chat.messages || [],
+                            agents: chat.agents || [],
+                            turns: chat.turns || 'auto',
+                            createdAt: chat.created_at,
+                            updated_at: chat.updated_at
+                        };
+                        if (chat.updated_at > maxTimestamp) maxTimestamp = chat.updated_at;
+                    });
+                    localStorage.setItem('chats', JSON.stringify(chatsObj));
+                    this.updateLocalSyncStatus('chats', maxTimestamp);
+
+                    // Refresh UI
+                    if (typeof Chat !== 'undefined' && Chat.renderChatList) {
+                        Chat.renderChatList();
+                        // Reload current chat if it was updated
+                        if (Chat.currentChatId && chatsObj[Chat.currentChatId]) {
+                            Chat.loadChat(Chat.currentChatId);
+                        }
+                    }
+                }
+
+                if (type === 'documents') {
+                    const documents = await this.fetchFromServer('/api/documents');
+                    const docsObj = {};
+                    let maxTimestamp = 0;
+                    documents.forEach(doc => {
+                        docsObj[doc.client_id] = {
+                            id: doc.client_id,
+                            title: doc.title,
+                            content: doc.content || '',
+                            driveFileId: doc.driveFileId,
+                            createdAt: doc.createdAt,
+                            lastModified: doc.lastModified,
+                            updated_at: doc.updated_at
+                        };
+                        if (doc.updated_at > maxTimestamp) maxTimestamp = doc.updated_at;
+                    });
+                    localStorage.setItem('documents', JSON.stringify(docsObj));
+                    this.updateLocalSyncStatus('documents', maxTimestamp);
+
+                    // Refresh UI
+                    if (typeof Documents !== 'undefined' && Documents.renderDocumentList) {
+                        Documents.renderDocumentList();
+                        // Reload current document if it was updated
+                        if (Documents.currentDocumentId && docsObj[Documents.currentDocumentId]) {
+                            Documents.openDocument(Documents.currentDocumentId);
+                        }
+                    }
+                }
+
+                if (type === 'systemPrompts') {
+                    const prompts = await this.fetchFromServer('/api/system-prompts');
+                    const promptsObj = {};
+                    let maxTimestamp = 0;
+                    prompts.forEach(p => {
+                        promptsObj[p.client_id] = {
+                            id: p.client_id,
+                            name: p.name,
+                            content: p.content || '',
+                            sortOrder: p.sortOrder || 0,
+                            createdAt: p.createdAt,
+                            updated_at: p.updated_at
+                        };
+                        if (p.updated_at > maxTimestamp) maxTimestamp = p.updated_at;
+                    });
+                    localStorage.setItem('systemPrompts', JSON.stringify(promptsObj));
+                    this.updateLocalSyncStatus('systemPrompts', maxTimestamp);
+
+                    // Refresh UI
+                    if (typeof SystemPrompts !== 'undefined') {
+                        SystemPrompts.refresh();
+                    }
+                }
+
+                if (type === 'agents') {
+                    const agents = await this.fetchFromServer('/api/agents');
+                    const agentsObj = {};
+                    let maxTimestamp = 0;
+                    agents.forEach(a => {
+                        agentsObj[a.client_id] = {
+                            id: a.client_id,
+                            name: a.name,
+                            systemPromptId: a.systemPromptId,
+                            color: a.color,
+                            sortOrder: a.sortOrder || 0,
+                            createdAt: a.createdAt,
+                            updated_at: a.updated_at
+                        };
+                        if (a.updated_at > maxTimestamp) maxTimestamp = a.updated_at;
+                    });
+                    localStorage.setItem('agents', JSON.stringify(agentsObj));
+                    this.updateLocalSyncStatus('agents', maxTimestamp);
+
+                    // Refresh UI - Agents are per-chat so just update UI if needed
+                    if (typeof Agents !== 'undefined' && Agents.updateAgentSelectorUI) {
+                        Agents.updateAgentSelectorUI();
+                    }
+                }
+            }
+
+            console.log('StorageSync: Refreshed data from server:', types);
+
+        } catch (error) {
+            console.error('StorageSync: Failed to refresh from server:', error);
+        } finally {
+            this.isSyncing = false;
         }
     }
 };
