@@ -265,19 +265,20 @@ const SystemPrompts = {
         }
 
         delete this.state.systemPrompts[promptId];
-        
+
         // Clear active prompt if it was deleted
         if (this.state.activeSystemPromptId === promptId) {
             this.state.activeSystemPromptId = null;
             Storage.saveActiveSystemPromptId(null);
         }
-        
+
         // Exit edit mode if editing the deleted prompt
         if (this.state.editingSystemPromptId === promptId) {
             this.exitEdit();
         }
-        
-        this.save();
+
+        // Sync deletion to server
+        Storage.deleteSystemPrompt(promptId);
         this.render();
     },
 

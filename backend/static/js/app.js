@@ -443,13 +443,23 @@ const App = {
 };
 
 // Initialize the app when DOM is ready
-// First check authentication, then initialize app
+// First check authentication, then sync data, then initialize app
 async function startApp() {
     // Check authentication first
     const isAuthenticated = await Auth.init();
 
     // Only initialize main app if user is fully authenticated
     if (isAuthenticated) {
+        // Initialize storage sync - fetch data from server
+        if (typeof StorageSync !== 'undefined') {
+            try {
+                await StorageSync.init();
+                console.log('StorageSync initialized - data synced from server');
+            } catch (error) {
+                console.error('StorageSync init failed, using localStorage:', error);
+            }
+        }
+
         App.init();
 
         // Update user menu again after full init (ensures it's visible even if

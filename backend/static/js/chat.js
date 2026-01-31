@@ -209,7 +209,7 @@ const Chat = {
     // Delete a chat
     deleteChat(chatId) {
         delete this.chats[chatId];
-        Storage.saveChats(this.chats);
+        Storage.deleteChat(chatId);  // Syncs deletion to server
 
         // If we deleted the current chat, create a new one or load another
         if (this.currentChatId === chatId) {

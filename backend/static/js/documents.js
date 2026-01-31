@@ -451,7 +451,7 @@ const Documents = {
             }
             
             delete this.documents[documentId];
-            Storage.saveDocuments(this.documents);
+            Storage.deleteDocument(documentId);  // Syncs deletion to server
             this.renderDocumentList();
         }
     },
