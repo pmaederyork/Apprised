@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
 import jwt
 import requests
+from flask_migrate import Migrate
+from models import db, User, Chat, Document, SystemPrompt, Agent
 
 # Load environment variables
 load_dotenv()
@@ -40,6 +42,21 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['GOOGLE_CLIENT_ID'] = os.getenv('GOOGLE_CLIENT_ID')
 app.config['GOOGLE_CLIENT_SECRET'] = os.getenv('GOOGLE_CLIENT_SECRET')
 app.config['APP_URL'] = os.getenv('APP_URL', 'http://localhost:5000')
+
+# Database configuration
+database_url = os.getenv('DATABASE_URL', '')
+if database_url.startswith('postgres://'):
+    # Railway uses postgres:// but SQLAlchemy requires postgresql+psycopg://
+    database_url = database_url.replace('postgres://', 'postgresql+psycopg://', 1)
+elif database_url.startswith('postgresql://'):
+    # Use psycopg3 driver
+    database_url = database_url.replace('postgresql://', 'postgresql+psycopg://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///dev.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize extensions
+db.init_app(app)
+migrate = Migrate(app, db)
 
 # Initialize OAuth
 oauth = OAuth(app)

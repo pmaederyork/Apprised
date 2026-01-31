@@ -6,3 +6,9 @@ PyJWT==2.10.1
 python-dotenv==1.0.0
 requests==2.31.0
 gunicorn==22.0.0
+
+# Database (v1.4 Cloud Sync)
+psycopg[binary]==3.2.4
+SQLAlchemy==2.0.36
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.1.0
