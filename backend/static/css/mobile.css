@@ -13,6 +13,10 @@
   --mobile-sidebar-width: 80%;
   --mobile-header-height: 48px;
   --mobile-collapsed-chat-height: 44px;
+  /* Keyboard handling variables */
+  --keyboard-offset: 0px;
+  --composer-height: 68px;
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* ===== Mobile Body Class Styles ===== */
@@ -42,6 +46,10 @@ body.is-mobile.is-landscape {
 
 /* ===== Mobile Viewport Constraints ===== */
 body.is-mobile {
+  height: 100%;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
   overscroll-behavior: none; /* Prevent elastic scroll bounce */
   background: var(--color-bg-white);
 }
@@ -68,6 +76,15 @@ body.is-mobile .app-container,
 body.is-mobile .chat-container,
 body.is-mobile .document-editor {
   overscroll-behavior: contain; /* Contain scroll within element */
+}
+
+/* Prevent containing block issues on composer ancestors */
+body.is-mobile .chat-container {
+  transform: none;
+  filter: none;
+  backdrop-filter: none;
+  perspective: none;
+  will-change: auto;
 }
 
 /* Ensure app container fills viewport and has solid background */
@@ -143,6 +160,11 @@ body.is-mobile .chat-messages {
   overflow-y: auto;
   /* Re-enable touch scrolling for this container */
   touch-action: pan-y;
+  /* Scroll containment for iOS keyboard */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  /* Dynamic padding - JS updates --keyboard-offset */
+  padding-bottom: calc(var(--composer-height, 68px) + var(--keyboard-offset, 0px) + var(--safe-area-bottom, 0px) + 12px);
 }
 
 /* Modals with inputs should be scrollable */

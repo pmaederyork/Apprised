@@ -251,7 +251,14 @@ body.is-mobile .mobile-editor-header {
 /* Input container handles bottom safe area */
 body.is-mobile .chat-input-container {
     padding: 12px;
+    padding-bottom: calc(12px + var(--safe-area-bottom, 0px));
     box-sizing: border-box;
+    /* Keyboard-aware positioning via transform */
+    transform: translateY(calc(-1 * var(--keyboard-offset, 0px)));
+    transition: transform 0.1s ease-out;
+    /* Ensure proper stacking */
+    position: relative;
+    z-index: 10;
 }
 
 /* Standalone PWA: safe areas included in element heights */

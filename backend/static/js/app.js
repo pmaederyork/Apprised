@@ -103,6 +103,15 @@ const App = {
             console.error('Failed to initialize MobileSheets:', error);
         }
 
+        // Initialize mobile keyboard handling (iOS visualViewport API)
+        try {
+            if (typeof MobileKeyboard !== 'undefined') {
+                MobileKeyboard.init();
+            }
+        } catch (error) {
+            console.error('Failed to initialize MobileKeyboard:', error);
+        }
+
         // Defer mobile attachments (only needed when user attaches files)
         this.deferInit(() => {
             if (typeof MobileAttachments !== 'undefined') {

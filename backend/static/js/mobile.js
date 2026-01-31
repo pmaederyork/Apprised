@@ -79,6 +79,10 @@ const Mobile = {
                 this.detectDevice();
                 this.applyBodyClasses();
                 this.preserveFocus();
+                // Update keyboard offset after orientation change
+                if (typeof MobileKeyboard !== 'undefined') {
+                    MobileKeyboard.forceUpdate();
+                }
             }, 100);
         });
 

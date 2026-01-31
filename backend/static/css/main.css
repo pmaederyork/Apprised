@@ -30,7 +30,8 @@ body {
 
 .app-container {
     display: flex;
-    height: 100vh;
+    height: 100vh;  /* Fallback */
+    height: 100svh; /* Stable viewport height */
     background: var(--color-primary-light);
     width: 100vw;
     overflow: hidden;
