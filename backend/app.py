@@ -8,7 +8,7 @@ import os
 import base64
 import logging
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
@@ -131,20 +131,12 @@ def add_security_headers(response):
     return response
 
 # JWT Helper Functions
-def create_jwt_token(user_data):
-    """Create a JWT token for authenticated user"""
+def create_jwt_token(user_id):
+    """Create a JWT token with only user_id reference (tokens stored in database)"""
     payload = {
-        'google_id': user_data['google_id'],
-        'email': user_data['email'],
-        'name': user_data.get('name', ''),
-        'picture': user_data.get('picture', ''),
+        'user_id': user_id,
         'exp': datetime.utcnow() + timedelta(days=7)  # 7 day expiration
     }
-
-    # Include Google OAuth token if present
-    if 'google_token' in user_data:
-        payload['google_token'] = user_data['google_token']
-
     return jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
 
 def decode_jwt_token(token):
@@ -158,48 +150,51 @@ def decode_jwt_token(token):
         return None
 
 def get_current_user():
-    """Get current user from JWT token in cookie"""
-    token = request.cookies.get('auth_token')
-    if not token:
-        return None
-    return decode_jwt_token(token)
-
-def get_google_token_from_jwt():
-    """Extract Google OAuth token from JWT payload"""
+    """Get current user from database via JWT user_id"""
     token = request.cookies.get('auth_token')
     if not token:
         return None
 
     payload = decode_jwt_token(token)
-    if not payload:
+    if not payload or 'user_id' not in payload:
         return None
 
-    return payload.get('google_token')
+    # Lookup user from database
+    user = User.query.get(payload['user_id'])
+    if not user:
+        return None
+
+    return user
+
+def get_current_user_dict():
+    """Get current user as dictionary (for backward compatibility)"""
+    user = get_current_user()
+    if not user:
+        return None
+    return user.to_dict()
 
 def get_google_token_with_auto_refresh():
-    """Get Google token from JWT and auto-refresh if expired"""
+    """Get Google token from database and auto-refresh if expired"""
     import time
 
-    auth_token = request.cookies.get('auth_token')
-    if not auth_token:
-        return None, None
+    user = get_current_user()
+    if not user:
+        return None, False
 
-    payload = decode_jwt_token(auth_token)
-    if not payload or 'google_token' not in payload:
-        return None, None
+    # Check if user has tokens
+    if not user.access_token:
+        return None, False
 
-    token = payload['google_token']
     current_time = time.time()
-    expires_at = token.get('expires_at', 0)
+    expires_at = user.token_expires_at or 0
 
     # Check if token expires within 5 minutes (300 seconds grace period)
     if expires_at < current_time + 300:
         logging.info("Access token expired or expiring soon, refreshing...")
 
-        refresh_token = token.get('refresh_token')
-        if not refresh_token:
+        if not user.refresh_token:
             logging.error("No refresh token available")
-            return None, None
+            return None, False
 
         # Attempt to refresh the token
         try:
@@ -207,7 +202,7 @@ def get_google_token_with_auto_refresh():
             refresh_data = {
                 'client_id': app.config['GOOGLE_CLIENT_ID'],
                 'client_secret': app.config['GOOGLE_CLIENT_SECRET'],
-                'refresh_token': refresh_token,
+                'refresh_token': user.refresh_token,
                 'grant_type': 'refresh_token'
             }
 
@@ -216,28 +211,34 @@ def get_google_token_with_auto_refresh():
             if refresh_response.status_code == 200:
                 new_token_data = refresh_response.json()
 
-                # Update token with new access_token and expires_at
-                token['access_token'] = new_token_data['access_token']
-                token['expires_at'] = current_time + new_token_data.get('expires_in', 3600)
+                # Update user in database with new tokens
+                user.access_token = new_token_data['access_token']
+                user.token_expires_at = current_time + new_token_data.get('expires_in', 3600)
+                db.session.commit()
 
-                # Update payload with refreshed token
-                payload['google_token'] = token
-
-                # Create new JWT with refreshed token (preserve existing exp)
-                new_jwt = jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
-
-                logging.info("Token refreshed successfully")
-                return token, new_jwt
+                logging.info("Token refreshed successfully and saved to database")
+                return {
+                    'access_token': user.access_token,
+                    'refresh_token': user.refresh_token,
+                    'expires_at': user.token_expires_at,
+                    'scope': user.token_scope
+                }, True
             else:
                 logging.error(f"Token refresh failed: {refresh_response.status_code}")
-                return None, None
+                return None, False
 
         except Exception as e:
             logging.error(f"Token refresh error: {e}")
-            return None, None
+            db.session.rollback()
+            return None, False
 
-    # Token is still valid
-    return token, None
+    # Token is still valid - return from database
+    return {
+        'access_token': user.access_token,
+        'refresh_token': user.refresh_token,
+        'expires_at': user.token_expires_at,
+        'scope': user.token_scope
+    }, False
 
 def login_required(f):
     """Decorator to require authentication for endpoints"""
@@ -323,7 +324,7 @@ def auth_login():
 
 @app.route('/auth/callback')
 def auth_callback():
-    """Handle Google OAuth callback"""
+    """Handle Google OAuth callback - creates/updates user in database"""
     try:
         token = google.authorize_access_token()
         user_info = token.get('userinfo')
@@ -331,22 +332,43 @@ def auth_callback():
         if not user_info:
             return redirect('/?error=auth_failed')
 
-        # Create user data including Google OAuth token
-        user_data = {
-            'google_id': user_info['sub'],
-            'email': user_info['email'],
-            'name': user_info.get('name', ''),
-            'picture': user_info.get('picture', ''),
-            'google_token': {
-                'access_token': token.get('access_token'),
-                'refresh_token': token.get('refresh_token'),
-                'expires_at': token.get('expires_at'),
-                'scope': token.get('scope', '')
-            }
-        }
+        google_id = user_info['sub']
 
-        # Create JWT token
-        jwt_token = create_jwt_token(user_data)
+        # Find or create user in database
+        user = User.query.filter_by(google_id=google_id).first()
+
+        if user:
+            # Update existing user
+            user.email = user_info['email']
+            user.name = user_info.get('name', '')
+            user.picture = user_info.get('picture', '')
+            user.access_token = token.get('access_token')
+            # Only update refresh_token if we got a new one (Google doesn't always return it)
+            if token.get('refresh_token'):
+                user.refresh_token = token.get('refresh_token')
+            user.token_expires_at = token.get('expires_at')
+            user.token_scope = token.get('scope', '')
+            user.last_login = datetime.now(timezone.utc)
+            logging.info(f"Updated existing user: {user.email}")
+        else:
+            # Create new user
+            user = User(
+                google_id=google_id,
+                email=user_info['email'],
+                name=user_info.get('name', ''),
+                picture=user_info.get('picture', ''),
+                access_token=token.get('access_token'),
+                refresh_token=token.get('refresh_token'),
+                token_expires_at=token.get('expires_at'),
+                token_scope=token.get('scope', '')
+            )
+            db.session.add(user)
+            logging.info(f"Created new user: {user.email}")
+
+        db.session.commit()
+
+        # Create JWT token with only user_id
+        jwt_token = create_jwt_token(user.id)
 
         # Create response and set cookie
         response = make_response(redirect('/'))
@@ -363,11 +385,35 @@ def auth_callback():
 
     except Exception as e:
         logging.error(f"OAuth callback error: {e}")
+        db.session.rollback()
         return redirect('/?error=auth_failed')
 
 @app.route('/auth/logout')
 def auth_logout():
-    """Logout user and clear session"""
+    """Logout user, revoke tokens, and clear session"""
+    user = get_current_user()
+
+    if user and user.access_token:
+        # Try to revoke Google token (best effort)
+        try:
+            revoke_url = f"https://oauth2.googleapis.com/revoke?token={user.access_token}"
+            requests.post(revoke_url)
+            logging.info(f"Revoked Google token for user: {user.email}")
+        except Exception as e:
+            logging.warning(f"Failed to revoke Google token: {e}")
+
+        # Clear tokens from database
+        try:
+            user.access_token = None
+            user.refresh_token = None
+            user.token_expires_at = None
+            user.token_scope = None
+            db.session.commit()
+            logging.info(f"Cleared tokens from database for user: {user.email}")
+        except Exception as e:
+            logging.error(f"Failed to clear tokens from database: {e}")
+            db.session.rollback()
+
     response = make_response(redirect('/'))
     response.set_cookie('auth_token', '', max_age=0)
     return response
@@ -380,9 +426,9 @@ def auth_status():
         return jsonify({
             'authenticated': True,
             'user': {
-                'email': user['email'],
-                'name': user['name'],
-                'picture': user.get('picture', '')
+                'email': user.email,
+                'name': user.name,
+                'picture': user.picture or ''
             }
         })
     return jsonify({'authenticated': False})
@@ -547,8 +593,8 @@ def drive_save():
         drive_file_id = data.get('driveFileId')  # None for new files
         parent_folder_id = data.get('parentFolderId')  # Optional folder for new files
 
-        # Get OAuth token from JWT (with auto-refresh)
-        token, new_jwt = get_google_token_with_auto_refresh()
+        # Get OAuth token from database (with auto-refresh)
+        token, _ = get_google_token_with_auto_refresh()
 
         if not token:
             return jsonify({'success': False, 'error': 'Not connected to Google Drive'}), 401
@@ -596,27 +642,12 @@ Content-Type: text/html; charset=UTF-8
 
         if response.status_code in [200, 201]:
             file_data = response.json()
-            response_data = {
+            return jsonify({
                 'success': True,
                 'fileId': file_data['id'],
                 'name': file_data['name'],
                 'modifiedTime': file_data.get('modifiedTime')
-            }
-
-            # Set new JWT cookie if token was refreshed
-            if new_jwt:
-                resp = make_response(jsonify(response_data))
-                resp.set_cookie(
-                    'auth_token',
-                    new_jwt,
-                    max_age=7*24*60*60,
-                    httponly=True,
-                    secure=True,
-                    samesite='Lax'
-                )
-                return resp
-
-            return jsonify(response_data)
+            })
         else:
             logging.error(f"Drive API error: {response.status_code} - {response.text}")
             # Return distinct error types for frontend handling
@@ -649,8 +680,8 @@ Content-Type: text/html; charset=UTF-8
 def drive_import(file_id):
     """Import document from Google Drive"""
     try:
-        # Get OAuth token from JWT (with auto-refresh)
-        token, new_jwt = get_google_token_with_auto_refresh()
+        # Get OAuth token from database (with auto-refresh)
+        token, _ = get_google_token_with_auto_refresh()
 
         if not token:
             return jsonify({'success': False, 'error': 'Not connected to Google Drive'}), 401
@@ -690,18 +721,6 @@ def drive_import(file_id):
             # Create response with explicit UTF-8 encoding
             resp = make_response(jsonify(response_data))
             resp.headers['Content-Type'] = 'application/json; charset=utf-8'
-
-            # Set new JWT cookie if token was refreshed
-            if new_jwt:
-                resp.set_cookie(
-                    'auth_token',
-                    new_jwt,
-                    max_age=7*24*60*60,
-                    httponly=True,
-                    secure=True,
-                    samesite='Lax'
-                )
-
             return resp
         else:
             logging.error(f"Drive API error: {response.status_code} - {response.text}")
@@ -735,31 +754,16 @@ def drive_import(file_id):
 def drive_picker_token():
     """Get OAuth token for Google Picker (file selector)"""
     try:
-        # Get OAuth token from JWT (with auto-refresh)
-        token, new_jwt = get_google_token_with_auto_refresh()
+        # Get OAuth token from database (with auto-refresh)
+        token, _ = get_google_token_with_auto_refresh()
 
         if not token:
             return jsonify({'success': False, 'error': 'Not connected to Google Drive'}), 401
 
-        response_data = {
+        return jsonify({
             'success': True,
             'accessToken': token['access_token']
-        }
-
-        # Set new JWT cookie if token was refreshed
-        if new_jwt:
-            resp = make_response(jsonify(response_data))
-            resp.set_cookie(
-                'auth_token',
-                new_jwt,
-                max_age=7*24*60*60,
-                httponly=True,
-                secure=True,
-                samesite='Lax'
-            )
-            return resp
-
-        return jsonify(response_data)
+        })
     except Exception as e:
         logging.error(f"Picker token error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -770,8 +774,8 @@ def drive_picker_token():
 def drive_status():
     """Check if user has granted Drive access"""
     try:
-        # Get OAuth token from JWT (with auto-refresh)
-        token, new_jwt = get_google_token_with_auto_refresh()
+        # Get OAuth token from database (with auto-refresh)
+        token, _ = get_google_token_with_auto_refresh()
         has_drive_access = False
 
         if token:
@@ -783,25 +787,10 @@ def drive_status():
 
         logging.info(f"Drive access check: {has_drive_access}")
 
-        response_data = {
+        return jsonify({
             'success': True,
             'connected': has_drive_access
-        }
-
-        # Set new JWT cookie if token was refreshed
-        if new_jwt:
-            resp = make_response(jsonify(response_data))
-            resp.set_cookie(
-                'auth_token',
-                new_jwt,
-                max_age=7*24*60*60,
-                httponly=True,
-                secure=True,
-                samesite='Lax'
-            )
-            return resp
-
-        return jsonify(response_data)
+        })
     except Exception as e:
         logging.error(f"Drive status error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -810,50 +799,34 @@ def drive_status():
 @app.route('/drive/disconnect', methods=['POST'])
 @login_required
 def drive_disconnect():
-    """Disconnect Google Drive by revoking token and updating JWT"""
+    """Disconnect Google Drive by revoking token and clearing from database"""
     try:
-        # Get current user data from JWT
-        auth_token = request.cookies.get('auth_token')
-        if not auth_token:
+        user = get_current_user()
+        if not user:
             return jsonify({'success': False, 'error': 'Not authenticated'}), 401
 
-        payload = decode_jwt_token(auth_token)
-        if not payload:
-            return jsonify({'success': False, 'error': 'Invalid token'}), 401
-
         # Try to revoke the Google token (best effort)
-        google_token = payload.get('google_token')
-        if google_token and google_token.get('access_token'):
+        if user.access_token:
             try:
-                revoke_url = f"https://oauth2.googleapis.com/revoke?token={google_token['access_token']}"
+                revoke_url = f"https://oauth2.googleapis.com/revoke?token={user.access_token}"
                 requests.post(revoke_url)
-                logging.info("Google token revoked successfully")
+                logging.info(f"Google token revoked for user: {user.email}")
             except Exception as e:
                 logging.warning(f"Failed to revoke Google token: {e}")
 
-        # Remove google_token from payload to disconnect Drive
-        if 'google_token' in payload:
-            del payload['google_token']
+        # Clear tokens from database
+        user.access_token = None
+        user.refresh_token = None
+        user.token_expires_at = None
+        user.token_scope = None
+        db.session.commit()
 
-        # Create new JWT without Drive access
-        new_jwt = jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
-
-        response_data = {'success': True}
-        resp = make_response(jsonify(response_data))
-        resp.set_cookie(
-            'auth_token',
-            new_jwt,
-            max_age=7*24*60*60,
-            httponly=True,
-            secure=request.is_secure,
-            samesite='Lax'
-        )
-
-        logging.info("Google Drive disconnected successfully")
-        return resp
+        logging.info(f"Google Drive disconnected for user: {user.email}")
+        return jsonify({'success': True})
 
     except Exception as e:
         logging.error(f"Drive disconnect error: {e}")
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # Health check endpoint
