@@ -459,6 +459,7 @@ const GDrive = {
             const picker = new google.picker.PickerBuilder()
                 .addView(google.picker.ViewId.DOCS)
                 .setOAuthToken(tokenData.accessToken)
+                .setOrigin(window.location.protocol + '//' + window.location.host)
                 .setCallback(async (data) => {
                     if (data.action === google.picker.Action.PICKED) {
                         await this.handlePickerSelection(data.docs[0]);
@@ -670,6 +671,7 @@ const GDrive = {
             const picker = new google.picker.PickerBuilder()
                 .addView(google.picker.ViewId.RECENTLY_PICKED)
                 .setOAuthToken(tokenData.accessToken)
+                .setOrigin(window.location.protocol + '//' + window.location.host)
                 .setTitle('Select a file to link')
                 .setCallback(async (data) => {
                     if (data.action === google.picker.Action.PICKED) {
@@ -862,6 +864,7 @@ const GDrive = {
             const picker = new google.picker.PickerBuilder()
                 .addView(folderView)
                 .setOAuthToken(tokenData.accessToken)
+                .setOrigin(window.location.protocol + '//' + window.location.host)
                 .setTitle('Select default folder for new documents')
                 .setCallback((data) => {
                     if (data.action === google.picker.Action.PICKED) {
