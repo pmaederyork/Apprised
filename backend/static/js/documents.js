@@ -488,21 +488,22 @@ const Documents = {
     },
 
     // Save document title immediately (without extension logic)
+    // Note: Don't apply 'New Document' fallback here - let user finish typing first
+    // The fallback is applied on blur in saveDocumentTitle()
     saveDocumentTitleImmediate() {
         if (!this.currentDocumentId) return;
 
-        const newTitle = UI.elements.documentTitle.value.trim() || 'New Document';
+        const newTitle = UI.elements.documentTitle.value.trim();
+        // If empty, don't save yet - wait for blur to apply fallback
+        if (!newTitle) return;
+
         const document = this.documents[this.currentDocumentId];
-        if (document && document.title !== newTitle) {
+        if (document && document.title !== newTitle && document.title !== newTitle + '.html') {
             document.title = newTitle;
             document.lastModified = Date.now();
             Storage.saveDocuments(this.documents);
             this.renderDocumentList();
-
-            // Update mobile editor title
-            if (typeof Mobile !== 'undefined' && Mobile.updateEditorTitle) {
-                Mobile.updateEditorTitle(newTitle);
-            }
+            // Don't call Mobile.updateEditorTitle here - it overwrites user input while typing
         }
     },
 
