@@ -10,6 +10,22 @@ const GDrive = {
     pickerLoadFailed: false,
 
     /**
+     * Detect if running on mobile or as PWA (installed app)
+     * Used to disable problematic Picker features that don't work in these contexts
+     */
+    isMobileOrPWA() {
+        // Check for PWA (standalone mode)
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+                      window.navigator.standalone === true;
+
+        // Check for mobile device
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                         (window.innerWidth <= 768);
+
+        return isPWA || isMobile;
+    },
+
+    /**
      * Process Google Docs HTML for proper display
      * Fixes UTF-8 encoding issues, converts heading styles to semantic HTML,
      * and cleans up Google Docs-specific markup
@@ -455,14 +471,19 @@ const GDrive = {
                 return;
             }
 
-            // Show Google Picker with hierarchical folder navigation
+            // Show Google Picker
             // API key enables access to files not created by this app (drive.file scope)
-            // setParent('root') starts from My Drive root for folder-by-folder browsing
+            // On desktop: use hierarchical folder navigation with list view
+            // On mobile/PWA: use simple flat view (folder nav breaks on these platforms)
             const docsView = new google.picker.DocsView()
-                .setParent('root')
-                .setIncludeFolders(true)
-                .setSelectFolderEnabled(false)
-                .setMode(google.picker.DocsViewMode.LIST);
+                .setSelectFolderEnabled(false);
+
+            if (!this.isMobileOrPWA()) {
+                // Desktop: enable hierarchical folder navigation and list view
+                docsView.setParent('root')
+                    .setIncludeFolders(true)
+                    .setMode(google.picker.DocsViewMode.LIST);
+            }
 
             const pickerBuilder = new google.picker.PickerBuilder()
                 .addView(docsView)
@@ -686,14 +707,19 @@ const GDrive = {
                 return;
             }
 
-            // Show Google Picker with hierarchical folder navigation
+            // Show Google Picker
             // API key enables access to files not created by this app (drive.file scope)
-            // setParent('root') starts from My Drive root for folder-by-folder browsing
+            // On desktop: use hierarchical folder navigation with list view
+            // On mobile/PWA: use simple flat view (folder nav breaks on these platforms)
             const docsView = new google.picker.DocsView()
-                .setParent('root')
-                .setIncludeFolders(true)
-                .setSelectFolderEnabled(false)
-                .setMode(google.picker.DocsViewMode.LIST);
+                .setSelectFolderEnabled(false);
+
+            if (!this.isMobileOrPWA()) {
+                // Desktop: enable hierarchical folder navigation and list view
+                docsView.setParent('root')
+                    .setIncludeFolders(true)
+                    .setMode(google.picker.DocsViewMode.LIST);
+            }
 
             const pickerBuilder = new google.picker.PickerBuilder()
                 .addView(docsView)
