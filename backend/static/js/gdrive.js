@@ -474,19 +474,8 @@ const GDrive = {
             // Show Google Picker
             // API key enables access to files not created by this app (drive.file scope)
             // On desktop: use hierarchical folder navigation with list view
-            // On mobile/PWA: use simple flat view (folder nav breaks on these platforms)
-            const docsView = new google.picker.DocsView()
-                .setSelectFolderEnabled(false);
-
-            if (!this.isMobileOrPWA()) {
-                // Desktop: enable hierarchical folder navigation and list view
-                docsView.setParent('root')
-                    .setIncludeFolders(true)
-                    .setMode(google.picker.DocsViewMode.LIST);
-            }
-
+            // On mobile/PWA: use vanilla ViewId.DOCS (custom DocsView breaks on these platforms)
             const pickerBuilder = new google.picker.PickerBuilder()
-                .addView(docsView)
                 .setOAuthToken(tokenData.accessToken)
                 .setOrigin(window.location.protocol + '//' + window.location.host)
                 .setCallback(async (data) => {
@@ -494,6 +483,19 @@ const GDrive = {
                         await this.handlePickerSelection(data.docs[0]);
                     }
                 });
+
+            if (this.isMobileOrPWA()) {
+                // Mobile/PWA: vanilla docs view (most compatible)
+                pickerBuilder.addView(google.picker.ViewId.DOCS);
+            } else {
+                // Desktop: hierarchical folder navigation with list view
+                const docsView = new google.picker.DocsView()
+                    .setParent('root')
+                    .setIncludeFolders(true)
+                    .setSelectFolderEnabled(false)
+                    .setMode(google.picker.DocsViewMode.LIST);
+                pickerBuilder.addView(docsView);
+            }
 
             // Add API key if available (required for importing existing Drive files)
             if (tokenData.apiKey) {
@@ -710,19 +712,8 @@ const GDrive = {
             // Show Google Picker
             // API key enables access to files not created by this app (drive.file scope)
             // On desktop: use hierarchical folder navigation with list view
-            // On mobile/PWA: use simple flat view (folder nav breaks on these platforms)
-            const docsView = new google.picker.DocsView()
-                .setSelectFolderEnabled(false);
-
-            if (!this.isMobileOrPWA()) {
-                // Desktop: enable hierarchical folder navigation and list view
-                docsView.setParent('root')
-                    .setIncludeFolders(true)
-                    .setMode(google.picker.DocsViewMode.LIST);
-            }
-
+            // On mobile/PWA: use vanilla ViewId.DOCS (custom DocsView breaks on these platforms)
             const pickerBuilder = new google.picker.PickerBuilder()
-                .addView(docsView)
                 .setOAuthToken(tokenData.accessToken)
                 .setOrigin(window.location.protocol + '//' + window.location.host)
                 .setTitle('Select a file to link')
@@ -732,6 +723,19 @@ const GDrive = {
                         await this.handleRelinkSelection(documentId, selectedFile);
                     }
                 });
+
+            if (this.isMobileOrPWA()) {
+                // Mobile/PWA: vanilla docs view (most compatible)
+                pickerBuilder.addView(google.picker.ViewId.DOCS);
+            } else {
+                // Desktop: hierarchical folder navigation with list view
+                const docsView = new google.picker.DocsView()
+                    .setParent('root')
+                    .setIncludeFolders(true)
+                    .setSelectFolderEnabled(false)
+                    .setMode(google.picker.DocsViewMode.LIST);
+                pickerBuilder.addView(docsView);
+            }
 
             // Add API key if available (required for linking to existing Drive files)
             if (tokenData.apiKey) {
