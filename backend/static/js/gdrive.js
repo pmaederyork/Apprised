@@ -455,10 +455,17 @@ const GDrive = {
                 return;
             }
 
-            // Show Google Picker
+            // Show Google Picker with hierarchical folder navigation
             // API key enables access to files not created by this app (drive.file scope)
+            // setParent('root') starts from My Drive root for folder-by-folder browsing
+            const docsView = new google.picker.DocsView()
+                .setParent('root')
+                .setIncludeFolders(true)
+                .setSelectFolderEnabled(false)
+                .setMode(google.picker.DocsViewMode.LIST);
+
             const pickerBuilder = new google.picker.PickerBuilder()
-                .addView(google.picker.ViewId.DOCS)
+                .addView(docsView)
                 .setOAuthToken(tokenData.accessToken)
                 .setOrigin(window.location.protocol + '//' + window.location.host)
                 .setCallback(async (data) => {
@@ -679,10 +686,17 @@ const GDrive = {
                 return;
             }
 
-            // Show Google Picker to select a file
+            // Show Google Picker with hierarchical folder navigation
             // API key enables access to files not created by this app (drive.file scope)
+            // setParent('root') starts from My Drive root for folder-by-folder browsing
+            const docsView = new google.picker.DocsView()
+                .setParent('root')
+                .setIncludeFolders(true)
+                .setSelectFolderEnabled(false)
+                .setMode(google.picker.DocsViewMode.LIST);
+
             const pickerBuilder = new google.picker.PickerBuilder()
-                .addView(google.picker.ViewId.RECENTLY_PICKED)
+                .addView(docsView)
                 .setOAuthToken(tokenData.accessToken)
                 .setOrigin(window.location.protocol + '//' + window.location.host)
                 .setTitle('Select a file to link')
