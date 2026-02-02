@@ -926,16 +926,8 @@ const GDrive = {
                 return;
             }
 
-            // Create a folder view
-            const folderView = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
-                .setSelectFolderEnabled(true)
-                .setIncludeFolders(true)
-                .setMimeTypes('application/vnd.google-apps.folder');
-
             // Show Google Picker for folders
-            // API key enables access to folders not created by this app (drive.file scope)
             const pickerBuilder = new google.picker.PickerBuilder()
-                .addView(folderView)
                 .setOAuthToken(tokenData.accessToken)
                 .setOrigin(window.location.protocol + '//' + window.location.host)
                 .setTitle('Select default folder for new documents')
@@ -948,14 +940,28 @@ const GDrive = {
                     }
                 });
 
-            // Add API key if available (required for selecting existing folders)
-            if (tokenData.apiKey) {
-                pickerBuilder.setDeveloperKey(tokenData.apiKey);
-            }
+            if (this.isMobileOrPWA()) {
+                // Mobile/PWA: vanilla docs view only (skip API key/App ID - causes issues)
+                pickerBuilder.addView(google.picker.ViewId.DOCS);
+            } else {
+                // Desktop: folder view with full options
+                const folderView = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+                    .setSelectFolderEnabled(true)
+                    .setIncludeFolders(true)
+                    .setMimeTypes('application/vnd.google-apps.folder');
+                pickerBuilder.addView(folderView);
 
-            // Add App ID (required for drive.file scope to grant access on selection)
-            if (tokenData.appId) {
-                pickerBuilder.setAppId(tokenData.appId);
+                // Add API key if available (required for selecting existing folders)
+                // Skip on mobile/PWA - causes "API developer key is invalid" errors
+                if (tokenData.apiKey) {
+                    pickerBuilder.setDeveloperKey(tokenData.apiKey);
+                }
+
+                // Add App ID (required for drive.file scope to grant access on selection)
+                // Skip on mobile/PWA - causes authentication issues
+                if (tokenData.appId) {
+                    pickerBuilder.setAppId(tokenData.appId);
+                }
             }
 
             const picker = pickerBuilder.build();
