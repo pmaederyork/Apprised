@@ -485,7 +485,7 @@ const GDrive = {
                 });
 
             if (this.isMobileOrPWA()) {
-                // Mobile/PWA: vanilla docs view (most compatible)
+                // Mobile/PWA: vanilla docs view only (skip API key/App ID - causes issues)
                 pickerBuilder.addView(google.picker.ViewId.DOCS);
             } else {
                 // Desktop: hierarchical folder navigation with list view
@@ -495,16 +495,18 @@ const GDrive = {
                     .setSelectFolderEnabled(false)
                     .setMode(google.picker.DocsViewMode.LIST);
                 pickerBuilder.addView(docsView);
-            }
 
-            // Add API key if available (required for importing existing Drive files)
-            if (tokenData.apiKey) {
-                pickerBuilder.setDeveloperKey(tokenData.apiKey);
-            }
+                // Add API key if available (required for importing existing Drive files)
+                // Skip on mobile/PWA - causes "API developer key is invalid" errors
+                if (tokenData.apiKey) {
+                    pickerBuilder.setDeveloperKey(tokenData.apiKey);
+                }
 
-            // Add App ID (required for drive.file scope to grant access on selection)
-            if (tokenData.appId) {
-                pickerBuilder.setAppId(tokenData.appId);
+                // Add App ID (required for drive.file scope to grant access on selection)
+                // Skip on mobile/PWA - causes authentication issues
+                if (tokenData.appId) {
+                    pickerBuilder.setAppId(tokenData.appId);
+                }
             }
 
             const picker = pickerBuilder.build();
@@ -725,7 +727,7 @@ const GDrive = {
                 });
 
             if (this.isMobileOrPWA()) {
-                // Mobile/PWA: vanilla docs view (most compatible)
+                // Mobile/PWA: vanilla docs view only (skip API key/App ID - causes issues)
                 pickerBuilder.addView(google.picker.ViewId.DOCS);
             } else {
                 // Desktop: hierarchical folder navigation with list view
@@ -735,16 +737,18 @@ const GDrive = {
                     .setSelectFolderEnabled(false)
                     .setMode(google.picker.DocsViewMode.LIST);
                 pickerBuilder.addView(docsView);
-            }
 
-            // Add API key if available (required for linking to existing Drive files)
-            if (tokenData.apiKey) {
-                pickerBuilder.setDeveloperKey(tokenData.apiKey);
-            }
+                // Add API key if available (required for linking to existing Drive files)
+                // Skip on mobile/PWA - causes "API developer key is invalid" errors
+                if (tokenData.apiKey) {
+                    pickerBuilder.setDeveloperKey(tokenData.apiKey);
+                }
 
-            // Add App ID (required for drive.file scope to grant access on selection)
-            if (tokenData.appId) {
-                pickerBuilder.setAppId(tokenData.appId);
+                // Add App ID (required for drive.file scope to grant access on selection)
+                // Skip on mobile/PWA - causes authentication issues
+                if (tokenData.appId) {
+                    pickerBuilder.setAppId(tokenData.appId);
+                }
             }
 
             const picker = pickerBuilder.build();
