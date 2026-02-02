@@ -941,8 +941,8 @@ const GDrive = {
                 });
 
             if (this.isMobileOrPWA()) {
-                // Mobile/PWA: vanilla docs view only (skip API key/App ID - causes issues)
-                pickerBuilder.addView(google.picker.ViewId.DOCS);
+                // Mobile/PWA: vanilla folders view only (skip API key/App ID - causes issues)
+                pickerBuilder.addView(google.picker.ViewId.FOLDERS);
             } else {
                 // Desktop: folder view with full options
                 const folderView = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
