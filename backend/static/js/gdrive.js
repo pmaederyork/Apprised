@@ -497,14 +497,16 @@ const GDrive = {
                 pickerBuilder.addView(docsView);
             }
 
-            // Add API key if available (required for importing existing Drive files)
-            if (tokenData.apiKey) {
-                pickerBuilder.setDeveloperKey(tokenData.apiKey);
-            }
-
-            // Add App ID (required for drive.file scope to grant access on selection)
-            if (tokenData.appId) {
-                pickerBuilder.setAppId(tokenData.appId);
+            // Add API key and App ID only on desktop (causes errors on mobile/PWA)
+            if (!this.isMobileOrPWA()) {
+                // API key required for importing existing Drive files
+                if (tokenData.apiKey) {
+                    pickerBuilder.setDeveloperKey(tokenData.apiKey);
+                }
+                // App ID required for drive.file scope to grant access on selection
+                if (tokenData.appId) {
+                    pickerBuilder.setAppId(tokenData.appId);
+                }
             }
 
             const picker = pickerBuilder.build();
@@ -737,14 +739,16 @@ const GDrive = {
                 pickerBuilder.addView(docsView);
             }
 
-            // Add API key if available (required for linking to existing Drive files)
-            if (tokenData.apiKey) {
-                pickerBuilder.setDeveloperKey(tokenData.apiKey);
-            }
-
-            // Add App ID (required for drive.file scope to grant access on selection)
-            if (tokenData.appId) {
-                pickerBuilder.setAppId(tokenData.appId);
+            // Add API key and App ID only on desktop (causes errors on mobile/PWA)
+            if (!this.isMobileOrPWA()) {
+                // API key required for linking to existing Drive files
+                if (tokenData.apiKey) {
+                    pickerBuilder.setDeveloperKey(tokenData.apiKey);
+                }
+                // App ID required for drive.file scope to grant access on selection
+                if (tokenData.appId) {
+                    pickerBuilder.setAppId(tokenData.appId);
+                }
             }
 
             const picker = pickerBuilder.build();
