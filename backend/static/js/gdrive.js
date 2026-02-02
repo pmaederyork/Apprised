@@ -456,7 +456,8 @@ const GDrive = {
             }
 
             // Show Google Picker
-            const picker = new google.picker.PickerBuilder()
+            // API key enables access to files not created by this app (drive.file scope)
+            const pickerBuilder = new google.picker.PickerBuilder()
                 .addView(google.picker.ViewId.DOCS)
                 .setOAuthToken(tokenData.accessToken)
                 .setOrigin(window.location.protocol + '//' + window.location.host)
@@ -464,8 +465,19 @@ const GDrive = {
                     if (data.action === google.picker.Action.PICKED) {
                         await this.handlePickerSelection(data.docs[0]);
                     }
-                })
-                .build();
+                });
+
+            // Add API key if available (required for importing existing Drive files)
+            if (tokenData.apiKey) {
+                pickerBuilder.setDeveloperKey(tokenData.apiKey);
+            }
+
+            // Add App ID (required for drive.file scope to grant access on selection)
+            if (tokenData.appId) {
+                pickerBuilder.setAppId(tokenData.appId);
+            }
+
+            const picker = pickerBuilder.build();
 
             picker.setVisible(true);
 
@@ -668,7 +680,8 @@ const GDrive = {
             }
 
             // Show Google Picker to select a file
-            const picker = new google.picker.PickerBuilder()
+            // API key enables access to files not created by this app (drive.file scope)
+            const pickerBuilder = new google.picker.PickerBuilder()
                 .addView(google.picker.ViewId.RECENTLY_PICKED)
                 .setOAuthToken(tokenData.accessToken)
                 .setOrigin(window.location.protocol + '//' + window.location.host)
@@ -678,8 +691,19 @@ const GDrive = {
                         const selectedFile = data.docs[0];
                         await this.handleRelinkSelection(documentId, selectedFile);
                     }
-                })
-                .build();
+                });
+
+            // Add API key if available (required for linking to existing Drive files)
+            if (tokenData.apiKey) {
+                pickerBuilder.setDeveloperKey(tokenData.apiKey);
+            }
+
+            // Add App ID (required for drive.file scope to grant access on selection)
+            if (tokenData.appId) {
+                pickerBuilder.setAppId(tokenData.appId);
+            }
+
+            const picker = pickerBuilder.build();
 
             picker.setVisible(true);
 
@@ -861,7 +885,8 @@ const GDrive = {
                 .setMimeTypes('application/vnd.google-apps.folder');
 
             // Show Google Picker for folders
-            const picker = new google.picker.PickerBuilder()
+            // API key enables access to folders not created by this app (drive.file scope)
+            const pickerBuilder = new google.picker.PickerBuilder()
                 .addView(folderView)
                 .setOAuthToken(tokenData.accessToken)
                 .setOrigin(window.location.protocol + '//' + window.location.host)
@@ -873,8 +898,19 @@ const GDrive = {
                         this.updateUI();
                         console.log('Default folder set:', folder.name, folder.id);
                     }
-                })
-                .build();
+                });
+
+            // Add API key if available (required for selecting existing folders)
+            if (tokenData.apiKey) {
+                pickerBuilder.setDeveloperKey(tokenData.apiKey);
+            }
+
+            // Add App ID (required for drive.file scope to grant access on selection)
+            if (tokenData.appId) {
+                pickerBuilder.setAppId(tokenData.appId);
+            }
+
+            const picker = pickerBuilder.build();
 
             picker.setVisible(true);
 

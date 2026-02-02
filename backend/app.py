@@ -41,6 +41,8 @@ app.config['SESSION_COOKIE_NAME'] = 'oauth_session'
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['GOOGLE_CLIENT_ID'] = os.getenv('GOOGLE_CLIENT_ID')
 app.config['GOOGLE_CLIENT_SECRET'] = os.getenv('GOOGLE_CLIENT_SECRET')
+app.config['GOOGLE_PICKER_API_KEY'] = os.getenv('GOOGLE_PICKER_API_KEY')
+app.config['GOOGLE_PROJECT_NUMBER'] = os.getenv('GOOGLE_PROJECT_NUMBER')
 app.config['APP_URL'] = os.getenv('APP_URL', 'http://localhost:5000')
 
 # Database configuration
@@ -752,7 +754,13 @@ def drive_import(file_id):
 @app.route('/drive/picker-token', methods=['GET'])
 @login_required
 def drive_picker_token():
-    """Get OAuth token for Google Picker (file selector)"""
+    """Get OAuth token and API key for Google Picker (file selector)
+
+    The Picker needs both an OAuth token AND an API Key (Developer Key) to grant
+    access when files are selected. With drive.file scope:
+    - OAuth token only: Picker displays files but selection does NOT grant access
+    - OAuth token + API key: Selecting a file grants the app access to that file
+    """
     try:
         # Get OAuth token from database (with auto-refresh)
         token, _ = get_google_token_with_auto_refresh()
@@ -760,10 +768,22 @@ def drive_picker_token():
         if not token:
             return jsonify({'success': False, 'error': 'Not connected to Google Drive'}), 401
 
-        return jsonify({
+        response_data = {
             'success': True,
             'accessToken': token['access_token']
-        })
+        }
+
+        # Include API key if configured (required for importing files not created by app)
+        api_key = app.config.get('GOOGLE_PICKER_API_KEY')
+        if api_key:
+            response_data['apiKey'] = api_key
+
+        # Include Project Number as App ID (required for drive.file scope access grant)
+        project_number = app.config.get('GOOGLE_PROJECT_NUMBER')
+        if project_number:
+            response_data['appId'] = project_number
+
+        return jsonify(response_data)
     except Exception as e:
         logging.error(f"Picker token error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
