@@ -527,7 +527,17 @@ const StorageSync = {
 
             let result;
             if (exists) {
-                result = await this.saveToServer(`/api/documents/${docId}`, 'PUT', payload);
+                try {
+                    result = await this.saveToServer(`/api/documents/${docId}`, 'PUT', payload);
+                } catch (putError) {
+                    // If PUT fails with 404, document was deleted on server - recreate it
+                    if (putError.message.includes('not found') || putError.message.includes('404')) {
+                        console.log('Document was deleted on server, recreating:', docId);
+                        result = await this.saveToServer('/api/documents', 'POST', payload);
+                    } else {
+                        throw putError;
+                    }
+                }
             } else {
                 result = await this.saveToServer('/api/documents', 'POST', payload);
             }

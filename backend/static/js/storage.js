@@ -208,12 +208,9 @@ const Storage = {
     saveDocument(docId, docData) {
         const docs = this.getDocuments();
         docs[docId] = docData;
-        this.saveDocuments(docs);
-
-        // Sync to server
-        if (typeof StorageSync !== 'undefined' && StorageSync.initialized) {
-            StorageSync.saveDocument(docId, docData);
-        }
+        // Pass the docId to saveDocuments so it syncs the correct document
+        // (saveDocuments handles the sync internally, no need to call StorageSync again)
+        this.saveDocuments(docs, docId);
     },
 
     /**
