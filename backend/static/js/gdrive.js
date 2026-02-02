@@ -26,28 +26,6 @@ const GDrive = {
     },
 
     /**
-     * Debug helper - shows messages on screen for mobile debugging
-     */
-    debugLog(msg) {
-        console.log('GDrive:', msg);
-        // Show on-screen debug for mobile
-        let debugEl = document.getElementById('gdrive-debug');
-        if (!debugEl) {
-            debugEl = document.createElement('div');
-            debugEl.id = 'gdrive-debug';
-            debugEl.style.cssText = 'position:fixed;bottom:60px;left:10px;right:10px;background:rgba(0,0,0,0.8);color:#0f0;font-family:monospace;font-size:11px;padding:8px;border-radius:4px;max-height:150px;overflow-y:auto;z-index:99999;white-space:pre-wrap;';
-            document.body.appendChild(debugEl);
-        }
-        debugEl.textContent += new Date().toLocaleTimeString() + ': ' + msg + '\n';
-        debugEl.scrollTop = debugEl.scrollHeight;
-        // Auto-hide after 30 seconds
-        clearTimeout(this._debugTimeout);
-        this._debugTimeout = setTimeout(() => {
-            if (debugEl) debugEl.remove();
-        }, 30000);
-    },
-
-    /**
      * Process Google Docs HTML for proper display
      * Fixes UTF-8 encoding issues, converts heading styles to semantic HTML,
      * and cleans up Google Docs-specific markup
@@ -483,15 +461,10 @@ const GDrive = {
             return;
         }
 
-        // Debug: Log mobile detection
-        const isMobile = this.isMobileOrPWA();
-        this.debugLog('isMobile=' + isMobile + ' pickerLoaded=' + this.pickerApiLoaded);
-
         try {
             // Get OAuth token from backend for Picker
             const tokenResponse = await fetch('/drive/picker-token');
             const tokenData = await tokenResponse.json();
-            this.debugLog('token success=' + tokenData.success);
 
             if (!tokenData.success) {
                 alert('Failed to get Drive access. Please try reconnecting.');
@@ -506,15 +479,13 @@ const GDrive = {
                 .setOAuthToken(tokenData.accessToken)
                 .setOrigin(window.location.protocol + '//' + window.location.host)
                 .setCallback(async (data) => {
-                    this.debugLog('Callback: ' + data.action);
                     if (data.action === google.picker.Action.PICKED) {
                         await this.handlePickerSelection(data.docs[0]);
                     }
                 });
 
-            if (isMobile) {
+            if (this.isMobileOrPWA()) {
                 // Mobile/PWA: vanilla docs view (most compatible)
-                this.debugLog('Adding ViewId.DOCS (mobile)');
                 pickerBuilder.addView(google.picker.ViewId.DOCS);
             } else {
                 // Desktop: hierarchical folder navigation with list view
@@ -526,29 +497,23 @@ const GDrive = {
                 pickerBuilder.addView(docsView);
             }
 
-            // Add API key and App ID only on desktop (causes errors on mobile/PWA)
-            if (!this.isMobileOrPWA()) {
-                // API key required for importing existing Drive files
-                if (tokenData.apiKey) {
-                    pickerBuilder.setDeveloperKey(tokenData.apiKey);
-                }
-                // App ID required for drive.file scope to grant access on selection
-                if (tokenData.appId) {
-                    pickerBuilder.setAppId(tokenData.appId);
-                }
+            // Add API key if available (required for importing existing Drive files)
+            if (tokenData.apiKey) {
+                pickerBuilder.setDeveloperKey(tokenData.apiKey);
             }
 
-            this.debugLog('Building picker...');
+            // Add App ID (required for drive.file scope to grant access on selection)
+            if (tokenData.appId) {
+                pickerBuilder.setAppId(tokenData.appId);
+            }
+
             const picker = pickerBuilder.build();
-            this.debugLog('Built OK, calling setVisible...');
 
             picker.setVisible(true);
-            this.debugLog('setVisible() called - picker should appear');
 
         } catch (error) {
-            this.debugLog('ERROR: ' + error.message);
             console.error('Picker error:', error);
-            alert('Picker error: ' + error.message);
+            alert('Failed to open file picker. Please try again.');
         }
     },
 
@@ -625,7 +590,6 @@ const GDrive = {
 
     // Load Google Picker API
     loadPickerAPI() {
-        console.log('GDrive: loadPickerAPI called, existing google.picker?', !!(window.google && window.google.picker));
         if (window.google && window.google.picker) {
             this.pickerApiLoaded = true;
             return;
@@ -643,18 +607,17 @@ const GDrive = {
         }, 10000);
 
         script.onload = () => {
-            console.log('GDrive: api.js loaded, calling gapi.load("picker")');
             try {
                 gapi.load('picker', {
                     callback: () => {
                         clearTimeout(timeout);
                         this.pickerApiLoaded = true;
                         this.pickerLoadFailed = false;
-                        console.log('GDrive: Picker API loaded successfully');
+                        console.log('Google Picker API loaded');
                     },
                     onerror: () => {
                         clearTimeout(timeout);
-                        console.error('GDrive: Failed to load Google Picker module');
+                        console.error('Failed to load Google Picker module');
                         this.pickerLoadFailed = true;
                     }
                 });
@@ -774,16 +737,14 @@ const GDrive = {
                 pickerBuilder.addView(docsView);
             }
 
-            // Add API key and App ID only on desktop (causes errors on mobile/PWA)
-            if (!this.isMobileOrPWA()) {
-                // API key required for linking to existing Drive files
-                if (tokenData.apiKey) {
-                    pickerBuilder.setDeveloperKey(tokenData.apiKey);
-                }
-                // App ID required for drive.file scope to grant access on selection
-                if (tokenData.appId) {
-                    pickerBuilder.setAppId(tokenData.appId);
-                }
+            // Add API key if available (required for linking to existing Drive files)
+            if (tokenData.apiKey) {
+                pickerBuilder.setDeveloperKey(tokenData.apiKey);
+            }
+
+            // Add App ID (required for drive.file scope to grant access on selection)
+            if (tokenData.appId) {
+                pickerBuilder.setAppId(tokenData.appId);
             }
 
             const picker = pickerBuilder.build();
