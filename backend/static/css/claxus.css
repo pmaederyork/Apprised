@@ -3,6 +3,28 @@
  * CLI-inspired aesthetic for agent orchestration interface
  */
 
+/* ===== Browser Button (header) ===== */
+.claxus-browser-btn {
+    display: none;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.claxus-browser-btn:hover {
+    opacity: 0.85;
+}
+
+body.claxus-mode .claxus-browser-btn {
+    display: inline-block;
+}
+
 /* ===== Sidebar Button ===== */
 .claxus-sidebar-section {
     padding: 4px 8px 8px;
