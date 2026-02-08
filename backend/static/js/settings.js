@@ -167,6 +167,9 @@ const Settings = {
         this.elements.claxusEnabledToggle?.addEventListener('change', (e) => {
             Storage.saveSetting('claxusEnabled', e.target.checked);
             if (typeof Claxus !== 'undefined') {
+                if (!e.target.checked && Claxus.active) {
+                    Claxus.exitMode();
+                }
                 Claxus.updateButtonVisibility();
             }
         });
