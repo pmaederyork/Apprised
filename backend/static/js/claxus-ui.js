@@ -22,14 +22,15 @@ const ClaxusUI = {
     /**
      * Create tool use indicator
      */
-    createToolIndicator(toolName, toolInput) {
+    createToolIndicator(toolName, toolInput, options = {}) {
         const div = document.createElement('div');
-        div.className = 'claxus-tool-indicator';
+        div.className = options.replay ? 'claxus-tool-indicator' : 'claxus-tool-indicator claxus-working';
 
         const [icon, displayName] = this.resolveToolName(toolName);
         const description = this.describeToolInput(toolName, toolInput);
 
-        div.innerHTML = `<span class="tool-icon">${icon}</span> <strong>${displayName}</strong> ${description ? `› ${description}` : ''}`;
+        const spinner = options.replay ? '' : '<span class="claxus-spinner"></span>';
+        div.innerHTML = `${spinner}<span class="tool-icon">${icon}</span> <strong>${displayName}</strong> ${description ? `› ${description}` : ''}`;
 
         return div;
     },
@@ -47,22 +48,24 @@ const ClaxusUI = {
     /**
      * Create agent badge
      */
-    createAgentBadge(agentType) {
+    createAgentBadge(agentType, options = {}) {
         const span = document.createElement('span');
-        span.className = 'claxus-agent-badge';
-        span.textContent = `${agentType} Agent`;
+        span.className = options.replay ? 'claxus-agent-badge' : 'claxus-agent-badge claxus-working';
+        const spinner = options.replay ? '' : '<span class="claxus-spinner"></span>';
+        span.innerHTML = `${spinner}${agentType} Agent`;
         return span;
     },
 
     /**
      * Create routing indicator
      */
-    createRoutingIndicator(agent, confidence) {
+    createRoutingIndicator(agent, confidence, options = {}) {
         const div = document.createElement('div');
-        div.className = 'claxus-routing';
+        div.className = options.replay ? 'claxus-routing' : 'claxus-routing claxus-working';
 
         const confidencePercent = Math.round((confidence || 0) * 100);
-        div.innerHTML = `→ <strong>${agent}</strong> <span class="confidence">(${confidencePercent}%)</span>`;
+        const spinner = options.replay ? '' : '<span class="claxus-spinner"></span>';
+        div.innerHTML = `${spinner}→ <strong>${agent}</strong> <span class="confidence">(${confidencePercent}%)</span>`;
 
         return div;
     },
@@ -184,6 +187,17 @@ const ClaxusUI = {
     },
 
     /**
+     * Remove spinners from all working indicators
+     */
+    clearSpinners() {
+        document.querySelectorAll('.claxus-working').forEach(el => {
+            el.classList.remove('claxus-working');
+            const spinner = el.querySelector('.claxus-spinner');
+            if (spinner) spinner.remove();
+        });
+    },
+
+    /**
      * Create interrupted indicator
      */
     createInterruptedIndicator() {
@@ -292,5 +306,48 @@ const ClaxusUI = {
     truncate(text, maxLength) {
         if (!text) return '';
         return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    },
+
+    // ===== File Browser Helpers =====
+
+    /**
+     * Create a file/directory list item
+     */
+    createFileItem(entry, onClick) {
+        const div = document.createElement('div');
+        div.className = 'claxus-file-item';
+
+        const icon = document.createElement('span');
+        icon.className = 'file-icon';
+        icon.textContent = entry.type === 'directory' ? '\uD83D\uDCC1' : '\uD83D\uDCC4';
+
+        const name = document.createElement('span');
+        name.className = 'file-name';
+        name.textContent = entry.name;
+
+        div.appendChild(icon);
+        div.appendChild(name);
+
+        if (entry.size !== undefined && entry.type !== 'directory') {
+            const size = document.createElement('span');
+            size.className = 'file-size';
+            size.textContent = this.formatFileSize(entry.size);
+            div.appendChild(size);
+        }
+
+        if (onClick) {
+            div.addEventListener('click', onClick);
+        }
+
+        return div;
+    },
+
+    /**
+     * Format file size for display
+     */
+    formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     }
 };

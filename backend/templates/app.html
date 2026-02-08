@@ -110,9 +110,27 @@
                 </div>
                 <div class="claxus-sidebar-section" id="claxusSidebarBtn" style="display: none;">
                     <button class="claxus-sidebar-btn" id="claxusSidebarButton" title="Open Claxus">
-                        <span class="claxus-btn-icon">C</span>
                         <span class="claxus-btn-label">Claxus</span>
                     </button>
+                </div>
+                <div class="claxus-files-section" id="claxusFilesSection">
+                    <div class="section-header" id="claxusFilesHeader">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="collapse-icon" id="claxusFilesCollapse">▼</span>
+                            <span class="section-title" style="margin: 0;">FILES</span>
+                        </div>
+                        <div style="display: flex; gap: 2px;">
+                            <button class="claxus-files-action-btn" id="claxusFilesNewFileBtn" title="New file">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                            </button>
+                            <button class="claxus-files-action-btn" id="claxusFilesMkdirBtn" title="New folder">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+                            </button>
+                            <button class="claxus-files-action-btn" id="claxusFilesRefreshBtn" title="Refresh">↻</button>
+                        </div>
+                    </div>
+                    <div class="claxus-files-path" id="claxusFilesPath"></div>
+                    <div class="claxus-files-list" id="claxusFilesList"></div>
                 </div>
                 <div class="system-prompt-section">
                     <div class="section-header" id="systemPromptHeader">
@@ -220,6 +238,7 @@
                     </svg>
                 </button>
                 <input type="text" class="chat-title" id="chatTitle" value="New Chat" />
+                <button class="claxus-browser-btn" id="claxusBrowserBtn" title="Open Browser View" onclick="window.open('http://' + window.location.hostname + ':6080/vnc.html', '_blank')">Browser</button>
 
                 <div class="chat-header-actions">
                     <div class="agent-controls">
@@ -363,6 +382,20 @@
                             <line x1="12" y1="15" x2="12" y2="3"></line>
                         </svg>
                     </button>
+                    <button class="mobile-btn claxus-mobile-pull-btn" id="claxusMobilePullBtn" title="Pull from container">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                    <button class="mobile-btn claxus-mobile-save-btn" id="claxusMobileSaveBtn" title="Save to container">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                    </button>
                     <button class="mobile-btn save-btn" id="mobileSaveBtn" title="Save">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
@@ -395,6 +428,8 @@
                     </a>
                     <button class="editor-btn save-drive" id="saveToDriveBtn" title="Save to Google Drive">Save</button>
                     <button class="editor-btn pull-drive" id="documentSyncBtn">Pull</button>
+                    <button class="editor-btn claxus-file-pull-btn" id="claxusFilePullBtn" title="Re-read from container">Pull</button>
+                    <button class="editor-btn claxus-file-save-btn" id="claxusFileSaveBtn" title="Save to container">Save</button>
                     <button class="editor-btn close-document" id="closeDocumentBtn">Close</button>
                 </div>
             </div>
@@ -626,8 +661,10 @@
                             </div>
                             <div class="setting-item">
                                 <label for="claxusUrlInput">Claxus URL</label>
-                                <input type="text" id="claxusUrlInput" placeholder="ws://127.0.0.1:8000" />
-                                <small>WebSocket URL for your local Claxus instance</small>
+                                <div class="claxus-url-input-container">
+                                    <input type="text" id="claxusUrlInput" placeholder="ws://127.0.0.1:8000" />
+                                </div>
+                                <div class="claxus-help-text">WebSocket URL for your local Claxus instance</div>
                             </div>
                         </div>
                     </div>
@@ -948,6 +985,7 @@
     <script src="/static/js/api.js"></script>
     <script src="/static/js/claxus-ui.js"></script>
     <script src="/static/js/claxus.js"></script>
+    <script src="/static/js/claxus-files.js"></script>
     <script src="/static/js/components.js"></script>
     <script src="/static/js/ui.js"></script>
     <script src="/static/js/document-editing-instructions.js"></script>

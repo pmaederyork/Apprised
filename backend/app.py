@@ -105,7 +105,7 @@ def add_security_headers(response):
         "script-src 'self' 'unsafe-inline' https://apis.google.com; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https:; "
-        "connect-src 'self' https://api.anthropic.com https://accounts.google.com https://www.googleapis.com; "
+        "connect-src 'self' https://api.anthropic.com https://accounts.google.com https://www.googleapis.com ws://127.0.0.1:* ws://localhost:* ws://100.*:*; "
         "font-src 'self'; "
         "object-src 'none'; "
         "base-uri 'self'; "

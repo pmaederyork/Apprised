@@ -5,7 +5,7 @@
 
 /* ===== Sidebar Button ===== */
 .claxus-sidebar-section {
-    padding: 4px 12px 8px;
+    padding: 4px 8px 8px;
 }
 
 .claxus-sidebar-btn {
@@ -14,33 +14,20 @@
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    font-size: 13px;
-    font-weight: 600;
-    border: 1px solid var(--border-color);
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-subtle);
+    color: var(--color-text-secondary);
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .claxus-sidebar-btn:hover {
-    background: var(--bg-hover);
-    border-color: var(--border-hover);
-    color: var(--text-primary);
-}
-
-.claxus-btn-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    font-size: 12px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-    color: white;
-    border-radius: 4px;
+    background: var(--color-sidebar-hover);
+    border-color: var(--color-primary);
+    color: var(--color-text-primary);
 }
 
 .claxus-btn-label {
@@ -48,16 +35,11 @@
     text-align: left;
 }
 
-.claxus-sidebar-section.active .claxus-sidebar-btn,
-.claxus-sidebar-btn:active {
-    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+.claxus-sidebar-section.active .claxus-sidebar-btn {
+    background: var(--color-primary);
     color: white;
-    border-color: #0891b2;
-    box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.15);
-}
-
-.claxus-sidebar-section.active .claxus-btn-icon {
-    background: rgba(255, 255, 255, 0.2);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--ring-primary);
 }
 
 /* ===== Hide elements in Claxus mode ===== */
@@ -91,49 +73,67 @@ body.claxus-mode .system-prompt-section {
 
 /* Chat title is read-only in Claxus mode */
 body.claxus-mode .chat-title {
-    color: #06b6d4;
+    color: var(--color-primary);
     font-weight: 600;
 }
 
 /* ===== CLI-style Chat Messages ===== */
 body.claxus-mode .chat-messages {
-    background: var(--bg-primary);
+    background: var(--color-bg-white);
 }
 
-/* User messages - cyan theme */
+/* User messages - use app primary blue */
 body.claxus-mode .message.user .message-bubble {
-    background: transparent;
-    border: 1px solid rgba(6, 182, 212, 0.3);
-    color: #22d3ee;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: var(--color-text-primary);
 }
 
-/* Assistant messages - warm/orange theme */
+/* Assistant messages - clean, minimal */
 body.claxus-mode .message.claude .message-bubble {
-    background: transparent;
-    border: none;
-    color: var(--text-primary);
-    padding-left: 0;
+    background: var(--color-bg-subtle);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
 }
 
 /* System messages in Claxus mode */
 body.claxus-mode .message.system {
-    color: rgba(6, 182, 212, 0.6);
-    font-style: normal;
+    color: var(--color-text-tertiary);
+    font-style: italic;
     font-family: monospace;
     font-size: 12px;
 }
 
 /* Input area styling in Claxus mode */
 body.claxus-mode .chat-input-container {
-    border-color: rgba(6, 182, 212, 0.3);
+    border-color: var(--color-border);
 }
 
 body.claxus-mode #messageInput {
-    color: #22d3ee;
+    color: var(--color-text-primary);
 }
 
 body.claxus-mode #messageInput::placeholder {
-    color: rgba(6, 182, 212, 0.4);
+    color: var(--color-text-tertiary);
+}
+
+/* ===== Working Spinner ===== */
+.claxus-spinner {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: claxus-spin 0.8s linear infinite;
+    opacity: 0.7;
+    flex-shrink: 0;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+@keyframes claxus-spin {
+    to { transform: rotate(360deg); }
 }
 
 /* ===== Tool Indicators ===== */
@@ -254,7 +254,7 @@ body.claxus-mode #messageInput::placeholder {
 }
 
 .claxus-status-line .status-text {
-    color: #06b6d4;
+    color: var(--color-primary);
     font-weight: 500;
 }
 
@@ -435,52 +435,309 @@ body.claxus-mode #messageInput::placeholder {
     color: #f87171;
 }
 
-/* ===== Light Theme Support ===== */
-[data-theme="light"] body.claxus-mode .message.user .message-bubble {
-    color: #0891b2;
-    border-color: rgba(8, 145, 178, 0.3);
-    background: rgba(8, 145, 178, 0.05);
+/* ===== Dark Theme Support ===== */
+[data-theme="dark"] body.claxus-mode .message.user .message-bubble {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: var(--color-text-primary);
 }
 
-[data-theme="light"] body.claxus-mode .chat-title {
-    color: #0891b2;
+[data-theme="dark"] body.claxus-mode .message.claude .message-bubble {
+    background: var(--gray-800);
+    border-color: var(--gray-700);
+    color: var(--color-text-primary);
 }
 
-[data-theme="light"] body.claxus-mode #messageInput {
-    color: #0891b2;
+[data-theme="dark"] .claxus-sidebar-btn {
+    background: rgba(192, 132, 252, 0.1);
+    border-color: rgba(192, 132, 252, 0.3);
+    color: #c084fc;
 }
 
-[data-theme="light"] body.claxus-mode #messageInput::placeholder {
-    color: rgba(8, 145, 178, 0.4);
+[data-theme="dark"] .claxus-sidebar-btn:hover {
+    background: rgba(192, 132, 252, 0.2);
+    border-color: #c084fc;
+    color: #d8b4fe;
 }
 
-[data-theme="light"] .claxus-tool-indicator {
-    color: #2563eb;
-    border-color: rgba(37, 99, 235, 0.3);
+[data-theme="dark"] .claxus-agent-badge {
+    color: #c084fc;
+    border-color: rgba(192, 132, 252, 0.3);
 }
 
-[data-theme="light"] .claxus-tool-indicator strong {
-    color: #1d4ed8;
+[data-theme="dark"] .claxus-tool-indicator {
+    color: #93c5fd;
+    border-color: rgba(147, 197, 253, 0.3);
 }
 
-[data-theme="light"] .claxus-agent-badge {
-    color: #9333ea;
-    border-color: rgba(147, 51, 234, 0.3);
+[data-theme="dark"] .claxus-routing {
+    color: #e879f9;
+    border-color: rgba(232, 121, 249, 0.3);
 }
 
-[data-theme="light"] .claxus-routing {
-    color: #c026d3;
-    border-color: rgba(192, 38, 211, 0.3);
+[data-theme="dark"] .confirmation-header {
+    color: #93c5fd;
 }
 
-[data-theme="light"] .claxus-routing strong {
-    color: #a21caf;
+[data-theme="dark"] .claxus-status-line .status-text {
+    color: var(--primary-400);
 }
 
-[data-theme="light"] .confirmation-header {
-    color: #2563eb;
+/* ===== Claxus File Editor: wider title ===== */
+body.claxus-mode input.editor-title {
+    width: 50%;
 }
 
-[data-theme="light"] .claxus-status-line .status-text {
-    color: #0891b2;
+/* ===== Settings: Claxus URL Input ===== */
+.claxus-url-input-container {
+    margin-bottom: 8px;
+}
+
+.claxus-url-input-container input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: var(--text-sm);
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    background: var(--color-bg-input);
+    color: var(--color-text-primary);
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.claxus-url-input-container input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--ring-primary);
+}
+
+.claxus-help-text {
+    font-size: var(--text-xs);
+    color: var(--color-text-tertiary);
+    line-height: 1.4;
+}
+
+/* ===== File Browser ===== */
+.claxus-files-section {
+    display: none;
+}
+
+body.claxus-mode .claxus-files-section {
+    display: block;
+    padding: 0 0 8px;
+}
+
+.claxus-files-section .section-header {
+    cursor: pointer;
+}
+
+.claxus-files-action-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-tertiary);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    line-height: 1;
+}
+
+.claxus-files-action-btn:hover {
+    color: var(--color-primary);
+    background: var(--color-sidebar-hover);
+}
+
+/* Breadcrumb path */
+.claxus-files-path {
+    padding: 4px 12px;
+    font-size: 11px;
+    font-family: monospace;
+    color: var(--color-text-tertiary);
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.claxus-files-path span {
+    cursor: pointer;
+}
+
+.claxus-files-path span:hover {
+    color: var(--color-primary);
+}
+
+/* File list */
+.claxus-files-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.claxus-file-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+}
+
+.claxus-file-item:hover {
+    background: var(--color-sidebar-hover);
+}
+
+.claxus-file-item.active {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--color-primary);
+}
+
+.claxus-file-item .file-icon {
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.claxus-file-item .file-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.claxus-file-item .file-size {
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    flex-shrink: 0;
+    font-family: monospace;
+}
+
+.claxus-files-empty {
+    padding: 12px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--color-text-tertiary);
+    font-style: italic;
+}
+
+/* Back button row */
+.claxus-file-back {
+    color: var(--color-primary);
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--color-primary-light);
+    border-radius: 4px;
+    margin: 2px 6px 4px;
+    padding: 5px 10px;
+}
+
+.claxus-file-back:hover {
+    background: var(--color-primary);
+    color: #fff;
+}
+
+/* Drag and drop */
+.claxus-file-item.dragging {
+    opacity: 0.4;
+}
+
+.claxus-file-item.drop-over {
+    background: rgba(59, 130, 246, 0.15);
+    border-top: 2px solid var(--color-primary);
+    padding-top: 4px;
+}
+
+/* Context menu */
+.claxus-context-menu {
+    position: fixed;
+    z-index: 10000;
+    background: var(--color-bg-white);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 120px;
+    padding: 4px 0;
+    font-size: 13px;
+}
+
+.claxus-context-menu-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+}
+
+.claxus-context-menu-item:hover {
+    background: var(--color-sidebar-hover);
+    color: var(--color-text-primary);
+}
+
+/* ===== Claxus File Editor (simplified) ===== */
+
+/* Hide rich-text toolbar, Drive buttons, Claude Changes in Claxus mode */
+body.claxus-mode .markdown-toolbar {
+    display: none;
+}
+
+body.claxus-mode .auto-accept-toggle {
+    display: none;
+}
+
+body.claxus-mode .save-drive {
+    display: none;
+}
+
+body.claxus-mode .pull-drive {
+    display: none;
+}
+
+body.claxus-mode .open-in-drive-btn {
+    display: none !important;
+}
+
+body.claxus-mode #driveSyncIndicator {
+    display: none !important;
+}
+
+body.claxus-mode #documentChangeReview {
+    display: none !important;
+}
+
+/* Claxus file action buttons — hidden by default, shown in claxus mode */
+.claxus-file-pull-btn,
+.claxus-file-save-btn {
+    display: none !important;
+}
+
+body.claxus-mode .claxus-file-pull-btn,
+body.claxus-mode .claxus-file-save-btn {
+    display: inline-flex !important;
+}
+
+/* Mobile claxus file buttons */
+.claxus-mobile-pull-btn,
+.claxus-mobile-save-btn {
+    display: none !important;
+}
+
+body.claxus-mode .claxus-mobile-pull-btn,
+body.claxus-mode .claxus-mobile-save-btn {
+    display: inline-flex !important;
+}
+
+/* Hide mobile Drive pull/save in claxus mode */
+body.claxus-mode #mobilePullBtn {
+    display: none !important;
+}
+
+body.claxus-mode #mobileSaveBtn {
+    display: none !important;
+}
+
+/* Hide mobile GDrive status in claxus mode */
+body.claxus-mode #mobileGdriveStatusBtn {
+    display: none !important;
+}
+
+/* Hide mobile toolbar toggle in claxus mode (no toolbar to toggle) */
+body.claxus-mode .toolbar-toggle-btn {
+    display: none !important;
 }

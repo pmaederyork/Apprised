@@ -98,7 +98,16 @@ const UI = {
         autoAcceptEditsToggle: document.getElementById('autoAcceptEditsToggle'),
         // Mobile drawer elements
         hamburgerBtn: document.getElementById('hamburgerBtn'),
-        drawerBackdrop: document.getElementById('drawerBackdrop')
+        drawerBackdrop: document.getElementById('drawerBackdrop'),
+        // Claxus file browser elements
+        claxusFilesSection: document.getElementById('claxusFilesSection'),
+        claxusFilesList: document.getElementById('claxusFilesList'),
+        claxusFilesPath: document.getElementById('claxusFilesPath'),
+        // Claxus file editor buttons
+        claxusFilePullBtn: document.getElementById('claxusFilePullBtn'),
+        claxusFileSaveBtn: document.getElementById('claxusFileSaveBtn'),
+        claxusMobilePullBtn: document.getElementById('claxusMobilePullBtn'),
+        claxusMobileSaveBtn: document.getElementById('claxusMobileSaveBtn')
     },
 
     // Helper function to strip document edit XML from chat display
