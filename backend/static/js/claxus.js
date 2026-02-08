@@ -23,8 +23,7 @@ const Claxus = {
      */
     isConfigured() {
         const enabled = Storage.getSetting('claxusEnabled', false);
-        const url = Settings.getClaxusUrl();
-        return enabled && url && url.length > 0;
+        return enabled === true;
     },
 
     /**
