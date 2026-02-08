@@ -19,6 +19,7 @@ const Claxus = {
     savedChatState: null, // Stores regular chat state when entering Claxus mode
     maxStoredEvents: 200, // Cap stored events to prevent localStorage bloat
     messageCount: 0, // Tracks number of messages rendered (for event interleaving)
+    backgroundMessages: [], // Buffer for messages received while not viewing Claxus
 
     /**
      * Check if Claxus is configured (enabled in settings + URL set)
@@ -47,8 +48,8 @@ const Claxus = {
 
         this.active = true;
 
-        // Save current chat state so we can restore it later
-        if (typeof Chat !== 'undefined') {
+        // Only save chat state if not already saved (guard against overwriting on re-entry)
+        if (!this.savedChatState && typeof Chat !== 'undefined') {
             this.savedChatState = {
                 chatId: Chat.currentChatId,
                 messages: [...Chat.currentMessages]
@@ -88,8 +89,14 @@ const Claxus = {
             Storage.saveSetting('claxusConversationId', this.conversationId);
         }
 
-        // Connect to Claxus gateway
-        this.connect(this.conversationId);
+        // If already connected, replay buffered messages instead of reconnecting
+        if (this.ws && this.connectionState === 'CONNECTED') {
+            console.log('[Claxus] Already connected, replaying', this.backgroundMessages.length, 'buffered messages');
+            this.replayBackgroundMessages();
+        } else {
+            // Connect to Claxus gateway
+            this.connect(this.conversationId);
+        }
     },
 
     /**
@@ -105,7 +112,7 @@ const Claxus = {
             ClaxusFiles.reset();
         }
 
-        this.disconnect();
+        // WebSocket stays alive — messages buffered via handleMessage()
 
         // Remove body class
         document.body.classList.remove('claxus-mode');
@@ -323,11 +330,26 @@ const Claxus = {
             const data = JSON.parse(event.data);
             const handler = this.messageHandlers[data.type];
 
-            if (handler) {
-                handler(data);
-            } else {
+            if (!handler) {
                 console.warn('[Claxus] Unknown message type:', data.type);
+                return;
             }
+
+            // If not viewing Claxus, buffer UI messages but still process state updates
+            if (!this.active) {
+                // Always process these silently (state updates, not UI)
+                const silentTypes = ['file_list', 'file_content', 'file_saved', 'file_created',
+                    'file_renamed', 'file_moved', 'file_error', 'complete', 'new_conversation',
+                    'switched', 'cleared'];
+                if (silentTypes.includes(data.type)) {
+                    handler(data);
+                } else {
+                    this.backgroundMessages.push(data);
+                }
+                return;
+            }
+
+            handler(data);
         } catch (error) {
             console.error('[Claxus] Failed to parse message:', error);
         }
@@ -507,6 +529,22 @@ const Claxus = {
         });
     },
 
+    /**
+     * Replay messages buffered while Claxus was in the background
+     */
+    replayBackgroundMessages() {
+        const messages = this.backgroundMessages;
+        this.backgroundMessages = [];
+
+        if (messages.length === 0) return;
+        console.log('[Claxus] Replaying', messages.length, 'background messages');
+
+        messages.forEach(data => {
+            const handler = this.messageHandlers[data.type];
+            if (handler) handler(data);
+        });
+    },
+
     // ===== Message Handlers =====
 
     handleHistory(data) {
@@ -547,19 +585,27 @@ const Claxus = {
 
     handleComplete(data) {
         console.log('[Claxus] Streaming complete');
-        this.messageCount++;
-        this.saveEvent({ type: 'complete' });
-        ClaxusUI.clearSpinners();
-
-        if (this.currentStreamingBubble) {
-            UI.updateStreamingMessage(this.currentStreamingBubble, this.fullResponse, true);
-            this.currentStreamingBubble = null;
-        }
-
-        this.fullResponse = '';
         this.isSending = false;
-        UI.setSendButtonState(true, false);
-        UI.focusMessageInput();
+
+        // Only touch UI if actively viewing Claxus
+        if (this.active) {
+            this.messageCount++;
+            this.saveEvent({ type: 'complete' });
+            ClaxusUI.clearSpinners();
+
+            if (this.currentStreamingBubble) {
+                UI.updateStreamingMessage(this.currentStreamingBubble, this.fullResponse, true);
+                this.currentStreamingBubble = null;
+            }
+
+            this.fullResponse = '';
+            UI.setSendButtonState(true, false);
+            UI.focusMessageInput();
+        } else {
+            // Background: just reset streaming state
+            this.currentStreamingBubble = null;
+            this.fullResponse = '';
+        }
     },
 
     handleToolUse(data) {
@@ -576,7 +622,6 @@ const Claxus = {
     handleAgentStart(data) {
         console.log('[Claxus] Agent started:', data.agent_type);
         this.saveEvent({ type: 'agent_start', agent_type: data.agent_type });
-        ClaxusUI.showStatus(data.agent_type);
 
         const badge = ClaxusUI.createAgentBadge(data.agent_type);
         UI.addClaxusElement(badge);
@@ -612,9 +657,13 @@ const Claxus = {
         console.log('[Claxus] Conversation cleared');
         this.clearEvents();
         this.messageCount = 0;
-        UI.clearMessages();
-        if (typeof Chat !== 'undefined') {
-            Chat.addSystemMessage('Conversation cleared');
+        this.backgroundMessages = []; // Clear buffered messages too
+
+        if (this.active) {
+            UI.clearMessages();
+            if (typeof Chat !== 'undefined') {
+                Chat.addSystemMessage('Conversation cleared');
+            }
         }
     },
 
@@ -650,12 +699,15 @@ const Claxus = {
         console.log('[Claxus] New conversation:', data.conversation_id);
         this.clearEvents(); // Clear events for old conversation before switching
         this.messageCount = 0;
+        this.backgroundMessages = []; // Clear buffered messages for old conversation
         this.conversationId = data.conversation_id;
         Storage.saveSetting('claxusConversationId', this.conversationId);
 
-        UI.clearMessages();
-        if (typeof Chat !== 'undefined') {
-            Chat.addSystemMessage('New conversation started');
+        if (this.active) {
+            UI.clearMessages();
+            if (typeof Chat !== 'undefined') {
+                Chat.addSystemMessage('New conversation started');
+            }
         }
     },
 
@@ -698,7 +750,11 @@ window.addEventListener('pagehide', () => {
 
 // Reconnect if needed when page becomes visible again
 window.addEventListener('pageshow', () => {
-    if (Claxus.active && Claxus.connectionState === 'DISCONNECTED') {
+    // Reconnect if WS died — whether viewing Claxus or it's running in background
+    const shouldReconnect = Claxus.connectionState === 'DISCONNECTED' &&
+        Claxus.conversationId &&
+        (Claxus.active || Claxus.ws !== null);
+    if (shouldReconnect) {
         Claxus.connect(Claxus.conversationId);
     }
 });

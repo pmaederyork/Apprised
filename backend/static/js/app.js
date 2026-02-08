@@ -44,13 +44,6 @@ const App = {
                 console.warn('Failed to initialize sidebar resize:', error);
             }
 
-            // Initialize scroll detection for smart autoscroll
-            try {
-                UI.initScrollDetection();
-            } catch (error) {
-                console.warn('Failed to initialize scroll detection:', error);
-            }
-            
             this.state.initialized = true;
             console.log(`Apprised Chat initialized in ${(performance.now() - startTime).toFixed(0)}ms`);
             

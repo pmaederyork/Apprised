@@ -167,8 +167,12 @@ const Settings = {
         this.elements.claxusEnabledToggle?.addEventListener('change', (e) => {
             Storage.saveSetting('claxusEnabled', e.target.checked);
             if (typeof Claxus !== 'undefined') {
-                if (!e.target.checked && Claxus.active) {
-                    Claxus.exitMode();
+                if (!e.target.checked) {
+                    if (Claxus.active) {
+                        Claxus.exitMode();
+                    }
+                    // exitMode no longer disconnects, so explicitly disconnect when disabling
+                    Claxus.disconnect();
                 }
                 Claxus.updateButtonVisibility();
             }

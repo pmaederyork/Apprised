@@ -3,7 +3,6 @@
  */
 const UI = {
     // Scroll state tracking
-    isUserScrolledUp: false,
     scrollThreshold: 100, // pixels from bottom to consider "at bottom"
     
     // DOM element references
@@ -333,9 +332,11 @@ const UI = {
     },
 
     autoScroll() {
-        // Only auto-scroll if user hasn't manually scrolled up
-        if (!this.isUserScrolledUp) {
-            this.elements.chatMessages.scrollTop = this.elements.chatMessages.scrollHeight;
+        const container = this.elements.chatMessages;
+        if (!container) return;
+        const scrollDistance = container.scrollHeight - container.scrollTop - container.clientHeight;
+        if (scrollDistance <= this.scrollThreshold) {
+            container.scrollTop = container.scrollHeight;
         }
     },
 
@@ -349,21 +350,11 @@ const UI = {
         this.elements.loading.classList.remove('show');
     },
 
-    // Initialize scroll detection for smart autoscroll
-    initScrollDetection() {
-        this.elements.chatMessages.addEventListener('scroll', () => {
-            const container = this.elements.chatMessages;
-            const scrollDistance = container.scrollHeight - container.scrollTop - container.clientHeight;
-            
-            // User is considered "scrolled up" if they're more than threshold pixels from bottom
-            this.isUserScrolledUp = scrollDistance > this.scrollThreshold;
-        });
-    },
-
-    // Reset scroll state (for manual scroll to bottom)
+    // Reset scroll state (force scroll to bottom)
     resetScrollState() {
-        this.isUserScrolledUp = false;
-        this.autoScroll();
+        if (this.elements.chatMessages) {
+            this.elements.chatMessages.scrollTop = this.elements.chatMessages.scrollHeight;
+        }
     },
 
     // UI state management
