@@ -18,6 +18,7 @@ const Claxus = {
     reconnectTimeout: null,
     savedChatState: null, // Stores regular chat state when entering Claxus mode
     maxStoredEvents: 200, // Cap stored events to prevent localStorage bloat
+    messageCount: 0, // Tracks number of messages rendered (for event interleaving)
 
     /**
      * Check if Claxus is configured (enabled in settings + URL set)
@@ -252,6 +253,7 @@ const Claxus = {
 
         // Add user message to UI
         UI.addMessage(content, true, []);
+        this.messageCount++;
         UI.clearMessageInput();
 
         // Start streaming bubble for response
@@ -435,6 +437,7 @@ const Claxus = {
      */
     saveEvent(event) {
         if (!this.conversationId) return;
+        event.messageIndex = this.messageCount;
         const key = 'claxusEvents_' + this.conversationId;
         try {
             const events = JSON.parse(localStorage.getItem(key) || '[]');
@@ -470,6 +473,27 @@ const Claxus = {
     },
 
     /**
+     * Create a DOM element from a stored event (for replay)
+     */
+    createReplayElement(evt) {
+        const replayOpts = { replay: true };
+        switch (evt.type) {
+            case 'agent_start':
+                return ClaxusUI.createAgentBadge(evt.agent_type, replayOpts);
+            case 'tool_use':
+                return ClaxusUI.createToolIndicator(evt.tool_name, evt.tool_input, replayOpts);
+            case 'routing':
+                return ClaxusUI.createRoutingIndicator(evt.agent, evt.confidence, replayOpts);
+            case 'agent_complete':
+                return ClaxusUI.createCompletionBadge(evt.duration_ms, evt.success);
+            case 'complete':
+                return null;
+            default:
+                return null;
+        }
+    },
+
+    /**
      * Replay stored UI events after history load (without spinners)
      */
     replayEvents() {
@@ -477,46 +501,40 @@ const Claxus = {
         if (events.length === 0) return;
 
         console.log('[Claxus] Replaying', events.length, 'stored events');
-        const replayOpts = { replay: true };
-
         events.forEach(evt => {
-            let element = null;
-            switch (evt.type) {
-                case 'agent_start':
-                    element = ClaxusUI.createAgentBadge(evt.agent_type, replayOpts);
-                    break;
-                case 'tool_use':
-                    element = ClaxusUI.createToolIndicator(evt.tool_name, evt.tool_input, replayOpts);
-                    break;
-                case 'routing':
-                    element = ClaxusUI.createRoutingIndicator(evt.agent, evt.confidence, replayOpts);
-                    break;
-                case 'agent_complete':
-                    element = ClaxusUI.createCompletionBadge(evt.duration_ms, evt.success);
-                    break;
-                case 'complete':
-                    // No visible element for stream completion
-                    break;
-            }
-            if (element) {
-                UI.addClaxusElement(element);
-            }
+            const element = this.createReplayElement(evt);
+            if (element) UI.addClaxusElement(element);
         });
     },
 
     // ===== Message Handlers =====
 
     handleHistory(data) {
-        console.log('[Claxus] Received history:', data.messages?.length || 0, 'messages');
+        const messages = data.messages || [];
+        const events = this.getEvents();
+        console.log('[Claxus] Received history:', messages.length, 'messages,', events.length, 'stored events');
 
-        if (data.messages && data.messages.length > 0) {
-            data.messages.forEach(msg => {
-                UI.addMessage(msg.content, msg.role === 'user', []);
-            });
+        // Interleave messages and events based on messageIndex
+        let eventIdx = 0;
+        messages.forEach((msg, msgIdx) => {
+            // Insert any events that belong before/at this message index
+            while (eventIdx < events.length && events[eventIdx].messageIndex <= msgIdx) {
+                const element = this.createReplayElement(events[eventIdx]);
+                if (element) UI.addClaxusElement(element);
+                eventIdx++;
+            }
+            UI.addMessage(msg.content, msg.role === 'user', []);
+        });
+
+        // Append any remaining events after all messages
+        while (eventIdx < events.length) {
+            const element = this.createReplayElement(events[eventIdx]);
+            if (element) UI.addClaxusElement(element);
+            eventIdx++;
         }
 
-        // Replay stored UI events (agent badges, tool indicators, etc.)
-        this.replayEvents();
+        // Restore message count so new events get correct indices
+        this.messageCount = messages.length;
     },
 
     handleStream(data) {
@@ -529,6 +547,7 @@ const Claxus = {
 
     handleComplete(data) {
         console.log('[Claxus] Streaming complete');
+        this.messageCount++;
         this.saveEvent({ type: 'complete' });
         ClaxusUI.clearSpinners();
 
@@ -592,6 +611,7 @@ const Claxus = {
     handleCleared(data) {
         console.log('[Claxus] Conversation cleared');
         this.clearEvents();
+        this.messageCount = 0;
         UI.clearMessages();
         if (typeof Chat !== 'undefined') {
             Chat.addSystemMessage('Conversation cleared');
@@ -629,6 +649,7 @@ const Claxus = {
     handleNewConversation(data) {
         console.log('[Claxus] New conversation:', data.conversation_id);
         this.clearEvents(); // Clear events for old conversation before switching
+        this.messageCount = 0;
         this.conversationId = data.conversation_id;
         Storage.saveSetting('claxusConversationId', this.conversationId);
 
