@@ -52,8 +52,7 @@ const Chat = {
     bindEvents() {
         // Send message events - also handles stop when streaming
         UI.elements.sendBtn.addEventListener('click', () => {
-            const claxusSending = typeof Claxus !== 'undefined' && Claxus.active && Claxus.isSending;
-            if (this.isSending || claxusSending) {
+            if (this.isSending) {
                 this.interruptMessage();
             } else {
                 this.sendMessage();
@@ -313,12 +312,6 @@ const Chat = {
         const message = UI.elements.messageInput.value.trim();
         if (!message) return;
 
-        // Route to Claxus if in Claxus mode
-        if (typeof Claxus !== 'undefined' && Claxus.active) {
-            Claxus.sendMessage(message);
-            return;
-        }
-
         // Set sending flag
         this.isSending = true;
 
@@ -485,7 +478,7 @@ const Chat = {
 
     // Interrupt current message streaming
     interruptMessage() {
-        if (typeof Claxus !== 'undefined' && Claxus.active && Claxus.isSending) {
+        if (typeof Claxus !== 'undefined' && Claxus.isSending) {
             Claxus.sendInterrupt();
         } else if (this.isSending) {
             API.interrupt();

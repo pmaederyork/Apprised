@@ -271,7 +271,8 @@ input.chat-title:focus {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-#messageInput {
+#messageInput,
+#claxusMessageInput {
     flex: 1;
     padding: var(--space-3) var(--space-4);
     height: 44px;
@@ -289,13 +290,15 @@ input.chat-title:focus {
     font-family: var(--font-sans);
 }
 
-#messageInput:focus {
+#messageInput:focus,
+#claxusMessageInput:focus {
     border-color: var(--color-primary);
     background: var(--color-bg-white);
     box-shadow: var(--ring-primary);
 }
 
-#messageInput::placeholder {
+#messageInput::placeholder,
+#claxusMessageInput::placeholder {
     color: var(--color-text-tertiary);
     opacity: 1;
 }

@@ -1,9 +1,172 @@
 /**
  * Claxus UI rendering utilities
  * Creates visual elements for tool indicators, agent badges, confirmations, etc.
+ * Also owns element refs and rendering methods for the independent Claxus pane.
  */
 const ClaxusUI = {
     statusElement: null,
+    scrollThreshold: 100,
+
+    // DOM element references for the Claxus-specific panes
+    elements: {},
+
+    /**
+     * Populate element refs (called once at startup from app.js)
+     */
+    initElements() {
+        this.elements = {
+            chatContainer: document.getElementById('claxusChatContainer'),
+            chatMessages: document.getElementById('claxusChatMessages'),
+            messageInput: document.getElementById('claxusMessageInput'),
+            sendBtn: document.getElementById('claxusSendBtn'),
+            loading: document.getElementById('claxusLoading'),
+            hamburgerBtn: document.getElementById('claxusHamburgerBtn'),
+            // Document editor
+            documentEditor: document.getElementById('claxusDocumentEditor'),
+            documentTitle: document.getElementById('claxusDocumentTitle'),
+            mobileDocumentTitle: document.getElementById('claxusMobileDocTitle'),
+            documentTextarea: document.getElementById('claxusDocumentTextarea'),
+            // Desktop editor buttons
+            editorPullBtn: document.getElementById('claxusEditorPullBtn'),
+            editorSaveBtn: document.getElementById('claxusEditorSaveBtn'),
+            closeEditorBtn: document.getElementById('claxusCloseEditorBtn'),
+            // Mobile editor buttons
+            editorMobilePullBtn: document.getElementById('claxusEditorMobilePullBtn'),
+            editorMobileSaveBtn: document.getElementById('claxusEditorMobileSaveBtn'),
+            mobileCloseEditorBtn: document.getElementById('claxusMobileCloseEditorBtn'),
+            editorHamburgerBtn: document.getElementById('claxusEditorHamburgerBtn'),
+            // Sidebar file browser elements
+            claxusFilesSection: document.getElementById('claxusFilesSection'),
+            claxusFilesList: document.getElementById('claxusFilesList'),
+            claxusFilesPath: document.getElementById('claxusFilesPath')
+        };
+
+        // Wire hamburger buttons to drawer
+        if (this.elements.hamburgerBtn) {
+            this.elements.hamburgerBtn.addEventListener('click', () => {
+                if (typeof MobileDrawer !== 'undefined' && MobileDrawer.openDrawer) {
+                    MobileDrawer.openDrawer();
+                }
+            });
+        }
+        if (this.elements.editorHamburgerBtn) {
+            this.elements.editorHamburgerBtn.addEventListener('click', () => {
+                if (typeof MobileDrawer !== 'undefined' && MobileDrawer.openDrawer) {
+                    MobileDrawer.openDrawer();
+                }
+            });
+        }
+    },
+
+    // ===== Rendering Methods (mirror UI module, target Claxus pane) =====
+
+    addMessage(content, isUser = false, files = []) {
+        const messageDiv = UI.createMessageElement(content, isUser, files, null);
+        this.elements.chatMessages.appendChild(messageDiv);
+        this.autoScroll();
+        return messageDiv._bubble;
+    },
+
+    addStreamingMessage(isUser = false, agent = null) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user' : 'claude'}`;
+
+        if (agent && !isUser) {
+            const agentBadge = document.createElement('div');
+            agentBadge.className = 'agent-badge-header';
+            agentBadge.innerHTML = `
+                <span class="agent-badge-dot" style="background-color: ${agent.color}"></span>
+                <span class="agent-badge-name">${UI.escapeHtml(agent.name)}</span>
+            `;
+            messageDiv.appendChild(agentBadge);
+        }
+
+        const bubbleDiv = document.createElement('div');
+        bubbleDiv.className = 'message-bubble streaming-cursor';
+        bubbleDiv.textContent = '';
+
+        messageDiv.appendChild(bubbleDiv);
+        this.elements.chatMessages.appendChild(messageDiv);
+        this.autoScroll();
+
+        return bubbleDiv;
+    },
+
+    updateStreamingMessage(bubbleDiv, content, isComplete = false) {
+        // Delegate to UI for the actual content rendering (markdown etc.)
+        UI.updateStreamingMessage(bubbleDiv, content, isComplete);
+        this.autoScroll();
+    },
+
+    clearMessages() {
+        if (this.elements.chatMessages) {
+            this.elements.chatMessages.innerHTML = '';
+        }
+    },
+
+    autoScroll() {
+        const container = this.elements.chatMessages;
+        if (!container) return;
+        const scrollDistance = container.scrollHeight - container.scrollTop - container.clientHeight;
+        if (scrollDistance <= this.scrollThreshold) {
+            container.scrollTop = container.scrollHeight;
+        }
+    },
+
+    addClaxusElement(element) {
+        if (this.elements.chatMessages) {
+            this.elements.chatMessages.appendChild(element);
+            this.autoScroll();
+        }
+    },
+
+    setSendButtonState(enabled, isStreaming = false) {
+        const sendBtn = this.elements.sendBtn;
+        if (!sendBtn) return;
+
+        sendBtn.disabled = false;
+        if (isStreaming) {
+            sendBtn.innerHTML = '■';
+            sendBtn.classList.add('streaming');
+            sendBtn.title = 'Stop streaming';
+        } else {
+            sendBtn.innerHTML = '↗';
+            sendBtn.classList.remove('streaming');
+            sendBtn.title = 'Send message';
+        }
+    },
+
+    clearMessageInput() {
+        if (this.elements.messageInput) {
+            this.elements.messageInput.value = '';
+            this.elements.messageInput.style.height = 'auto';
+        }
+    },
+
+    focusMessageInput() {
+        if (this.elements.messageInput) {
+            this.elements.messageInput.focus();
+        }
+    },
+
+    addSystemMessage(text) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message system';
+        messageDiv.style.cssText = `
+            text-align: center;
+            font-size: 13px;
+            padding: 8px 16px;
+            margin: 8px 0;
+            border-radius: 6px;
+            font-style: italic;
+        `;
+        messageDiv.textContent = text;
+
+        if (this.elements.chatMessages) {
+            this.elements.chatMessages.appendChild(messageDiv);
+            this.autoScroll();
+        }
+    },
 
     // Tool icon mapping
     TOOL_ICONS: {
@@ -187,10 +350,11 @@ const ClaxusUI = {
     },
 
     /**
-     * Remove spinners from all working indicators
+     * Remove spinners from all working indicators (scoped to Claxus pane)
      */
     clearSpinners() {
-        document.querySelectorAll('.claxus-working').forEach(el => {
+        const container = this.elements.chatMessages || document;
+        container.querySelectorAll('.claxus-working').forEach(el => {
             el.classList.remove('claxus-working');
             const spinner = el.querySelector('.claxus-spinner');
             if (spinner) spinner.remove();
@@ -208,9 +372,12 @@ const ClaxusUI = {
     },
 
     /**
-     * Show status line at bottom of chat
+     * Show status line at bottom of Claxus chat
      */
     showStatus(text) {
+        const chatMessages = this.elements.chatMessages;
+        if (!chatMessages) return;
+
         if (!this.statusElement) {
             this.statusElement = document.createElement('div');
             this.statusElement.className = 'claxus-status-line';
@@ -220,11 +387,8 @@ const ClaxusUI = {
                     <span>.</span><span>.</span><span>.</span>
                 </span>
             `;
-
-            if (UI.elements.chatMessages) {
-                UI.elements.chatMessages.appendChild(this.statusElement);
-                UI.autoScroll();
-            }
+            chatMessages.appendChild(this.statusElement);
+            this.autoScroll();
         } else {
             const textEl = this.statusElement.querySelector('.status-text');
             if (textEl) {

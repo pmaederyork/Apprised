@@ -204,6 +204,30 @@ const App = {
             console.error('Failed to initialize Settings:', error);
         }
 
+        // Initialize Claxus independent panes
+        try {
+            if (typeof ClaxusUI !== 'undefined') {
+                ClaxusUI.initElements();
+            }
+            if (typeof ClaxusFiles !== 'undefined') {
+                ClaxusFiles.initEditor();
+            }
+            if (typeof Claxus !== 'undefined') {
+                Claxus.bindEvents();
+                // Auto-connect in background if configured and has a conversation
+                if (Claxus.isConfigured()) {
+                    const convId = Storage.getSetting('claxusConversationId', null);
+                    if (convId) {
+                        Claxus.conversationId = convId;
+                        Claxus.connect(convId);
+                    }
+                }
+            }
+            console.log('Claxus panes initialized');
+        } catch (error) {
+            console.error('Failed to initialize Claxus panes:', error);
+        }
+
         // Initialize Google Drive module (async - don't block other modules)
         try {
             if (typeof GDrive !== 'undefined') {

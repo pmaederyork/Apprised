@@ -384,13 +384,6 @@ const Documents = {
 
     // Close the document editor
     closeEditor() {
-        // In Claxus mode with a file open, delegate to ClaxusFiles
-        if (typeof Claxus !== 'undefined' && Claxus.active &&
-            typeof ClaxusFiles !== 'undefined' && ClaxusFiles.openFilePath) {
-            ClaxusFiles.closeFile();
-            return;
-        }
-
         // Stop mutation observer for element IDs
         if (typeof ElementIds !== 'undefined' && ElementIds.stopObserving) {
             ElementIds.stopObserving();

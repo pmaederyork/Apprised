@@ -64,7 +64,37 @@ body.claxus-mode .claxus-browser-btn {
     box-shadow: 0 0 0 3px var(--ring-primary);
 }
 
-/* ===== Hide elements in Claxus mode ===== */
+/* ===== Dual Pane Show/Hide ===== */
+
+/* Claxus panes hidden by default */
+.claxus-chat-container,
+.claxus-document-editor {
+    display: none !important;
+}
+
+/* In Claxus mode: show Claxus panes, hide normal panes */
+body.claxus-mode .claxus-chat-container {
+    display: flex !important;
+}
+
+body.claxus-mode .claxus-document-editor.active {
+    display: flex !important;
+}
+
+body.claxus-mode #chatContainer {
+    display: none !important;
+}
+
+body.claxus-mode #documentEditor {
+    display: none !important;
+}
+
+/* Claxus document-open layout */
+.claxus-chat-container.document-open {
+    flex: 0.43;
+}
+
+/* ===== Hide sidebar elements in Claxus mode ===== */
 body.claxus-mode .model-selector {
     display: none;
 }
@@ -93,49 +123,48 @@ body.claxus-mode .system-prompt-section {
     display: none;
 }
 
-/* Chat title is read-only in Claxus mode */
-body.claxus-mode .chat-title {
+/* ===== CLI-style Chat Messages (Claxus pane) ===== */
+.claxus-chat-container .chat-messages {
+    background: var(--color-bg-white);
+}
+
+.claxus-chat-container .chat-title {
     color: var(--color-primary);
     font-weight: 600;
 }
 
-/* ===== CLI-style Chat Messages ===== */
-body.claxus-mode .chat-messages {
-    background: var(--color-bg-white);
-}
-
 /* User messages - use app primary blue */
-body.claxus-mode .message.user .message-bubble {
+.claxus-chat-container .message.user .message-bubble {
     background: rgba(59, 130, 246, 0.1);
     border: 1px solid rgba(59, 130, 246, 0.3);
     color: var(--color-text-primary);
 }
 
 /* Assistant messages - clean, minimal */
-body.claxus-mode .message.claude .message-bubble {
+.claxus-chat-container .message.claude .message-bubble {
     background: var(--color-bg-subtle);
     border: 1px solid var(--color-border);
     color: var(--color-text-primary);
 }
 
-/* System messages in Claxus mode */
-body.claxus-mode .message.system {
+/* System messages */
+.claxus-chat-container .message.system {
     color: var(--color-text-tertiary);
     font-style: italic;
     font-family: monospace;
     font-size: 12px;
 }
 
-/* Input area styling in Claxus mode */
-body.claxus-mode .chat-input-container {
+/* Input area styling */
+.claxus-chat-container .chat-input-container {
     border-color: var(--color-border);
 }
 
-body.claxus-mode #messageInput {
+.claxus-chat-container #claxusMessageInput {
     color: var(--color-text-primary);
 }
 
-body.claxus-mode #messageInput::placeholder {
+.claxus-chat-container #claxusMessageInput::placeholder {
     color: var(--color-text-tertiary);
 }
 
@@ -458,13 +487,13 @@ body.claxus-mode #messageInput::placeholder {
 }
 
 /* ===== Dark Theme Support ===== */
-[data-theme="dark"] body.claxus-mode .message.user .message-bubble {
+[data-theme="dark"] .claxus-chat-container .message.user .message-bubble {
     background: rgba(59, 130, 246, 0.15);
     border-color: rgba(59, 130, 246, 0.3);
     color: var(--color-text-primary);
 }
 
-[data-theme="dark"] body.claxus-mode .message.claude .message-bubble {
+[data-theme="dark"] .claxus-chat-container .message.claude .message-bubble {
     background: var(--gray-800);
     border-color: var(--gray-700);
     color: var(--color-text-primary);
@@ -503,11 +532,6 @@ body.claxus-mode #messageInput::placeholder {
 
 [data-theme="dark"] .claxus-status-line .status-text {
     color: var(--primary-400);
-}
-
-/* ===== Claxus File Editor: wider title ===== */
-body.claxus-mode input.editor-title {
-    width: 50%;
 }
 
 /* ===== Settings: Claxus URL Input ===== */
@@ -692,74 +716,6 @@ body.claxus-mode .claxus-files-section {
     color: var(--color-text-primary);
 }
 
-/* ===== Claxus File Editor (simplified) ===== */
-
-/* Hide rich-text toolbar, Drive buttons, Claude Changes in Claxus mode */
-body.claxus-mode .markdown-toolbar {
-    display: none;
-}
-
-body.claxus-mode .auto-accept-toggle {
-    display: none;
-}
-
-body.claxus-mode .save-drive {
-    display: none;
-}
-
-body.claxus-mode .pull-drive {
-    display: none;
-}
-
-body.claxus-mode .open-in-drive-btn {
-    display: none !important;
-}
-
-body.claxus-mode #driveSyncIndicator {
-    display: none !important;
-}
-
-body.claxus-mode #documentChangeReview {
-    display: none !important;
-}
-
-/* Claxus file action buttons — hidden by default, shown in claxus mode */
-.claxus-file-pull-btn,
-.claxus-file-save-btn {
-    display: none !important;
-}
-
-body.claxus-mode .claxus-file-pull-btn,
-body.claxus-mode .claxus-file-save-btn {
-    display: inline-flex !important;
-}
-
-/* Mobile claxus file buttons */
-.claxus-mobile-pull-btn,
-.claxus-mobile-save-btn {
-    display: none !important;
-}
-
-body.claxus-mode .claxus-mobile-pull-btn,
-body.claxus-mode .claxus-mobile-save-btn {
-    display: inline-flex !important;
-}
-
-/* Hide mobile Drive pull/save in claxus mode */
-body.claxus-mode #mobilePullBtn {
-    display: none !important;
-}
-
-body.claxus-mode #mobileSaveBtn {
-    display: none !important;
-}
-
-/* Hide mobile GDrive status in claxus mode */
-body.claxus-mode #mobileGdriveStatusBtn {
-    display: none !important;
-}
-
-/* Hide mobile toolbar toggle in claxus mode (no toolbar to toggle) */
-body.claxus-mode .toolbar-toggle-btn {
-    display: none !important;
-}
+/* ===== Claxus Document Editor ===== */
+/* The Claxus document editor is a simplified pane — no toolbar, no Drive, no Changes */
+/* Its visibility is handled by the dual-pane rules above */

@@ -2,6 +2,7 @@
  * Claxus File Browser module
  * Browse, open, edit, and save files from the /.claxus container directory
  * Files are accessed via WebSocket messages through the Claxus gateway
+ * Uses its own Squire editor instance, independent of Documents module
  */
 const ClaxusFiles = {
     currentPath: '/',
@@ -9,17 +10,38 @@ const ClaxusFiles = {
     openFileContent: null,
     collapsed: false,
     initialized: false,
+    squireEditor: null,
+    _loadingFile: false,
     _autoSaveTimeout: null,
     _autoSaveDelay: 500,
     _editorInputHandler: null,
-    _previousDocState: null,
-    _draggedEntry: null,      // { name, type, fullPath } of item being dragged
-    _draggedElement: null,    // DOM element being dragged
+    _draggedEntry: null,
+    _draggedElement: null,
 
     init() {
         if (this.initialized) return;
         this.bindEvents();
         this.initialized = true;
+    },
+
+    /**
+     * Initialize own Squire editor on the Claxus document textarea
+     */
+    initEditor() {
+        const container = ClaxusUI.elements.documentTextarea;
+        if (!container || this.squireEditor) return;
+
+        try {
+            this.squireEditor = new Squire(container, {
+                blockTag: 'pre',
+                blockAttributes: {
+                    style: 'white-space:pre-wrap;word-wrap:break-word;font-family:monospace;font-size:13px;margin:0;padding:0;'
+                }
+            });
+            console.log('[ClaxusFiles] Squire editor initialized');
+        } catch (e) {
+            console.error('[ClaxusFiles] Failed to init Squire:', e);
+        }
     },
 
     bindEvents() {
@@ -52,18 +74,26 @@ const ClaxusFiles = {
             });
         }
 
-        // Claxus file editor Pull/Save buttons (desktop + mobile)
-        UI.elements.claxusFilePullBtn?.addEventListener('click', () => {
+        // Claxus editor Pull/Save/Close buttons (desktop)
+        ClaxusUI.elements.editorPullBtn?.addEventListener('click', () => {
             if (this.openFilePath) this.requestFileRead(this.openFilePath);
         });
-        UI.elements.claxusFileSaveBtn?.addEventListener('click', () => {
+        ClaxusUI.elements.editorSaveBtn?.addEventListener('click', () => {
             this.saveCurrentFile();
         });
-        UI.elements.claxusMobilePullBtn?.addEventListener('click', () => {
+        ClaxusUI.elements.closeEditorBtn?.addEventListener('click', () => {
+            this.closeFile();
+        });
+
+        // Mobile buttons
+        ClaxusUI.elements.editorMobilePullBtn?.addEventListener('click', () => {
             if (this.openFilePath) this.requestFileRead(this.openFilePath);
         });
-        UI.elements.claxusMobileSaveBtn?.addEventListener('click', () => {
+        ClaxusUI.elements.editorMobileSaveBtn?.addEventListener('click', () => {
             this.saveCurrentFile();
+        });
+        ClaxusUI.elements.mobileCloseEditorBtn?.addEventListener('click', () => {
+            this.closeFile();
         });
 
         // Close context menu on click outside
@@ -100,9 +130,9 @@ const ClaxusFiles = {
     },
 
     saveCurrentFile() {
-        if (!this.openFilePath || !Documents.squireEditor) return;
+        if (!this.openFilePath || !this.squireEditor) return;
 
-        const html = Documents.squireEditor.getHTML();
+        const html = this.squireEditor.getHTML();
         const content = this.htmlToPlainText(html);
 
         Claxus.send({
@@ -138,9 +168,8 @@ const ClaxusFiles = {
 
     handleFileSaved(data) {
         if (data.success) {
-            if (data.path === this.openFilePath && Documents.squireEditor) {
-                // Update stored content so dirty checking resets
-                this.openFileContent = Documents.squireEditor.getHTML();
+            if (data.path === this.openFilePath && this.squireEditor) {
+                this.openFileContent = this.squireEditor.getHTML();
             }
             console.log('[ClaxusFiles] Saved:', data.path);
         } else {
@@ -150,26 +179,22 @@ const ClaxusFiles = {
 
     handleFileError(data) {
         console.error('[ClaxusFiles] Error:', data.error, 'path:', data.path);
-        if (typeof Chat !== 'undefined') {
-            Chat.addSystemMessage(`File error: ${data.error}`);
-        }
+        ClaxusUI.addSystemMessage(`File error: ${data.error}`);
     },
 
     handleFileCreated(data) {
         if (data.success) {
-            // Refresh current directory to show new folder
             this.requestFileList(this.currentPath);
         }
     },
 
     handleFileRenamed(data) {
         if (data.success) {
-            // If the renamed file is currently open, update the open path
             if (this.openFilePath === data.path) {
                 this.openFilePath = data.destination;
                 const filename = data.destination.split('/').pop();
-                if (UI.elements.documentTitle) UI.elements.documentTitle.value = filename;
-                if (UI.elements.mobileDocumentTitle) UI.elements.mobileDocumentTitle.value = filename;
+                if (ClaxusUI.elements.documentTitle) ClaxusUI.elements.documentTitle.value = filename;
+                if (ClaxusUI.elements.mobileDocumentTitle) ClaxusUI.elements.mobileDocumentTitle.value = filename;
             }
             this.requestFileList(this.currentPath);
         }
@@ -177,12 +202,11 @@ const ClaxusFiles = {
 
     handleFileMoved(data) {
         if (data.success) {
-            // If the moved file is currently open, update the open path
             if (this.openFilePath === data.path) {
                 this.openFilePath = data.destination;
                 const filename = data.destination.split('/').pop();
-                if (UI.elements.documentTitle) UI.elements.documentTitle.value = filename;
-                if (UI.elements.mobileDocumentTitle) UI.elements.mobileDocumentTitle.value = filename;
+                if (ClaxusUI.elements.documentTitle) ClaxusUI.elements.documentTitle.value = filename;
+                if (ClaxusUI.elements.mobileDocumentTitle) ClaxusUI.elements.mobileDocumentTitle.value = filename;
             }
             this.requestFileList(this.currentPath);
         }
@@ -191,17 +215,7 @@ const ClaxusFiles = {
     // === Editor Integration ===
 
     openInEditor(path, content) {
-        if (!Documents.squireEditor) return;
-
-        // Save current document state so we can restore later
-        if (!this.openFilePath && Documents.currentDocumentId) {
-            this._previousDocState = {
-                docId: Documents.currentDocumentId,
-                title: UI.elements.documentTitle ? UI.elements.documentTitle.value : ''
-            };
-            // Detach the current document without closing the editor visually
-            Documents.currentDocumentId = null;
-        }
+        if (!this.squireEditor) return;
 
         this.openFilePath = path;
 
@@ -211,26 +225,24 @@ const ClaxusFiles = {
 
         // Set title to filename (read-only)
         const filename = path.split('/').pop() || path;
-        if (UI.elements.documentTitle) {
-            UI.elements.documentTitle.value = filename;
-            UI.elements.documentTitle.readOnly = true;
+        if (ClaxusUI.elements.documentTitle) {
+            ClaxusUI.elements.documentTitle.value = filename;
         }
-        if (UI.elements.mobileDocumentTitle) {
-            UI.elements.mobileDocumentTitle.value = filename;
-            UI.elements.mobileDocumentTitle.readOnly = true;
+        if (ClaxusUI.elements.mobileDocumentTitle) {
+            ClaxusUI.elements.mobileDocumentTitle.value = filename;
         }
 
-        // Load content into Squire
-        Documents._loadingDocument = true;
-        Documents.squireEditor.setHTML(html);
-        setTimeout(() => { Documents._loadingDocument = false; }, 0);
+        // Load content into our own Squire editor
+        this._loadingFile = true;
+        this.squireEditor.setHTML(html);
+        setTimeout(() => { this._loadingFile = false; }, 0);
 
-        // Show editor panel using classList (consistent with Documents.openDocument)
-        if (UI.elements.documentEditor) {
-            UI.elements.documentEditor.classList.add('active');
+        // Show Claxus document editor
+        if (ClaxusUI.elements.documentEditor) {
+            ClaxusUI.elements.documentEditor.classList.add('active');
         }
-        if (UI.elements.chatContainer) {
-            UI.elements.chatContainer.classList.add('document-open');
+        if (ClaxusUI.elements.chatContainer) {
+            ClaxusUI.elements.chatContainer.classList.add('document-open');
         }
 
         // Mark active file in file list
@@ -241,15 +253,10 @@ const ClaxusFiles = {
     },
 
     closeFile() {
-        // Remove auto-save listener
         this.teardownAutoSave();
 
         this.openFilePath = null;
         this.openFileContent = null;
-
-        // Restore title editability
-        if (UI.elements.documentTitle) UI.elements.documentTitle.readOnly = false;
-        if (UI.elements.mobileDocumentTitle) UI.elements.mobileDocumentTitle.readOnly = false;
 
         // Clear active state in file list
         const list = document.getElementById('claxusFilesList');
@@ -257,33 +264,27 @@ const ClaxusFiles = {
             list.querySelectorAll('.claxus-file-item.active').forEach(el => el.classList.remove('active'));
         }
 
-        // Restore previous document or hide editor
-        if (this._previousDocState && typeof Documents !== 'undefined') {
-            Documents.openDocument(this._previousDocState.docId);
-            this._previousDocState = null;
-        } else {
-            // Clear the editor and hide it
-            if (Documents.squireEditor) {
-                Documents._loadingDocument = true;
-                Documents.squireEditor.setHTML('');
-                setTimeout(() => { Documents._loadingDocument = false; }, 0);
-            }
-            if (UI.elements.documentEditor) {
-                UI.elements.documentEditor.classList.remove('active');
-            }
-            if (UI.elements.chatContainer) {
-                UI.elements.chatContainer.classList.remove('document-open');
-            }
+        // Clear editor and hide
+        if (this.squireEditor) {
+            this._loadingFile = true;
+            this.squireEditor.setHTML('');
+            setTimeout(() => { this._loadingFile = false; }, 0);
+        }
+        if (ClaxusUI.elements.documentEditor) {
+            ClaxusUI.elements.documentEditor.classList.remove('active');
+        }
+        if (ClaxusUI.elements.chatContainer) {
+            ClaxusUI.elements.chatContainer.classList.remove('document-open');
         }
     },
 
     setupAutoSave() {
         this.teardownAutoSave();
 
-        if (!Documents.squireEditor) return;
+        if (!this.squireEditor) return;
 
         this._editorInputHandler = () => {
-            if (Documents._loadingDocument) return;
+            if (this._loadingFile) return;
             if (!this.openFilePath) return;
 
             if (this._autoSaveTimeout) clearTimeout(this._autoSaveTimeout);
@@ -294,7 +295,7 @@ const ClaxusFiles = {
             }, this._autoSaveDelay);
         };
 
-        Documents.squireEditor.addEventListener('input', this._editorInputHandler);
+        this.squireEditor.addEventListener('input', this._editorInputHandler);
     },
 
     teardownAutoSave() {
@@ -303,15 +304,15 @@ const ClaxusFiles = {
             this._autoSaveTimeout = null;
         }
 
-        if (this._editorInputHandler && Documents.squireEditor) {
-            Documents.squireEditor.removeEventListener('input', this._editorInputHandler);
+        if (this._editorInputHandler && this.squireEditor) {
+            this.squireEditor.removeEventListener('input', this._editorInputHandler);
             this._editorInputHandler = null;
         }
     },
 
     isDirty() {
-        if (!Documents.squireEditor || !this.openFileContent) return false;
-        return Documents.squireEditor.getHTML() !== this.openFileContent;
+        if (!this.squireEditor || !this.openFileContent) return false;
+        return this.squireEditor.getHTML() !== this.openFileContent;
     },
 
     // === UI Actions ===
@@ -322,9 +323,7 @@ const ClaxusFiles = {
 
         const trimmed = name.trim();
         if (trimmed.includes('/')) {
-            if (typeof Chat !== 'undefined') {
-                Chat.addSystemMessage('Folder name cannot contain slashes');
-            }
+            ClaxusUI.addSystemMessage('Folder name cannot contain slashes');
             return;
         }
 
@@ -340,9 +339,7 @@ const ClaxusFiles = {
 
         const trimmed = name.trim();
         if (trimmed.includes('/')) {
-            if (typeof Chat !== 'undefined') {
-                Chat.addSystemMessage('File name cannot contain slashes');
-            }
+            ClaxusUI.addSystemMessage('File name cannot contain slashes');
             return;
         }
 
@@ -350,9 +347,7 @@ const ClaxusFiles = {
             ? '/' + trimmed
             : this.currentPath + '/' + trimmed;
 
-        // Create the file with empty content via file_write (creates parent dirs too)
         Claxus.send({ type: 'file_write', path, content: '' });
-        // Refresh listing after a short delay to let the write complete
         setTimeout(() => this.requestFileList(this.currentPath), 200);
     },
 
@@ -362,9 +357,7 @@ const ClaxusFiles = {
 
         const trimmed = newName.trim();
         if (trimmed.includes('/')) {
-            if (typeof Chat !== 'undefined') {
-                Chat.addSystemMessage('Name cannot contain slashes');
-            }
+            ClaxusUI.addSystemMessage('Name cannot contain slashes');
             return;
         }
 
@@ -397,7 +390,6 @@ const ClaxusFiles = {
 
         document.body.appendChild(menu);
 
-        // Adjust position if off-screen
         const rect = menu.getBoundingClientRect();
         if (rect.right > window.innerWidth) {
             menu.style.left = (window.innerWidth - rect.width - 8) + 'px';
@@ -417,7 +409,6 @@ const ClaxusFiles = {
     _makeDropTarget(element, dirPath) {
         element.addEventListener('dragover', (e) => {
             e.preventDefault();
-            // Don't allow dropping on self
             if (this._draggedEntry && this._draggedEntry.fullPath === dirPath) return;
             e.dataTransfer.dropEffect = 'move';
             element.classList.add('drop-over');
@@ -436,7 +427,6 @@ const ClaxusFiles = {
             const srcPath = this._draggedEntry.fullPath;
             const srcName = this._draggedEntry.name;
 
-            // Don't drop into yourself or your own parent (no-op)
             if (srcPath === dirPath) return;
             const srcParent = srcPath.replace(/\/[^/]+\/?$/, '') || '/';
             if (srcParent === dirPath) return;
@@ -457,22 +447,18 @@ const ClaxusFiles = {
 
         list.innerHTML = '';
 
-        // Sort: directories first, then alphabetically
         const sorted = [...entries].sort((a, b) => {
             if (a.type === 'directory' && b.type !== 'directory') return -1;
             if (a.type !== 'directory' && b.type === 'directory') return 1;
             return a.name.localeCompare(b.name);
         });
 
-        // Add back button if not at root
         if (this.currentPath !== '/') {
             const parentPath = this.currentPath.replace(/\/[^/]+\/?$/, '') || '/';
             const backItem = document.createElement('div');
             backItem.className = 'claxus-file-item claxus-file-back';
             backItem.innerHTML = '<span class="file-icon">\u2190</span><span class="file-name">Back</span>';
             backItem.addEventListener('click', () => this.navigateTo(parentPath));
-
-            // Back row is a drop target (move into parent)
             this._makeDropTarget(backItem, parentPath);
             list.appendChild(backItem);
         }
@@ -490,10 +476,8 @@ const ClaxusFiles = {
                 }
             });
 
-            // Right-click for context menu (rename)
             item.addEventListener('contextmenu', (e) => this.showContextMenu(e, entry));
 
-            // Drag source — all items are draggable
             item.draggable = true;
             item.addEventListener('dragstart', (e) => {
                 this._draggedEntry = { name: entry.name, type: entry.type, fullPath };
@@ -506,16 +490,13 @@ const ClaxusFiles = {
                 item.classList.remove('dragging');
                 this._draggedEntry = null;
                 this._draggedElement = null;
-                // Clean up all drop-over states
                 list.querySelectorAll('.drop-over').forEach(el => el.classList.remove('drop-over'));
             });
 
-            // Directories are drop targets
             if (entry.type === 'directory') {
                 this._makeDropTarget(item, fullPath);
             }
 
-            // Mark active if this file is currently open
             if (this.openFilePath && fullPath === this.openFilePath) {
                 item.classList.add('active');
             }
@@ -539,7 +520,6 @@ const ClaxusFiles = {
 
         const parts = path.split('/').filter(Boolean);
 
-        // Root
         const rootSpan = document.createElement('span');
         rootSpan.textContent = '/';
         rootSpan.addEventListener('click', () => this.navigateTo('/'));
@@ -570,7 +550,6 @@ const ClaxusFiles = {
 
     plainTextToHtml(text) {
         if (!text) return '<p><br></p>';
-        // Escape HTML entities, then wrap lines in <pre> for monospace display
         const escaped = text
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -579,17 +558,14 @@ const ClaxusFiles = {
     },
 
     htmlToPlainText(html) {
-        // Extract text from the <pre> wrapper, preserving whitespace
         const temp = document.createElement('div');
         temp.innerHTML = html;
 
-        // If wrapped in our <pre>, get its text content directly
         const pre = temp.querySelector('pre');
         if (pre) {
             return pre.textContent;
         }
 
-        // Fallback: convert br to newlines, strip tags
         return temp.innerHTML
             .replace(/<br\s*\/?>/gi, '\n')
             .replace(/<\/p>\s*<p[^>]*>/gi, '\n')

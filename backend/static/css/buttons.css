@@ -312,7 +312,8 @@
 }
 
 /* Send Button */
-#sendBtn {
+#sendBtn,
+#claxusSendBtn {
     padding: 12px 16px;
     height: 44px;
     background: var(--color-primary);
@@ -329,18 +330,21 @@
     justify-content: center;
 }
 
-#sendBtn:hover:not(:disabled) {
+#sendBtn:hover:not(:disabled),
+#claxusSendBtn:hover:not(:disabled) {
     background: var(--color-primary-hover);
     box-shadow: var(--shadow-md);
     transform: translateY(-1px);
 }
 
-#sendBtn:active:not(:disabled) {
+#sendBtn:active:not(:disabled),
+#claxusSendBtn:active:not(:disabled) {
     transform: translateY(0);
     box-shadow: var(--shadow-xs);
 }
 
-#sendBtn:disabled {
+#sendBtn:disabled,
+#claxusSendBtn:disabled {
     background: var(--color-bg-disabled);
     cursor: not-allowed;
     box-shadow: none;
@@ -348,11 +352,13 @@
 }
 
 /* Send button in streaming state - becomes stop button */
-#sendBtn.streaming {
+#sendBtn.streaming,
+#claxusSendBtn.streaming {
     background: var(--color-error, #e53935);
 }
 
-#sendBtn.streaming:hover {
+#sendBtn.streaming:hover,
+#claxusSendBtn.streaming:hover {
     background: #c62828;
 }
 
