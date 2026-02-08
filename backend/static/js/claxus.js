@@ -491,16 +491,23 @@ const Claxus = {
         const events = this.getEvents();
         console.log('[Claxus] Received history:', messages.length, 'messages,', events.length, 'stored events');
 
+        // Events are saved with messageIndex = messageCount at time of event.
+        // After sendMessage, messageCount = N (N user+assistant pairs so far + 1 for the new user msg).
+        // Events during assistant response get messageIndex = N.
+        // The assistant message in server history is at index N (0-based).
+        // So: render message[msgIdx], then replay events where messageIndex === msgIdx.
         let eventIdx = 0;
         messages.forEach((msg, msgIdx) => {
+            ClaxusUI.addMessage(msg.content, msg.role === 'user', []);
+            // Place events that belong after this message
             while (eventIdx < events.length && events[eventIdx].messageIndex <= msgIdx) {
                 const element = this.createReplayElement(events[eventIdx]);
                 if (element) ClaxusUI.addClaxusElement(element);
                 eventIdx++;
             }
-            ClaxusUI.addMessage(msg.content, msg.role === 'user', []);
         });
 
+        // Any remaining events (e.g. from an in-progress response)
         while (eventIdx < events.length) {
             const element = this.createReplayElement(events[eventIdx]);
             if (element) ClaxusUI.addClaxusElement(element);
@@ -521,8 +528,8 @@ const Claxus = {
     handleComplete(data) {
         console.log('[Claxus] Streaming complete');
         this.isSending = false;
-        this.messageCount++;
         this.saveEvent({ type: 'complete' });
+        this.messageCount++;
         ClaxusUI.clearSpinners();
 
         if (this.currentStreamingBubble) {
