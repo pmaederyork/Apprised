@@ -31,8 +31,8 @@ const SETTINGS_CONFIG = {
     claxusUrl: {
         label: 'Claxus URL',
         type: 'text',
-        placeholder: 'ws://localhost:8000',
-        default: 'ws://localhost:8000',
+        placeholder: 'ws://127.0.0.1:8000',
+        default: 'ws://127.0.0.1:8000',
         storage: 'claxusUrl',
         validator: (value) => value.startsWith('ws://') || value.startsWith('wss://'),
         section: 'claxus'
@@ -232,7 +232,7 @@ const Settings = {
             this.elements.claxusEnabledToggle.checked = Storage.getSetting('claxusEnabled', false);
         }
         if (this.elements.claxusUrlInput) {
-            this.elements.claxusUrlInput.value = Storage.getSetting('claxusUrl', 'ws://localhost:8000');
+            this.elements.claxusUrlInput.value = Storage.getSetting('claxusUrl', 'ws://127.0.0.1:8000');
         }
     },
 
@@ -536,6 +536,6 @@ const Settings = {
      * Get Claxus URL from settings
      */
     getClaxusUrl() {
-        return Storage.getSetting('claxusUrl', 'ws://localhost:8000');
+        return Storage.getSetting('claxusUrl', 'ws://127.0.0.1:8000');
     }
 };

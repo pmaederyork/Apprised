@@ -384,10 +384,14 @@ const Claxus = {
      * Get WebSocket URL from settings
      */
     getWsUrl() {
+        let url;
         if (typeof Settings !== 'undefined' && Settings.getClaxusUrl) {
-            return Settings.getClaxusUrl();
+            url = Settings.getClaxusUrl();
+        } else {
+            url = localStorage.getItem('claxusUrl') || 'ws://127.0.0.1:8000';
         }
-        return localStorage.getItem('claxusUrl') || 'ws://localhost:8000';
+        // Auto-fix localhost to 127.0.0.1 (Docker binds IPv4 only, browsers may resolve localhost to IPv6)
+        return url.replace('://localhost:', '://127.0.0.1:');
     },
 
     // ===== Message Handlers =====
