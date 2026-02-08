@@ -20,6 +20,15 @@ const SETTINGS_CONFIG = {
         validator: (value) => ['light', 'dark', 'auto'].includes(value),
         storage: 'theme',
         default: 'auto'
+    },
+    claxusUrl: {
+        label: 'Claxus URL',
+        type: 'text',
+        placeholder: 'ws://localhost:8000',
+        default: 'ws://localhost:8000',
+        storage: 'claxusUrl',
+        validator: (value) => value.startsWith('ws://') || value.startsWith('wss://'),
+        section: 'claxus'
     }
 };
 
@@ -77,6 +86,8 @@ const Settings = {
         this.elements.gdriveConnectBtn = document.getElementById('gdriveConnectBtn');
         // Theme elements
         this.elements.themeSelect = document.getElementById('themeSelect');
+        // Claxus elements
+        this.elements.claxusUrlInput = document.getElementById('claxusUrlInput');
     },
 
     /**
@@ -144,6 +155,11 @@ const Settings = {
         // Theme change
         this.elements.themeSelect?.addEventListener('change', (e) => this.setTheme(e.target.value));
 
+        // Claxus URL change
+        this.elements.claxusUrlInput?.addEventListener('change', (e) => {
+            Storage.saveSetting('claxusUrl', e.target.value);
+        });
+
         // ESC key to close
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -190,6 +206,11 @@ const Settings = {
         // Update theme select if it exists
         if (this.elements.themeSelect) {
             this.elements.themeSelect.value = this.settings.theme || 'auto';
+        }
+
+        // Load Claxus URL
+        if (this.elements.claxusUrlInput) {
+            this.elements.claxusUrlInput.value = Storage.getSetting('claxusUrl', 'ws://localhost:8000');
         }
     },
 
@@ -487,5 +508,12 @@ const Settings = {
                 this.applyTheme('auto');
             }
         });
+    },
+
+    /**
+     * Get Claxus URL from settings
+     */
+    getClaxusUrl() {
+        return Storage.getSetting('claxusUrl', 'ws://localhost:8000');
     }
 };

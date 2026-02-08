@@ -285,6 +285,16 @@ const App = {
 
     // Set up global event listeners
     bindGlobalEvents() {
+        // Claxus mode toggle
+        const claxusModeToggle = document.getElementById('claxusModeToggle');
+        if (claxusModeToggle) {
+            claxusModeToggle.addEventListener('click', () => {
+                if (typeof Chat !== 'undefined') {
+                    Chat.setMode(Chat.mode === 'claxus' ? 'claude' : 'claxus');
+                }
+            });
+        }
+
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             // Escape key to exit editor

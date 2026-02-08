@@ -49,6 +49,7 @@
     <link rel="stylesheet" href="/static/css/buttons.css">
     <link rel="stylesheet" href="/static/css/auth.css">
     <link rel="stylesheet" href="/static/css/prompt-generator.css">
+    <link rel="stylesheet" href="/static/css/claxus.css">
 
     <!-- Google API for Picker -->
     <script src="https://apis.google.com/js/api.js" async defer></script>
@@ -215,6 +216,9 @@
                 <input type="text" class="chat-title" id="chatTitle" value="New Chat" />
 
                 <div class="chat-header-actions">
+                    <button class="claxus-mode-toggle" id="claxusModeToggle" title="Switch to Claxus">
+                        Claxus
+                    </button>
                     <div class="agent-controls">
                         <div class="agent-selector" id="agentSelector">
                             <span class="agent-selector-text">No Agents</span>
@@ -603,6 +607,18 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Claxus Section -->
+                    <div class="settings-section claxus-settings-section">
+                        <h4 class="settings-section-title">Claxus</h4>
+                        <div class="settings-section-content">
+                            <div class="setting-item">
+                                <label for="claxusUrlInput">Claxus URL</label>
+                                <input type="text" id="claxusUrlInput" placeholder="ws://localhost:8000" />
+                                <small>WebSocket URL for your local Claxus instance</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -918,6 +934,8 @@
     <script src="/static/js/storage.js"></script>
     <script src="/static/js/storage-sync.js"></script>
     <script src="/static/js/api.js"></script>
+    <script src="/static/js/claxus-ui.js"></script>
+    <script src="/static/js/claxus.js"></script>
     <script src="/static/js/components.js"></script>
     <script src="/static/js/ui.js"></script>
     <script src="/static/js/document-editing-instructions.js"></script>

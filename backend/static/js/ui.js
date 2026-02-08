@@ -141,6 +141,12 @@ const UI = {
 
     // Message utilities
 
+    // Add Claxus element (tool indicators, agent badges, etc.)
+    addClaxusElement(element) {
+        this.elements.chatMessages.appendChild(element);
+        this.autoScroll();
+    },
+
     // Create message element without appending (for batch rendering)
     createMessageElement(content, isUser = false, files = [], agent = null) {
         const messageDiv = document.createElement('div');
