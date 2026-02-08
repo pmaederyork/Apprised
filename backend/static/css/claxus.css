@@ -1,0 +1,351 @@
+/**
+ * Claxus-specific styling
+ * Compact, informational UI elements for agent orchestration
+ */
+
+/* ===== Mode Toggle ===== */
+.claxus-mode-toggle {
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.claxus-mode-toggle:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
+}
+
+.claxus-mode-toggle.active {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    color: white;
+    border-color: #0891b2;
+    box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1);
+}
+
+/* ===== Hide elements in Claxus mode ===== */
+body.claxus-mode .model-selector {
+    display: none;
+}
+
+body.claxus-mode .agent-controls {
+    display: none;
+}
+
+/* ===== Tool Indicators ===== */
+.claxus-tool-indicator {
+    padding: 4px 12px;
+    margin: 4px 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border-left: 2px solid var(--border-color);
+    border-radius: 4px;
+    font-family: monospace;
+    line-height: 1.5;
+}
+
+.claxus-tool-indicator .tool-icon {
+    margin-right: 6px;
+    opacity: 0.7;
+}
+
+.claxus-tool-indicator strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+/* ===== Tool Status ===== */
+.claxus-tool-status {
+    padding: 2px 12px;
+    margin: 2px 0;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+/* ===== Agent Badges ===== */
+.claxus-agent-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    margin: 4px 0;
+    font-size: 11px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ===== Routing Indicator ===== */
+.claxus-routing {
+    padding: 4px 12px;
+    margin: 4px 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+    border-left: 2px solid #3b82f6;
+}
+
+.claxus-routing strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.claxus-routing .confidence {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    margin-left: 4px;
+}
+
+/* ===== Completion Badge ===== */
+.claxus-completion {
+    display: inline-block;
+    padding: 3px 8px;
+    margin: 4px 0;
+    font-size: 11px;
+    font-weight: 500;
+    background: #10b981;
+    color: white;
+    border-radius: 10px;
+}
+
+.claxus-completion.error {
+    background: #ef4444;
+}
+
+/* ===== Interrupted Indicator ===== */
+.claxus-interrupted {
+    padding: 6px 12px;
+    margin: 6px 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+    border-left: 3px solid #f59e0b;
+    border-radius: 4px;
+}
+
+/* ===== Status Line ===== */
+.claxus-status-line {
+    position: sticky;
+    bottom: 0;
+    padding: 8px 16px;
+    margin: 8px 0;
+    font-size: 13px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.claxus-status-line .status-text {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.claxus-status-dots {
+    display: flex;
+    gap: 2px;
+}
+
+.claxus-status-dots span {
+    animation: dot-pulse 1.4s infinite;
+    color: var(--text-secondary);
+}
+
+.claxus-status-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.claxus-status-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes dot-pulse {
+    0%, 60%, 100% { opacity: 0.3; }
+    30% { opacity: 1; }
+}
+
+/* ===== Confirmation Dialog ===== */
+.claxus-confirmation {
+    padding: 16px;
+    margin: 12px 0;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid #3b82f6;
+    border-radius: 8px;
+}
+
+.claxus-confirmation.timed-out {
+    opacity: 0.6;
+    border-left-color: #6b7280;
+}
+
+.confirmation-header {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.confirmation-summary {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.confirmation-preview {
+    padding: 8px 12px;
+    margin: 8px 0;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.claxus-confirmation-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 12px;
+}
+
+.confirm-approve,
+.confirm-deny {
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.confirm-approve {
+    background: #10b981;
+    color: white;
+}
+
+.confirm-approve:hover:not(:disabled) {
+    background: #059669;
+}
+
+.confirm-deny {
+    background: #ef4444;
+    color: white;
+}
+
+.confirm-deny:hover:not(:disabled) {
+    background: #dc2626;
+}
+
+.confirm-approve:disabled,
+.confirm-deny:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.confirmation-status {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* ===== Context Stats ===== */
+.claxus-context-stats {
+    padding: 8px 12px;
+    margin: 8px 0;
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stats-label {
+    font-weight: 600;
+}
+
+.stats-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--bg-primary);
+    border-radius: 3px;
+    overflow: hidden;
+    display: flex;
+}
+
+.stats-input {
+    background: #3b82f6;
+}
+
+.stats-output {
+    background: #10b981;
+}
+
+.stats-text {
+    font-size: 10px;
+    color: var(--text-tertiary);
+}
+
+/* ===== Connection Status ===== */
+.claxus-connection-status {
+    padding: 6px 12px;
+    margin: 6px 0;
+    font-size: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    text-align: center;
+}
+
+.claxus-connection-status.connecting {
+    color: #f59e0b;
+    border-color: #f59e0b;
+}
+
+.claxus-connection-status.connected {
+    color: #10b981;
+    border-color: #10b981;
+}
+
+.claxus-connection-status.error {
+    color: #ef4444;
+    border-color: #ef4444;
+}
+
+/* ===== Dark/Light Theme Support ===== */
+[data-theme="light"] .claxus-tool-indicator,
+[data-theme="light"] .claxus-tool-status {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+}
+
+[data-theme="light"] .claxus-confirmation {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+}
+
+[data-theme="light"] .confirmation-preview {
+    background: #f3f4f6;
+}
+
+[data-theme="light"] .claxus-status-line {
+    background: #f9fafb;
+    border-color: #e5e7eb;
+}
