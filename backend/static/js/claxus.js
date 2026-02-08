@@ -1,12 +1,14 @@
 /**
- * Claxus WebSocket client for connecting to local Claxus gateway
+ * Claxus WebSocket client and mode manager
  * Handles bidirectional communication with agent orchestration system
+ * Manages dedicated Claxus conversation separate from regular chats
  */
 const Claxus = {
     ws: null,
     conversationId: null,
     connectionState: 'DISCONNECTED', // CONNECTING, CONNECTED, RECONNECTING, DISCONNECTED
     isSending: false,
+    active: false, // Whether Claxus mode is currently active
     currentStreamingBubble: null,
     fullResponse: '',
     reconnectAttempts: 0,
@@ -14,6 +16,119 @@ const Claxus = {
     reconnectDelay: 1000,
     messageHandlers: {},
     reconnectTimeout: null,
+    savedChatState: null, // Stores regular chat state when entering Claxus mode
+
+    /**
+     * Check if Claxus is configured (enabled in settings + URL set)
+     */
+    isConfigured() {
+        const enabled = Storage.getSetting('claxusEnabled', false);
+        const url = Settings.getClaxusUrl();
+        return enabled && url && url.length > 0;
+    },
+
+    /**
+     * Update sidebar button visibility based on settings
+     */
+    updateButtonVisibility() {
+        const btn = document.getElementById('claxusSidebarBtn');
+        if (btn) {
+            btn.style.display = this.isConfigured() ? '' : 'none';
+        }
+    },
+
+    /**
+     * Enter Claxus mode - switch to dedicated Claxus conversation
+     */
+    enterMode() {
+        if (this.active) return;
+        if (this.isSending || (typeof Chat !== 'undefined' && Chat.isSending)) return;
+
+        this.active = true;
+
+        // Save current chat state so we can restore it later
+        if (typeof Chat !== 'undefined') {
+            this.savedChatState = {
+                chatId: Chat.currentChatId,
+                messages: [...Chat.currentMessages]
+            };
+        }
+
+        // Add body class for CSS styling
+        document.body.classList.add('claxus-mode');
+
+        // Update sidebar button state
+        const btn = document.getElementById('claxusSidebarBtn');
+        if (btn) btn.classList.add('active');
+
+        // Update chat title
+        if (UI.elements.chatTitle) {
+            UI.elements.chatTitle.value = 'Claxus';
+            UI.elements.chatTitle.readOnly = true;
+        }
+
+        // Clear chat and show Claxus welcome
+        UI.clearMessages();
+
+        // Update input placeholder
+        if (UI.elements.messageInput) {
+            UI.elements.messageInput.placeholder = 'Message Claxus...';
+        }
+
+        // Get or create persistent conversation ID
+        this.conversationId = Storage.getSetting('claxusConversationId', null);
+        if (!this.conversationId) {
+            this.conversationId = this.generateConversationId();
+            Storage.saveSetting('claxusConversationId', this.conversationId);
+        }
+
+        // Connect to Claxus gateway
+        this.connect(this.conversationId);
+    },
+
+    /**
+     * Exit Claxus mode - return to regular chat
+     */
+    exitMode() {
+        if (!this.active) return;
+
+        this.active = false;
+        this.disconnect();
+
+        // Remove body class
+        document.body.classList.remove('claxus-mode');
+
+        // Update sidebar button state
+        const btn = document.getElementById('claxusSidebarBtn');
+        if (btn) btn.classList.remove('active');
+
+        // Restore chat title
+        if (UI.elements.chatTitle) {
+            UI.elements.chatTitle.readOnly = false;
+        }
+
+        // Restore input placeholder
+        if (UI.elements.messageInput) {
+            UI.elements.messageInput.placeholder = 'Reply to Claude...';
+        }
+
+        // Restore previous chat state
+        if (this.savedChatState && typeof Chat !== 'undefined') {
+            Chat.loadChat(this.savedChatState.chatId);
+            this.savedChatState = null;
+        }
+    },
+
+    /**
+     * Toggle Claxus mode
+     */
+    toggleMode() {
+        if (this.active) {
+            this.exitMode();
+        } else {
+            this.enterMode();
+        }
+    },
 
     /**
      * Initialize message handlers
@@ -62,7 +177,10 @@ const Claxus = {
             this.ws = new WebSocket(fullUrl);
             this.ws.addEventListener('open', () => this.handleOpen());
             this.ws.addEventListener('close', (event) => this.handleClose(event));
-            this.ws.addEventListener('error', (error) => this.handleError(error));
+            this.ws.addEventListener('error', (error) => {
+                console.error('[Claxus] WebSocket error:', error);
+                this.handleConnectionError();
+            });
             this.ws.addEventListener('message', (event) => this.handleMessage(event));
         } catch (error) {
             console.error('[Claxus] Failed to create WebSocket:', error);
@@ -143,6 +261,9 @@ const Claxus = {
      * Send new conversation signal
      */
     sendNewConversation() {
+        // Generate new conversation ID
+        this.conversationId = this.generateConversationId();
+        Storage.saveSetting('claxusConversationId', this.conversationId);
         this.send({ type: 'new_conversation' });
     },
 
@@ -191,7 +312,6 @@ const Claxus = {
         this.reconnectAttempts = 0;
         this.reconnectDelay = 1000;
 
-        // Show connection success in chat
         if (typeof Chat !== 'undefined') {
             Chat.addSystemMessage('Connected to Claxus');
         }
@@ -204,11 +324,9 @@ const Claxus = {
         console.log(`[Claxus] Connection closed (code: ${event.code})`);
 
         if (event.code === 1000) {
-            // Normal closure
             this.connectionState = 'DISCONNECTED';
             console.log('[Claxus] Normal disconnect');
         } else {
-            // Abnormal closure - attempt reconnect
             this.attemptReconnect();
         }
     },
@@ -220,17 +338,10 @@ const Claxus = {
         console.error('[Claxus] Connection error');
 
         if (this.connectionState === 'CONNECTING') {
-            // First connection failed
             if (typeof Chat !== 'undefined') {
                 Chat.addSystemMessage('Could not connect to Claxus at ' + this.getWsUrl() + '. Check settings and ensure Claxus is running.');
             }
             this.connectionState = 'DISCONNECTED';
-
-            // Revert to Claude mode
-            if (typeof Chat !== 'undefined' && Chat.mode === 'claxus') {
-                Chat.mode = 'claude';
-                Chat.updateModeUI();
-            }
         }
     },
 
@@ -243,7 +354,7 @@ const Claxus = {
             this.connectionState = 'DISCONNECTED';
 
             if (typeof Chat !== 'undefined') {
-                Chat.addSystemMessage('Connection lost. Click Reconnect or toggle to Claude mode.');
+                Chat.addSystemMessage('Connection lost. Click the Claxus button to reconnect.');
             }
 
             ClaxusUI.hideStatus();
@@ -282,9 +393,6 @@ const Claxus = {
 
     // ===== Message Handlers =====
 
-    /**
-     * Handle conversation history
-     */
     handleHistory(data) {
         console.log('[Claxus] Received history:', data.messages?.length || 0, 'messages');
 
@@ -295,9 +403,6 @@ const Claxus = {
         }
     },
 
-    /**
-     * Handle streaming text chunk
-     */
     handleStream(data) {
         if (data.chunk && this.currentStreamingBubble) {
             this.fullResponse += data.chunk;
@@ -305,9 +410,6 @@ const Claxus = {
         }
     },
 
-    /**
-     * Handle streaming complete
-     */
     handleComplete(data) {
         console.log('[Claxus] Streaming complete');
 
@@ -322,25 +424,16 @@ const Claxus = {
         UI.focusMessageInput();
     },
 
-    /**
-     * Handle tool use indicator
-     */
     handleToolUse(data) {
         const indicator = ClaxusUI.createToolIndicator(data.tool_name, data.tool_input);
         UI.addClaxusElement(indicator);
     },
 
-    /**
-     * Handle tool status update
-     */
     handleToolStatus(data) {
         const statusIndicator = ClaxusUI.createToolStatusIndicator(data.content);
         UI.addClaxusElement(statusIndicator);
     },
 
-    /**
-     * Handle agent start
-     */
     handleAgentStart(data) {
         console.log('[Claxus] Agent started:', data.agent_type);
         ClaxusUI.showStatus(data.agent_type);
@@ -349,9 +442,6 @@ const Claxus = {
         UI.addClaxusElement(badge);
     },
 
-    /**
-     * Handle agent complete
-     */
     handleAgentComplete(data) {
         console.log('[Claxus] Agent complete:', data.agent_type);
         ClaxusUI.hideStatus();
@@ -360,30 +450,21 @@ const Claxus = {
         UI.addClaxusElement(completionBadge);
     },
 
-    /**
-     * Handle routing decision
-     */
     handleRouting(data) {
         const routingIndicator = ClaxusUI.createRoutingIndicator(data.agent, data.confidence);
         UI.addClaxusElement(routingIndicator);
     },
 
-    /**
-     * Handle error message
-     */
     handleError(data) {
         console.error('[Claxus] Error:', data.message || data.error);
 
         const errorContent = data.message || data.error || 'Unknown error';
-        const errorBubble = UI.addMessage(`Error: ${errorContent}`, false, []);
+        UI.addMessage(`Error: ${errorContent}`, false, []);
 
         this.isSending = false;
         UI.setSendButtonState(true, false);
     },
 
-    /**
-     * Handle conversation cleared
-     */
     handleCleared(data) {
         console.log('[Claxus] Conversation cleared');
         UI.clearMessages();
@@ -392,9 +473,6 @@ const Claxus = {
         }
     },
 
-    /**
-     * Handle interrupted message
-     */
     handleInterrupted(data) {
         console.log('[Claxus] Message interrupted');
 
@@ -411,29 +489,21 @@ const Claxus = {
         UI.setSendButtonState(true, false);
     },
 
-    /**
-     * Handle context statistics
-     */
     handleContextStats(data) {
         const statsDisplay = ClaxusUI.createContextStatsDisplay(data.stats);
         UI.addClaxusElement(statsDisplay);
     },
 
-    /**
-     * Handle scheduled task notification
-     */
     handleScheduled(data) {
         if (typeof Chat !== 'undefined') {
             Chat.addSystemMessage(`Task scheduled: ${data.description || 'Unknown task'}`);
         }
     },
 
-    /**
-     * Handle new conversation
-     */
     handleNewConversation(data) {
         console.log('[Claxus] New conversation:', data.conversation_id);
         this.conversationId = data.conversation_id;
+        Storage.saveSetting('claxusConversationId', this.conversationId);
 
         UI.clearMessages();
         if (typeof Chat !== 'undefined') {
@@ -441,9 +511,6 @@ const Claxus = {
         }
     },
 
-    /**
-     * Handle confirmation needed
-     */
     handleConfirmationNeeded(data) {
         console.log('[Claxus] Confirmation needed:', data.confirmation_id);
 
@@ -451,13 +518,9 @@ const Claxus = {
         UI.addClaxusElement(confirmationDialog);
     },
 
-    /**
-     * Handle confirmation resolved
-     */
     handleConfirmationResolved(data) {
         console.log('[Claxus] Confirmation resolved:', data.confirmation_id, data.approved);
 
-        // Find the confirmation card by ID and update it
         const card = document.querySelector(`[data-confirmation-id="${data.confirmation_id}"]`);
         if (card) {
             const statusText = card.querySelector('.confirmation-status');
@@ -466,18 +529,15 @@ const Claxus = {
                 statusText.style.color = data.approved ? '#10b981' : '#ef4444';
             }
 
-            // Disable buttons
             const buttons = card.querySelectorAll('button');
             buttons.forEach(btn => btn.disabled = true);
         }
     },
 
-    /**
-     * Handle conversation switched
-     */
     handleSwitched(data) {
         console.log('[Claxus] Switched to conversation:', data.conversation_id);
         this.conversationId = data.conversation_id;
+        Storage.saveSetting('claxusConversationId', this.conversationId);
     }
 };
 
@@ -490,7 +550,7 @@ window.addEventListener('pagehide', () => {
 
 // Reconnect if needed when page becomes visible again
 window.addEventListener('pageshow', () => {
-    if (typeof Chat !== 'undefined' && Chat.mode === 'claxus' && Claxus.connectionState === 'DISCONNECTED') {
+    if (Claxus.active && Claxus.connectionState === 'DISCONNECTED') {
         Claxus.connect(Claxus.conversationId);
     }
 });

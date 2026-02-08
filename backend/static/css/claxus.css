@@ -1,13 +1,21 @@
 /**
  * Claxus-specific styling
- * Compact, informational UI elements for agent orchestration
+ * CLI-inspired aesthetic for agent orchestration interface
  */
 
-/* ===== Mode Toggle ===== */
-.claxus-mode-toggle {
-    padding: 6px 12px;
+/* ===== Sidebar Button ===== */
+.claxus-sidebar-section {
+    padding: 4px 12px 8px;
+}
+
+.claxus-sidebar-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     border: 1px solid var(--border-color);
     background: var(--bg-secondary);
     color: var(--text-secondary);
@@ -16,16 +24,40 @@
     transition: all 0.2s ease;
 }
 
-.claxus-mode-toggle:hover {
+.claxus-sidebar-btn:hover {
     background: var(--bg-hover);
     border-color: var(--border-hover);
+    color: var(--text-primary);
 }
 
-.claxus-mode-toggle.active {
+.claxus-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    color: white;
+    border-radius: 4px;
+}
+
+.claxus-btn-label {
+    flex: 1;
+    text-align: left;
+}
+
+.claxus-sidebar-section.active .claxus-sidebar-btn,
+.claxus-sidebar-btn:active {
     background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
     color: white;
     border-color: #0891b2;
-    box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1);
+    box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.15);
+}
+
+.claxus-sidebar-section.active .claxus-btn-icon {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 /* ===== Hide elements in Claxus mode ===== */
@@ -37,15 +69,82 @@ body.claxus-mode .agent-controls {
     display: none;
 }
 
+body.claxus-mode .turns-control {
+    display: none;
+}
+
+body.claxus-mode .conversations-section {
+    display: none;
+}
+
+body.claxus-mode .documents-section {
+    display: none;
+}
+
+body.claxus-mode .tools-section {
+    display: none;
+}
+
+body.claxus-mode .system-prompt-section {
+    display: none;
+}
+
+/* Chat title is read-only in Claxus mode */
+body.claxus-mode .chat-title {
+    color: #06b6d4;
+    font-weight: 600;
+}
+
+/* ===== CLI-style Chat Messages ===== */
+body.claxus-mode .chat-messages {
+    background: var(--bg-primary);
+}
+
+/* User messages - cyan theme */
+body.claxus-mode .message.user .message-bubble {
+    background: transparent;
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    color: #22d3ee;
+}
+
+/* Assistant messages - warm/orange theme */
+body.claxus-mode .message.claude .message-bubble {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    padding-left: 0;
+}
+
+/* System messages in Claxus mode */
+body.claxus-mode .message.system {
+    color: rgba(6, 182, 212, 0.6);
+    font-style: normal;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+/* Input area styling in Claxus mode */
+body.claxus-mode .chat-input-container {
+    border-color: rgba(6, 182, 212, 0.3);
+}
+
+body.claxus-mode #messageInput {
+    color: #22d3ee;
+}
+
+body.claxus-mode #messageInput::placeholder {
+    color: rgba(6, 182, 212, 0.4);
+}
+
 /* ===== Tool Indicators ===== */
 .claxus-tool-indicator {
     padding: 4px 12px;
     margin: 4px 0;
     font-size: 12px;
-    color: var(--text-secondary);
-    background: var(--bg-tertiary);
-    border-left: 2px solid var(--border-color);
-    border-radius: 4px;
+    color: #60a5fa;
+    background: transparent;
+    border-left: 2px solid rgba(96, 165, 250, 0.3);
+    border-radius: 0;
     font-family: monospace;
     line-height: 1.5;
 }
@@ -56,7 +155,7 @@ body.claxus-mode .agent-controls {
 }
 
 .claxus-tool-indicator strong {
-    color: var(--text-primary);
+    color: #93c5fd;
     font-weight: 600;
 }
 
@@ -67,20 +166,23 @@ body.claxus-mode .agent-controls {
     font-size: 11px;
     color: var(--text-tertiary);
     font-style: italic;
+    font-family: monospace;
 }
 
 /* ===== Agent Badges ===== */
 .claxus-agent-badge {
     display: inline-block;
-    padding: 4px 10px;
+    padding: 3px 8px;
     margin: 4px 0;
     font-size: 11px;
     font-weight: 600;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    color: white;
-    border-radius: 12px;
+    background: transparent;
+    color: #c084fc;
+    border: 1px solid rgba(192, 132, 252, 0.3);
+    border-radius: 4px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    font-family: monospace;
 }
 
 /* ===== Routing Indicator ===== */
@@ -88,12 +190,13 @@ body.claxus-mode .agent-controls {
     padding: 4px 12px;
     margin: 4px 0;
     font-size: 12px;
-    color: var(--text-secondary);
-    border-left: 2px solid #3b82f6;
+    color: #e879f9;
+    border-left: 2px solid rgba(232, 121, 249, 0.3);
+    font-family: monospace;
 }
 
 .claxus-routing strong {
-    color: var(--text-primary);
+    color: #f0abfc;
     font-weight: 600;
 }
 
@@ -110,44 +213,48 @@ body.claxus-mode .agent-controls {
     margin: 4px 0;
     font-size: 11px;
     font-weight: 500;
-    background: #10b981;
-    color: white;
-    border-radius: 10px;
+    background: transparent;
+    color: #34d399;
+    border: 1px solid rgba(52, 211, 153, 0.3);
+    border-radius: 4px;
+    font-family: monospace;
 }
 
 .claxus-completion.error {
-    background: #ef4444;
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.3);
 }
 
 /* ===== Interrupted Indicator ===== */
 .claxus-interrupted {
-    padding: 6px 12px;
+    padding: 4px 12px;
     margin: 6px 0;
     font-size: 12px;
     font-weight: 600;
-    color: #f59e0b;
-    background: rgba(245, 158, 11, 0.1);
-    border-left: 3px solid #f59e0b;
-    border-radius: 4px;
+    color: #fbbf24;
+    background: transparent;
+    border-left: 2px solid rgba(251, 191, 36, 0.3);
+    font-family: monospace;
 }
 
 /* ===== Status Line ===== */
 .claxus-status-line {
     position: sticky;
     bottom: 0;
-    padding: 8px 16px;
+    padding: 6px 12px;
     margin: 8px 0;
-    font-size: 13px;
+    font-size: 12px;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 4px;
     display: flex;
     align-items: center;
     gap: 8px;
+    font-family: monospace;
 }
 
 .claxus-status-line .status-text {
-    color: var(--text-primary);
+    color: #06b6d4;
     font-weight: 500;
 }
 
@@ -176,12 +283,13 @@ body.claxus-mode .agent-controls {
 
 /* ===== Confirmation Dialog ===== */
 .claxus-confirmation {
-    padding: 16px;
-    margin: 12px 0;
+    padding: 12px;
+    margin: 8px 0;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    border-left: 4px solid #3b82f6;
-    border-radius: 8px;
+    border-left: 3px solid #3b82f6;
+    border-radius: 4px;
+    font-family: monospace;
 }
 
 .claxus-confirmation.timed-out {
@@ -190,29 +298,29 @@ body.claxus-mode .agent-controls {
 }
 
 .confirmation-header {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 8px;
+    color: #60a5fa;
+    margin-bottom: 6px;
 }
 
 .confirmation-summary {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-secondary);
     margin-bottom: 8px;
     line-height: 1.5;
 }
 
 .confirmation-preview {
-    padding: 8px 12px;
-    margin: 8px 0;
+    padding: 6px 10px;
+    margin: 6px 0;
     background: var(--bg-tertiary);
     border-radius: 4px;
     font-family: monospace;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-secondary);
     white-space: pre-wrap;
-    max-height: 100px;
+    max-height: 80px;
     overflow-y: auto;
 }
 
@@ -220,18 +328,19 @@ body.claxus-mode .agent-controls {
     display: flex;
     gap: 8px;
     align-items: center;
-    margin-top: 12px;
+    margin-top: 8px;
 }
 
 .confirm-approve,
 .confirm-deny {
-    padding: 8px 16px;
-    font-size: 13px;
+    padding: 6px 14px;
+    font-size: 12px;
     font-weight: 500;
     border: none;
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
+    font-family: monospace;
 }
 
 .confirm-approve {
@@ -260,21 +369,23 @@ body.claxus-mode .agent-controls {
 
 .confirmation-status {
     margin-left: auto;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
+    font-family: monospace;
 }
 
 /* ===== Context Stats ===== */
 .claxus-context-stats {
-    padding: 8px 12px;
-    margin: 8px 0;
+    padding: 6px 12px;
+    margin: 6px 0;
     font-size: 11px;
     color: var(--text-secondary);
-    background: var(--bg-tertiary);
-    border-radius: 6px;
+    background: transparent;
+    border-left: 2px solid var(--border-color);
     display: flex;
     align-items: center;
     gap: 8px;
+    font-family: monospace;
 }
 
 .stats-label {
@@ -283,9 +394,9 @@ body.claxus-mode .agent-controls {
 
 .stats-bar {
     flex: 1;
-    height: 6px;
-    background: var(--bg-primary);
-    border-radius: 3px;
+    height: 4px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
     overflow: hidden;
     display: flex;
 }
@@ -305,47 +416,71 @@ body.claxus-mode .agent-controls {
 
 /* ===== Connection Status ===== */
 .claxus-connection-status {
-    padding: 6px 12px;
-    margin: 6px 0;
-    font-size: 12px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
+    padding: 4px 12px;
+    margin: 4px 0;
+    font-size: 11px;
     text-align: center;
+    font-family: monospace;
 }
 
 .claxus-connection-status.connecting {
-    color: #f59e0b;
-    border-color: #f59e0b;
+    color: #fbbf24;
 }
 
 .claxus-connection-status.connected {
-    color: #10b981;
-    border-color: #10b981;
+    color: #34d399;
 }
 
 .claxus-connection-status.error {
-    color: #ef4444;
-    border-color: #ef4444;
+    color: #f87171;
 }
 
-/* ===== Dark/Light Theme Support ===== */
-[data-theme="light"] .claxus-tool-indicator,
-[data-theme="light"] .claxus-tool-status {
-    background: #f3f4f6;
-    border-color: #e5e7eb;
+/* ===== Light Theme Support ===== */
+[data-theme="light"] body.claxus-mode .message.user .message-bubble {
+    color: #0891b2;
+    border-color: rgba(8, 145, 178, 0.3);
+    background: rgba(8, 145, 178, 0.05);
 }
 
-[data-theme="light"] .claxus-confirmation {
-    background: #f9fafb;
-    border-color: #e5e7eb;
+[data-theme="light"] body.claxus-mode .chat-title {
+    color: #0891b2;
 }
 
-[data-theme="light"] .confirmation-preview {
-    background: #f3f4f6;
+[data-theme="light"] body.claxus-mode #messageInput {
+    color: #0891b2;
 }
 
-[data-theme="light"] .claxus-status-line {
-    background: #f9fafb;
-    border-color: #e5e7eb;
+[data-theme="light"] body.claxus-mode #messageInput::placeholder {
+    color: rgba(8, 145, 178, 0.4);
+}
+
+[data-theme="light"] .claxus-tool-indicator {
+    color: #2563eb;
+    border-color: rgba(37, 99, 235, 0.3);
+}
+
+[data-theme="light"] .claxus-tool-indicator strong {
+    color: #1d4ed8;
+}
+
+[data-theme="light"] .claxus-agent-badge {
+    color: #9333ea;
+    border-color: rgba(147, 51, 234, 0.3);
+}
+
+[data-theme="light"] .claxus-routing {
+    color: #c026d3;
+    border-color: rgba(192, 38, 211, 0.3);
+}
+
+[data-theme="light"] .claxus-routing strong {
+    color: #a21caf;
+}
+
+[data-theme="light"] .confirmation-header {
+    color: #2563eb;
+}
+
+[data-theme="light"] .claxus-status-line .status-text {
+    color: #0891b2;
 }

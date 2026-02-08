@@ -21,6 +21,13 @@ const SETTINGS_CONFIG = {
         storage: 'theme',
         default: 'auto'
     },
+    claxusEnabled: {
+        label: 'Enable Claxus',
+        type: 'boolean',
+        default: false,
+        storage: 'claxusEnabled',
+        section: 'claxus'
+    },
     claxusUrl: {
         label: 'Claxus URL',
         type: 'text',
@@ -87,6 +94,7 @@ const Settings = {
         // Theme elements
         this.elements.themeSelect = document.getElementById('themeSelect');
         // Claxus elements
+        this.elements.claxusEnabledToggle = document.getElementById('claxusEnabledToggle');
         this.elements.claxusUrlInput = document.getElementById('claxusUrlInput');
     },
 
@@ -155,9 +163,20 @@ const Settings = {
         // Theme change
         this.elements.themeSelect?.addEventListener('change', (e) => this.setTheme(e.target.value));
 
+        // Claxus enabled toggle
+        this.elements.claxusEnabledToggle?.addEventListener('change', (e) => {
+            Storage.saveSetting('claxusEnabled', e.target.checked);
+            if (typeof Claxus !== 'undefined') {
+                Claxus.updateButtonVisibility();
+            }
+        });
+
         // Claxus URL change
         this.elements.claxusUrlInput?.addEventListener('change', (e) => {
             Storage.saveSetting('claxusUrl', e.target.value);
+            if (typeof Claxus !== 'undefined') {
+                Claxus.updateButtonVisibility();
+            }
         });
 
         // ESC key to close
@@ -208,7 +227,10 @@ const Settings = {
             this.elements.themeSelect.value = this.settings.theme || 'auto';
         }
 
-        // Load Claxus URL
+        // Load Claxus settings
+        if (this.elements.claxusEnabledToggle) {
+            this.elements.claxusEnabledToggle.checked = Storage.getSetting('claxusEnabled', false);
+        }
         if (this.elements.claxusUrlInput) {
             this.elements.claxusUrlInput.value = Storage.getSetting('claxusUrl', 'ws://localhost:8000');
         }

@@ -203,6 +203,10 @@ const App = {
         try {
             Settings.init();
             console.log('Settings module initialized');
+            // Update Claxus sidebar button visibility based on settings
+            if (typeof Claxus !== 'undefined') {
+                Claxus.updateButtonVisibility();
+            }
         } catch (error) {
             console.error('Failed to initialize Settings:', error);
         }
@@ -285,12 +289,13 @@ const App = {
 
     // Set up global event listeners
     bindGlobalEvents() {
-        // Claxus mode toggle
-        const claxusModeToggle = document.getElementById('claxusModeToggle');
-        if (claxusModeToggle) {
-            claxusModeToggle.addEventListener('click', () => {
-                if (typeof Chat !== 'undefined') {
-                    Chat.setMode(Chat.mode === 'claxus' ? 'claude' : 'claxus');
+        // Claxus sidebar button
+        const claxusSidebarButton = document.getElementById('claxusSidebarButton');
+        if (claxusSidebarButton) {
+            claxusSidebarButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (typeof Claxus !== 'undefined') {
+                    Claxus.toggleMode();
                 }
             });
         }

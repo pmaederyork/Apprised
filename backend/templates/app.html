@@ -108,6 +108,12 @@
                         <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
                     </select>
                 </div>
+                <div class="claxus-sidebar-section" id="claxusSidebarBtn" style="display: none;">
+                    <button class="claxus-sidebar-btn" id="claxusSidebarButton" title="Open Claxus">
+                        <span class="claxus-btn-icon">C</span>
+                        <span class="claxus-btn-label">Claxus</span>
+                    </button>
+                </div>
                 <div class="system-prompt-section">
                     <div class="section-header" id="systemPromptHeader">
                         <div style="display: flex; align-items: center; gap: 8px;">
@@ -216,9 +222,6 @@
                 <input type="text" class="chat-title" id="chatTitle" value="New Chat" />
 
                 <div class="chat-header-actions">
-                    <button class="claxus-mode-toggle" id="claxusModeToggle" title="Switch to Claxus">
-                        Claxus
-                    </button>
                     <div class="agent-controls">
                         <div class="agent-selector" id="agentSelector">
                             <span class="agent-selector-text">No Agents</span>
@@ -612,6 +615,15 @@
                     <div class="settings-section claxus-settings-section">
                         <h4 class="settings-section-title">Claxus</h4>
                         <div class="settings-section-content">
+                            <div class="setting-item">
+                                <div class="tool-content" style="margin-bottom: 12px;">
+                                    <span class="tool-name">Enable Claxus</span>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="claxusEnabledToggle">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
                             <div class="setting-item">
                                 <label for="claxusUrlInput">Claxus URL</label>
                                 <input type="text" id="claxusUrlInput" placeholder="ws://localhost:8000" />

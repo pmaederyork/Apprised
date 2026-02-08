@@ -10,8 +10,6 @@ const Chat = {
     isSending: false,
     hadDocumentEditingInstructions: false,
     isLoadingChat: false, // Flag to skip autoScroll during batch load
-    mode: 'claude', // 'claude' | 'claxus'
-
     /**
      * Check if multi-agent mode is active (more than one agent configured)
      */
@@ -54,7 +52,8 @@ const Chat = {
     bindEvents() {
         // Send message events - also handles stop when streaming
         UI.elements.sendBtn.addEventListener('click', () => {
-            if (this.isSending) {
+            const claxusSending = typeof Claxus !== 'undefined' && Claxus.active && Claxus.isSending;
+            if (this.isSending || claxusSending) {
                 this.interruptMessage();
             } else {
                 this.sendMessage();
@@ -126,15 +125,13 @@ const Chat = {
         this.currentChatId = Storage.generateChatId();
         this.currentMessages = [];
         this.hadDocumentEditingInstructions = false;
-        this.mode = 'claude'; // Reset to Claude mode for new chats
         this.chats[this.currentChatId] = {
             id: this.currentChatId,
             title: 'New Chat',
             messages: [],
             agents: [],
             turns: 'auto',
-            createdAt: Date.now(),
-            mode: 'claude'
+            createdAt: Date.now()
         };
 
         UI.elements.chatTitle.value = 'New Chat';
@@ -142,7 +139,6 @@ const Chat = {
         this.addWelcomeMessage();
         Storage.saveChats(this.chats);
         this.renderChatList();
-        this.updateModeUI();
 
         // Update agent UI for new chat
         if (typeof Agents !== 'undefined') {
@@ -199,21 +195,6 @@ const Chat = {
             // Clear loading flag and scroll once at the end
             this.isLoadingChat = false;
             UI.scrollToBottom();
-
-            // Restore chat mode (backward compat: default to 'claude')
-            this.mode = chat.mode || 'claude';
-            this.updateModeUI();
-
-            // If Claxus mode, connect; if Claude mode, disconnect Claxus
-            if (this.mode === 'claxus') {
-                if (typeof Claxus !== 'undefined') {
-                    Claxus.connect(this.generateClaxusConversationId());
-                }
-            } else {
-                if (typeof Claxus !== 'undefined' && Claxus.connectionState !== 'DISCONNECTED') {
-                    Claxus.disconnect();
-                }
-            }
 
             // Update active chat in sidebar
             this.updateActiveChatInSidebar(chatId);
@@ -324,52 +305,6 @@ const Chat = {
         }
     },
 
-    // Set chat mode (claude or claxus)
-    setMode(mode) {
-        if (this.isSending) return; // Don't switch during active send
-        this.mode = mode;
-
-        // Persist mode to current chat metadata
-        if (this.currentChatId && this.chats[this.currentChatId]) {
-            this.chats[this.currentChatId].mode = mode;
-            Storage.saveChats(this.chats);
-        }
-
-        if (mode === 'claxus') {
-            Claxus.connect(this.generateClaxusConversationId());
-        } else {
-            if (typeof Claxus !== 'undefined') {
-                Claxus.disconnect();
-            }
-        }
-        this.updateModeUI();
-    },
-
-    // Update UI based on current mode
-    updateModeUI() {
-        const toggle = document.getElementById('claxusModeToggle');
-        if (toggle) {
-            if (this.mode === 'claxus') {
-                toggle.classList.add('active');
-            } else {
-                toggle.classList.remove('active');
-            }
-        }
-
-        // Add/remove body class to control visibility of model-selector and agent-controls via CSS
-        if (this.mode === 'claxus') {
-            document.body.classList.add('claxus-mode');
-        } else {
-            document.body.classList.remove('claxus-mode');
-        }
-    },
-
-    // Generate or retrieve Claxus conversation ID for current chat
-    generateClaxusConversationId() {
-        // Use chat ID as conversation ID for simplicity
-        return this.currentChatId || 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    },
-
     // Send a message
     async sendMessage() {
         // Prevent duplicate sends
@@ -379,10 +314,8 @@ const Chat = {
         if (!message) return;
 
         // Route to Claxus if in Claxus mode
-        if (this.mode === 'claxus') {
-            if (typeof Claxus !== 'undefined') {
-                Claxus.sendMessage(message);
-            }
+        if (typeof Claxus !== 'undefined' && Claxus.active) {
+            Claxus.sendMessage(message);
             return;
         }
 
@@ -552,14 +485,10 @@ const Chat = {
 
     // Interrupt current message streaming
     interruptMessage() {
-        if (this.isSending) {
-            if (this.mode === 'claxus') {
-                if (typeof Claxus !== 'undefined') {
-                    Claxus.sendInterrupt();
-                }
-            } else {
-                API.interrupt();
-            }
+        if (typeof Claxus !== 'undefined' && Claxus.active && Claxus.isSending) {
+            Claxus.sendInterrupt();
+        } else if (this.isSending) {
+            API.interrupt();
         }
     },
 
